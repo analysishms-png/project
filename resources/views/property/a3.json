@@ -1,0 +1,146 @@
+{
+    "RoomStays": [
+        {
+            "RoomTypes": [
+                {
+                    "RoomDescription": {
+                        "Name": "Presidential Suite"
+                    },
+                    "NumberOfUnits": 1,
+                    "RoomTypeCode": "42913"
+                }
+            ],
+            "RatePlans": [
+                {
+                    "RatePlanCode": "21202",
+                    "RatePlanName": "EP(SG)"
+                }
+            ],
+            "GuestCounts": [
+                {
+                    "AgeQualifyingCode": "10",
+                    "Count": 1
+                },
+                {
+                    "AgeQualifyingCode": "8",
+                    "Count": 0
+                }
+            ],
+            "TimeSpan": {
+                "Start": "2025-12-02",
+                "End": "2025-12-04"
+            },
+            "RoomRates": [
+                {
+                    "Base": {
+                        "AmountBeforeTax": "4000.00",
+                        "AmountAfterTax": "480.00"
+                    },
+                    "EffectiveDate": "2025-12-02"
+                },
+                {
+                    "Base": {
+                        "AmountBeforeTax": "4000.00",
+                        "AmountAfterTax": "480.00"
+                    },
+                    "EffectiveDate": "2025-12-03"
+                }
+            ],
+            "Total": {
+                "AmountBeforeTax": "8000.00",
+                "AmountAfterTax": "960.00"
+            }
+        }
+    ],
+    "ResGuests": [
+        {
+            "Customer": {
+                "PersonName": {
+                    "NamePrefix": "Mr.",
+                    "GivenName": "analysis software",
+                    "Surname": ""
+                },
+                "Telephone": {
+                    "PhoneNumber": "9648479977"
+                },
+                "Email": null,
+                "Address": {
+                    "AddressLine": [
+                        "",
+                        ""
+                    ],
+                    "CityName": "ALMORA",
+                    "PostalCode": "0",
+                    "StateProv": "UTTARAKHAND",
+                    "CountryName": "INDIA"
+                }
+            },
+            "PrimaryIndicator": "1"
+        }
+    ],
+    "ResGlobalInfo": {
+        "UniqueID": {
+            "ID": "13510022"
+        },
+        "BasicPropertyInfo": {
+            "HotelCode": 30405,
+            "HotelName": "The Corbett Sappire Resort"
+        },
+        "Source": {
+            "RequestorID": {
+                "ID": "EXT_PMS_CODE",
+                "Type": "ChannelManager"
+            },
+            "BookingChannel": {
+                "Type": "OTA",
+                "CompanyName": "EXT PMS NAME",
+                "CompanyCode": ""
+            }
+        },
+        "CreateDateTime": "2025-12-01T17:07:49",
+        "ResStatus": "Commit",
+        "TimeSpan": {
+            "Start": "2025-12-02",
+            "End": "2025-12-04"
+        },
+        "GuestCounts": [
+            {
+                "AgeQualifyingCode": "10",
+                "Count": 1
+            },
+            {
+                "AgeQualifyingCode": "8",
+                "Count": 0
+            }
+        ],
+        "Total": {
+            "OtherCharges": [
+                {
+                    "ChargeDesc": "Airport Pickup",
+                    "AmountBeforeTax": 0,
+                    "AmountAfterTax": 0
+                },
+                {
+                    "ChargeDesc": "Airport Drop",
+                    "AmountBeforeTax": 0,
+                    "AmountAfterTax": 0
+                }
+            ],
+            "Taxes": {
+                "Tax": {
+                    "Amount": "-7040.00"
+                }
+            },
+            "AmountBeforeTax": "8000.00",
+            "AmountAfterTax": "960.00",
+            "CurrencyCode": "INR"
+        },
+        "PaymentTypeInfo": {
+            "PaymentType": "PayAtHotel",
+            "PartialPaymentAmount": 0
+        },
+        "SpecialRequests": [
+            ""
+        ]
+    }
+}

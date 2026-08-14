@@ -1,0 +1,272 @@
+{
+    "fordate": "2026-05-26",
+    "ranges": {
+        "mtd": {
+            "start": "2026-05-01",
+            "end": "2026-05-26"
+        },
+        "ftd": {
+            "start": "2026-04-01",
+            "end": "2026-05-26"
+        },
+        "month_days": 26,
+        "financial_days": 56
+    },
+    "sections": {
+        "front_office": [
+            {
+                "name": "EXTRA BED",
+                "today": 0,
+                "MTD": 6308.84,
+                "YTD": 25414.64
+            },
+            {
+                "name": "ROOM CHARGE",
+                "today": 0,
+                "MTD": 1047087.99,
+                "YTD": 1936213.55
+            },
+            {
+                "name": "Rs-Misc Sale",
+                "today": 0,
+                "MTD": 7981.64,
+                "YTD": 22517.1
+            },
+            {
+                "name": "Transferred and Sightseeing",
+                "today": 0,
+                "MTD": 21904.77,
+                "YTD": 29523.78
+            }
+        ],
+        "sales_summary": [
+            {
+                "group": "LAUNDRY",
+                "name": "Miscellaneous",
+                "today": 0,
+                "MTD": 169.49,
+                "YTD": 1420.3
+            },
+            {
+                "group": "MINI BAR",
+                "name": "Liquor",
+                "today": 0,
+                "MTD": 15076,
+                "YTD": 26142
+            },
+            {
+                "group": "ROOM SERVICE",
+                "name": "Beverage",
+                "today": 0,
+                "MTD": 7670,
+                "YTD": 15650
+            },
+            {
+                "group": "ROOM SERVICE",
+                "name": "Food",
+                "today": 0,
+                "MTD": 56550,
+                "YTD": 94570
+            },
+            {
+                "group": "SPANISH BAR",
+                "name": "Liquor",
+                "today": 0,
+                "MTD": 21890,
+                "YTD": 55900
+            },
+            {
+                "group": "SIZZLER HOUSE",
+                "name": "Beverage",
+                "today": 0,
+                "MTD": 10796,
+                "YTD": 23636
+            },
+            {
+                "group": "SIZZLER HOUSE",
+                "name": "Food",
+                "today": 0,
+                "MTD": 130143.05,
+                "YTD": 363764
+            }
+        ],
+        "discount_summary": [
+            {
+                "group": "ROOM SERVICE",
+                "name": "ROOM SERVICE",
+                "today": 0,
+                "MTD": 24,
+                "YTD": 26.9
+            },
+            {
+                "group": "SIZZLER HOUSE",
+                "name": "SIZZLER HOUSE",
+                "today": 0,
+                "MTD": 1729.6,
+                "YTD": 2129.1
+            }
+        ],
+        "banquet_summary": [],
+        "total_revenue": [
+            {
+                "name": "Total Revenue",
+                "today": 0,
+                "MTD": 1325577.78,
+                "YTD": 2594751.37
+            }
+        ],
+        "tax_summary": [
+            {
+                "name": "CGST (SALES)",
+                "today": 0,
+                "MTD": 32185.2,
+                "YTD": 62821.71
+            },
+            {
+                "name": "SGST (SALES)",
+                "today": 0,
+                "MTD": 32185.2,
+                "YTD": 62821.71
+            }
+        ],
+        "payment_summary": [
+            {
+                "name": "CASH IN HAND",
+                "today": 0,
+                "MTD": 63535.55,
+                "YTD": 182486.99
+            },
+            {
+                "name": "BILL TO COMPANY",
+                "today": 0,
+                "MTD": 256643.93,
+                "YTD": 807286.07
+            },
+            {
+                "name": "UPI",
+                "today": 0,
+                "MTD": 698197.63,
+                "YTD": 1183433.75
+            },
+            {
+                "name": "CREDIT CARD",
+                "today": 0,
+                "MTD": 242477.06,
+                "YTD": 399357.1
+            }
+        ],
+        "company_summary": [],
+        "occupancy_summary": [
+            {
+                "catname": "DELUXE ROOM",
+                "totalRooms": 6,
+                "todayCount": 0,
+                "todayPercent": 0,
+                "mtdCount": 96,
+                "mtdPercent": 61.53846153846154,
+                "ytdCount": 173,
+                "ytdPercent": 51.48809523809524
+            },
+            {
+                "catname": "STANDARD ROOM",
+                "totalRooms": 3,
+                "todayCount": 0,
+                "todayPercent": 0,
+                "mtdCount": 43,
+                "mtdPercent": 55.12820512820513,
+                "ytdCount": 84,
+                "ytdPercent": 50
+            },
+            {
+                "catname": "SUPER DELUXE ROOM",
+                "totalRooms": 15,
+                "todayCount": 0,
+                "todayPercent": 0,
+                "mtdCount": 186,
+                "mtdPercent": 47.69230769230769,
+                "ytdCount": 364,
+                "ytdPercent": 43.333333333333336
+            },
+            {
+                "catname": "VILLA",
+                "totalRooms": 5,
+                "todayCount": 0,
+                "todayPercent": 0,
+                "mtdCount": 15,
+                "mtdPercent": 11.538461538461538,
+                "ytdCount": 15,
+                "ytdPercent": 5.357142857142857
+            }
+        ],
+        "occupancy_totals_summary": [
+            {
+                "name": "Total Vacant Room",
+                "today": 29,
+                "MTD": 414,
+                "YTD": 988
+            },
+            {
+                "name": "Total Complimentary",
+                "today": 0,
+                "MTD": 0,
+                "YTD": 2
+            },
+            {
+                "name": "Total Day Use",
+                "today": 0,
+                "MTD": 0,
+                "YTD": 0
+            },
+            {
+                "name": "Total Out of Order",
+                "today": 0,
+                "MTD": 0,
+                "YTD": 0
+            },
+            {
+                "name": "Total Checkin Room",
+                "today": 0,
+                "MTD": 147,
+                "YTD": 279
+            },
+            {
+                "name": "Total Checkout Room",
+                "today": 0,
+                "MTD": 145,
+                "YTD": 271
+            },
+            {
+                "name": "Total Pax",
+                "today": 0,
+                "MTD": 366,
+                "YTD": 684
+            }
+        ],
+        "average_rate_summary": [
+            {
+                "category": "DELUXE ROOM",
+                "today": 0,
+                "monthToDate": 2900.149619047619,
+                "yearToDate": 2926.58421875
+            },
+            {
+                "category": "STANDARD ROOM",
+                "today": 0,
+                "monthToDate": 3048.2886666666664,
+                "yearToDate": 3088.832413793103
+            },
+            {
+                "category": "SUPER DELUXE ROOM",
+                "today": 0,
+                "monthToDate": 2979.53515625,
+                "yearToDate": 2887.4508616187986
+            },
+            {
+                "category": "VILLA",
+                "today": 0,
+                "monthToDate": 2801.1188235294117,
+                "yearToDate": 2801.1188235294117
+            }
+        ]
+    }
+}
