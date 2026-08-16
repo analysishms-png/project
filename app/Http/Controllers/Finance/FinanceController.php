@@ -515,6 +515,331 @@ class FinanceController extends Controller
         return $export->download();
     }
 
+    public function generalLedger(Request $request)
+    {
+        $permission = revokeopen(111211);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
+        $fromdate = $this->datemanage['mtd']['start'];
+        $todate = $this->ncurdate;
+
+        $companyName = $this->company->comp_name ?? '';
+        $reportDate = $this->ncurdate;
+
+        return view('property.finance.generalledger', compact('fromdate', 'todate', 'companyName', 'reportDate'));
+    }
+
+    public function generalLedgerAccounts(Request $request)
+    {
+        $propertyid = $this->propertyid;
+        $accounts = DB::table('subgroup as s')
+            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->where('s.propertyid', $propertyid)
+            ->where(function ($q) {
+                $q->where('s.activeyn', 'Y')->orWhereNull('s.activeyn');
+            })
+            ->select('s.sub_code', 's.name', 'a.group_name')
+            ->orderBy('s.name')
+            ->get();
+
+        return response()->json(['data' => $accounts]);
+    }
+
+    public function generalLedgerQuery(Request $request)
+    {
+        $request->validate([
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $fromdate = $request->fromdate;
+        $todate = $request->todate;
+        $propertyid = $this->propertyid;
+        $subcodes = $request->subcodes; // optional array of sub_code filters
+
+        // Opening balances: all ledger activity before fromdate, per account
+        $openingQuery = DB::table('ledger as l')
+            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->where('l.vdate', '<', $fromdate)
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            });
+
+        if (!empty($subcodes) && is_array($subcodes)) {
+            $openingQuery->whereIn('l.subcode', $subcodes);
+        }
+
+        $openings = $openingQuery
+            ->select('s.sub_code', 's.name', 'a.group_name')
+            ->selectRaw('SUM(l.amtdr) AS opening_dr')
+            ->selectRaw('SUM(l.amtcr) AS opening_cr')
+            ->groupBy('s.sub_code', 's.name', 'a.group_name')
+            ->get()
+            ->keyBy('sub_code');
+
+        // Transactions in period, per account, ordered by date/docid/vsno
+        $txnQuery = DB::table('ledger as l')
+            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->whereBetween('l.vdate', [$fromdate, $todate])
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            });
+
+        if (!empty($subcodes) && is_array($subcodes)) {
+            $txnQuery->whereIn('l.subcode', $subcodes);
+        }
+
+        $txns = $txnQuery
+            ->select(
+                'l.subcode',
+                's.name',
+                'a.group_name',
+                'l.vdate',
+                'l.docid',
+                'l.vsno',
+                'l.vtype',
+                'l.vno',
+                'l.vprefix',
+                'l.narration',
+                'l.contrasub',
+                'l.chqno',
+                'l.chqdate',
+                'l.amtdr',
+                'l.amtcr'
+            )
+            ->orderBy('s.name')
+            ->orderBy('l.vdate')
+            ->orderBy('l.docid')
+            ->orderBy('l.vsno')
+            ->get();
+
+        // Compose per-account structure with running balance
+        $accounts = [];
+        foreach ($txns as $t) {
+            $code = $t->subcode;
+            if (!isset($accounts[$code])) {
+                $op = $openings->get($code);
+                $openingDr = (float) ($op->opening_dr ?? 0);
+                $openingCr = (float) ($op->opening_cr ?? 0);
+                $openingBal = $openingDr - $openingCr;
+                $accounts[$code] = [
+                    'sub_code' => $code,
+                    'name' => $t->name ?? '',
+                    'group_name' => $t->group_name ?? '',
+                    'opening_dr' => $openingDr,
+                    'opening_cr' => $openingCr,
+                    'opening_balance' => $openingBal,
+                    'transactions' => [],
+                ];
+            }
+            $accounts[$code]['transactions'][] = [
+                'vdate' => $t->vdate,
+                'docid' => $t->docid,
+                'vsno' => $t->vsno,
+                'vtype' => $t->vtype,
+                'vno' => $t->vno,
+                'vprefix' => $t->vprefix,
+                'narration' => $t->narration ?? '',
+                'contrasub' => $t->contrasub ?? '',
+                'chqno' => $t->chqno ?? '',
+                'chqdate' => $t->chqdate ?? '',
+                'amtdr' => (float) ($t->amtdr ?? 0),
+                'amtcr' => (float) ($t->amtcr ?? 0),
+            ];
+        }
+
+        // Sort accounts by name, compute running/closing balances
+        $accounts = array_values($accounts);
+        usort($accounts, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
+
+        foreach ($accounts as &$acc) {
+            $running = $acc['opening_balance'];
+            foreach ($acc['transactions'] as &$tx) {
+                $running += $tx['amtdr'] - $tx['amtcr'];
+                $tx['running_balance'] = $running;
+            }
+            unset($tx);
+            $acc['closing_balance'] = $running;
+            $acc['total_dr'] = array_sum(array_column($acc['transactions'], 'amtdr'));
+            $acc['total_cr'] = array_sum(array_column($acc['transactions'], 'amtcr'));
+        }
+        unset($acc);
+
+        return response()->json(['data' => $accounts]);
+    }
+
+    public function printGeneralLedger(Request $request)
+    {
+        $fromDate = $request->query('fromdate', $this->datemanage['mtd']['start']);
+        $toDate = $request->query('todate', $this->ncurdate);
+        $subcodes = $request->query('subcodes');
+
+        try {
+            $from = Carbon::parse($fromDate)->format('Y-m-d');
+            $to = Carbon::parse($toDate)->format('Y-m-d');
+        } catch (Exception $e) {
+            $from = $this->datemanage['mtd']['start'];
+            $to = $this->ncurdate;
+        }
+
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $subcodes = $subcodes ? explode(',', $subcodes) : null;
+        $propertyid = $this->propertyid;
+
+        // Reuse the same composition logic
+        $openingQuery = DB::table('ledger as l')
+            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->where('l.vdate', '<', $from)
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            });
+
+        if (!empty($subcodes)) {
+            $openingQuery->whereIn('l.subcode', $subcodes);
+        }
+
+        $openings = $openingQuery
+            ->select('s.sub_code', 's.name', 'a.group_name')
+            ->selectRaw('SUM(l.amtdr) AS opening_dr')
+            ->selectRaw('SUM(l.amtcr) AS opening_cr')
+            ->groupBy('s.sub_code', 's.name', 'a.group_name')
+            ->get()
+            ->keyBy('sub_code');
+
+        $txnQuery = DB::table('ledger as l')
+            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->whereBetween('l.vdate', [$from, $to])
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            });
+
+        if (!empty($subcodes)) {
+            $txnQuery->whereIn('l.subcode', $subcodes);
+        }
+
+        $txns = $txnQuery
+            ->select(
+                'l.subcode',
+                's.name',
+                'a.group_name',
+                'l.vdate',
+                'l.docid',
+                'l.vsno',
+                'l.vtype',
+                'l.vno',
+                'l.vprefix',
+                'l.narration',
+                'l.contrasub',
+                'l.chqno',
+                'l.chqdate',
+                'l.amtdr',
+                'l.amtcr'
+            )
+            ->orderBy('s.name')
+            ->orderBy('l.vdate')
+            ->orderBy('l.docid')
+            ->orderBy('l.vsno')
+            ->get();
+
+        $accounts = [];
+        foreach ($txns as $t) {
+            $code = $t->subcode;
+            if (!isset($accounts[$code])) {
+                $op = $openings->get($code);
+                $openingDr = (float) ($op->opening_dr ?? 0);
+                $openingCr = (float) ($op->opening_cr ?? 0);
+                $accounts[$code] = [
+                    'sub_code' => $code,
+                    'name' => $t->name ?? '',
+                    'group_name' => $t->group_name ?? '',
+                    'opening_dr' => $openingDr,
+                    'opening_cr' => $openingCr,
+                    'opening_balance' => $openingDr - $openingCr,
+                    'transactions' => [],
+                ];
+            }
+            $accounts[$code]['transactions'][] = [
+                'vdate' => $t->vdate,
+                'docid' => $t->docid,
+                'vsno' => $t->vsno,
+                'vtype' => $t->vtype,
+                'vno' => $t->vno,
+                'vprefix' => $t->vprefix,
+                'narration' => $t->narration ?? '',
+                'contrasub' => $t->contrasub ?? '',
+                'chqno' => $t->chqno ?? '',
+                'chqdate' => $t->chqdate ?? '',
+                'amtdr' => (float) ($t->amtdr ?? 0),
+                'amtcr' => (float) ($t->amtcr ?? 0),
+            ];
+        }
+
+        $accounts = array_values($accounts);
+        usort($accounts, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
+
+        foreach ($accounts as &$acc) {
+            $running = $acc['opening_balance'];
+            foreach ($acc['transactions'] as &$tx) {
+                $running += $tx['amtdr'] - $tx['amtcr'];
+                $tx['running_balance'] = $running;
+            }
+            unset($tx);
+            $acc['closing_balance'] = $running;
+            $acc['total_dr'] = array_sum(array_column($acc['transactions'], 'amtdr'));
+            $acc['total_cr'] = array_sum(array_column($acc['transactions'], 'amtcr'));
+        }
+        unset($acc);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'property.print.printgeneralledger',
+            [
+                'company' => $this->company,
+                'accounts' => $accounts,
+                'fromDate' => $from,
+                'toDate' => $to,
+            ]
+        )->setPaper('a4', 'landscape');
+
+        return $pdf->stream('general-ledger.pdf');
+    }
+
+    public function exportGeneralLedger(Request $request)
+    {
+        $request->validate([
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $companyName = $this->company->comp_name ?? '';
+
+        $export = new \App\Exports\GeneralLedgerExport(
+            $request->fromdate,
+            $request->todate,
+            $this->propertyid,
+            $companyName,
+            $request->subcodes
+        );
+
+        return $export->download();
+    }
+
     public function trailbalance(Request $request)
     {
         $permission = revokeopen(111211);
