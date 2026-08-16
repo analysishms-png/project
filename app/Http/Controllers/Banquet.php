@@ -789,6 +789,64 @@ class Banquet extends Controller
             ]);
         }
 
+        // FINANCIAL SAFETY: never silently delete financial records.
+        // Copy paychargeh + ledger postings to paychargelog BEFORE deletion
+        // (user, time, reason, amounts, linkage) so the transaction stays auditable.
+        $reason = 'Banquet Advance Deleted';
+        $currentUser = Auth::user()->u_name ?? Auth::user()->name;
+
+        $rows = PaychargeH::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
+        foreach ($rows as $row) {
+            DB::table('paychargelog')->insert([
+                'propertyid' => $row->propertyid,
+                'docid' => $row->docid,
+                'sno' => $row->sno,
+                'vtype' => $row->vtype,
+                'vno' => $row->vno,
+                'vprefix' => $row->vprefix,
+                'vdate' => $row->vdate,
+                'vtime' => $row->vtime,
+                'paycode' => $row->paycode,
+                'paytype' => $row->paytype,
+                'comments' => $row->comments,
+                'roomno' => $row->roomno,
+                'amtcr' => $row->amtcr,
+                'amtdr' => $row->amtdr,
+                'roomcat' => $row->roomcat,
+                'restcode' => $row->restcode,
+                'billamount' => $row->billamount,
+                'taxper' => $row->taxper,
+                'onamt' => $row->onamt,
+                'taxstru' => $row->taxstru,
+                'refdocid' => $row->contradocid,
+                'remarks' => $reason . ' [paychargeh] (original u_name: ' . ($row->u_name ?? '') . ', original u_entdt: ' . ($row->u_entdt ?? '') . ')',
+                'u_entdt' => $this->currenttime,
+                'u_name' => $currentUser,
+                'u_ae' => 'e',
+            ]);
+        }
+
+        $ledgerRows = Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
+        foreach ($ledgerRows as $lrow) {
+            DB::table('paychargelog')->insert([
+                'propertyid' => $lrow->propertyid,
+                'docid' => $lrow->docid,
+                'sno' => $lrow->vsno ?? 0,
+                'vtype' => $lrow->vtype,
+                'vno' => $lrow->vno,
+                'vprefix' => $lrow->vprefix,
+                'vdate' => $lrow->vdate,
+                'paycode' => $lrow->subcode,
+                'comments' => $lrow->narration,
+                'amtcr' => $lrow->amtcr,
+                'amtdr' => $lrow->amtdr,
+                'remarks' => $reason . ' [ledger] subcode: ' . ($lrow->subcode ?? '') . ' contrasub: ' . ($lrow->contrasub ?? ''),
+                'u_entdt' => $this->currenttime,
+                'u_name' => $currentUser,
+                'u_ae' => 'e',
+            ]);
+        }
+
         PaychargeH::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
         Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
@@ -2270,6 +2328,79 @@ class Banquet extends Controller
     {
         try {
             $docid = $request->input('docid');
+            $reason = 'Banquet Bill Deleted' . (!empty($request->input('reason')) ? ': ' . $request->input('reason') : '');
+            $currentUser = Auth::user()->u_name ?? Auth::user()->name;
+
+            // FINANCIAL SAFETY: never silently delete a banquet bill (order + accounting trail).
+            // Audit HallSale1/2, HallStock, Suntran/H and Ledger rows to paychargelog BEFORE
+            // deletion so the bill and its postings stay traceable and re-posting is possible.
+            $log = [];
+            foreach (HallSale1::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $r) {
+                $log[] = [
+                    'propertyid' => $r->propertyid, 'docid' => $r->docId, 'sno' => $r->sn,
+                    'vtype' => $r->vtype, 'vno' => $r->vno, 'vprefix' => $r->vprefix, 'vdate' => $r->vdate,
+                    'paycode' => $r->comp_code, 'comments' => ($r->narration ?? '') . ($r->remark ? ' | ' . $r->remark : ''),
+                    'guestprof' => $r->party, 'roomno' => '', 'amtcr' => 0, 'amtdr' => $r->total,
+                    'roomcat' => '', 'restcode' => $r->restcode, 'billamount' => $r->netamt,
+                    'taxper' => $r->cgst, 'onamt' => $r->taxable, 'taxcondamt' => $r->roundoff,
+                    'refdocid' => $r->bookdocid, 'u_entdt' => $this->currenttime, 'u_name' => $currentUser,
+                    'remarks' => $reason . ' [hallsale1] party: ' . ($r->party ?? '') . ' (orig u_name: ' . ($r->u_name ?? '') . ')', 'u_ae' => 'e',
+                ];
+            }
+            foreach (HallSale2::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $r) {
+                $log[] = [
+                    'propertyid' => $r->propertyid, 'docid' => $r->docid, 'sno' => $r->sno,
+                    'vtype' => $r->vtype, 'vno' => $r->vno, 'vprefix' => $r->vprefix, 'vdate' => $r->vdate,
+                    'paycode' => $r->taxcode, 'comments' => 'tax line',
+                    'amtcr' => 0, 'amtdr' => $r->taxamt, 'onamt' => $r->basevalue, 'restcode' => $r->restcode,
+                    'taxper' => $r->taxper, 'u_entdt' => $this->currenttime, 'u_name' => $currentUser,
+                    'remarks' => $reason . ' [hallsale2 tax] (orig u_name: ' . ($r->u_name ?? '') . ')', 'u_ae' => 'e',
+                ];
+            }
+            foreach (HallStock::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $r) {
+                $log[] = [
+                    'propertyid' => $r->propertyid, 'docid' => $r->docid, 'sno' => $r->sno,
+                    'vtype' => $r->vtype, 'vno' => $r->vno, 'vprefix' => $r->vprefix, 'vdate' => $r->vdate,
+                    'paycode' => $r->item, 'comments' => 'qtyiss: ' . ($r->qtyiss ?? '') . ' rate: ' . ($r->rate ?? '') . ' disc%: ' . ($r->discper ?? '') . ' discamt: ' . ($r->discamt ?? ''),
+                    'amtcr' => 0, 'amtdr' => $r->amount, 'taxper' => $r->taxper, 'restcode' => $r->restcode,
+                    'guestprof' => $r->party, 'roomno' => '', 'u_entdt' => $this->currenttime, 'u_name' => $currentUser,
+                    'remarks' => $reason . ' [hallstock item] (orig u_name: ' . ($r->u_name ?? '') . ')', 'u_ae' => 'e',
+                ];
+            }
+            foreach (Suntran::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $r) {
+                $log[] = [
+                    'propertyid' => $r->propertyid, 'docid' => $r->docid, 'sno' => $r->sno,
+                    'vtype' => $r->vtype, 'vno' => $r->vno, 'vdate' => $r->vdate,
+                    'paycode' => $r->revcode, 'paytype' => $r->dispname, 'comments' => $r->suncode,
+                    'amtcr' => 0, 'amtdr' => $r->amount, 'restcode' => $r->restcode,
+                    'onamt' => $r->baseamount, 'u_entdt' => $this->currenttime, 'u_name' => $currentUser,
+                    'remarks' => $reason . ' [suntran] ' . ($r->dispname ?? ''), 'u_ae' => 'e',
+                ];
+            }
+            foreach (SuntranH::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $r) {
+                $log[] = [
+                    'propertyid' => $r->propertyid, 'docid' => $r->docid, 'sno' => $r->sno,
+                    'vtype' => $r->vtype, 'vno' => $r->vno, 'vdate' => $r->vdate,
+                    'paycode' => $r->revcode, 'paytype' => $r->dispname, 'comments' => $r->suncode,
+                    'amtcr' => 0, 'amtdr' => $r->amount, 'restcode' => $r->restcode,
+                    'onamt' => $r->baseamount, 'u_entdt' => $this->currenttime, 'u_name' => $currentUser,
+                    'remarks' => $reason . ' [suntranh] ' . ($r->dispname ?? ''), 'u_ae' => 'e',
+                ];
+            }
+            foreach (Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $r) {
+                $log[] = [
+                    'propertyid' => $r->propertyid, 'docid' => $r->docid, 'sno' => $r->vsno ?? 0,
+                    'vtype' => $r->vtype, 'vno' => $r->vno, 'vprefix' => $r->vprefix, 'vdate' => $r->vdate,
+                    'paycode' => $r->subcode, 'comments' => $r->narration,
+                    'amtcr' => $r->amtcr, 'amtdr' => $r->amtdr,
+                    'remarks' => $reason . ' [ledger] subcode: ' . ($r->subcode ?? '') . ' contrasub: ' . ($r->contrasub ?? ''),
+                    'u_entdt' => $this->currenttime, 'u_name' => $currentUser, 'u_ae' => 'e',
+                ];
+            }
+            if (!empty($log)) {
+                DB::table('paychargelog')->insert($log);
+            }
+
             HallSale1::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             HallSale2::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             HallStock::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
@@ -3981,6 +4112,96 @@ class Banquet extends Controller
         return json_encode($data);
     }
 
+    public function banqoutstanding(Request $request)
+    {
+        $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+        $statename = DB::table('states')->where('propertyid', $this->propertyid)
+            ->where('state_code', $comp->state_code ?? '')->value('name');
+        return view('property.banqoutstanding', [
+            'comp' => $comp,
+            'statename' => $statename,
+            'fromdate' => $this->ncurdate,
+            'todate' => $this->ncurdate
+        ]);
+    }
+
+    public function banqoutstandingfetch(Request $request)
+    {
+        $fromdate = $request->input('fromdate');
+        $todate = $request->input('todate');
+        $onlyout = $request->input('onlyoutstanding', 'no');
+
+        // Bill = hallsale1.netamt; Paid = AD advances (sno=1, excludes GST split rows)
+        // + IDC settlement rows, both keyed by contradocid = hallbook.docid (hallbillsettle model).
+        $bills = DB::table('hallsale1 as H')
+            ->select([
+                'H.docId as billdocid',
+                'H.vno',
+                'H.vdate',
+                'H.party',
+                'H.netamt',
+                'B.docid as bookdocid',
+                'B.partyname',
+                'B.func_name',
+                DB::raw('(SELECT COALESCE(SUM(P.amtcr),0) FROM paychargeh P'
+                    . ' WHERE P.propertyid = H.propertyid AND P.contradocid = H.bookdocid'
+                    . " AND P.sno = 1 AND P.vtype = 'AD' AND P.amtcr <> 0) as advpaid"),
+                DB::raw('(SELECT COALESCE(SUM(P.amtcr),0) FROM paychargeh P'
+                    . ' WHERE P.propertyid = H.propertyid AND P.contradocid = H.bookdocid'
+                    . " AND P.vtype = 'IDC' AND P.amtcr <> 0) as setpaid")
+            ])
+            ->leftJoin('hallbook as B', function ($join) {
+                $join->on('B.propertyid', '=', 'H.propertyid')
+                    ->on('B.docid', '=', 'H.bookdocid');
+            })
+            ->where('H.propertyid', $this->propertyid)
+            ->whereBetween('H.vdate', [$fromdate, $todate])
+            ->orderBy('H.vdate')
+            ->orderBy('H.vno')
+            ->get();
+
+        $rows = [];
+        $totNet = 0;
+        $totPaid = 0;
+        $totOut = 0;
+        $nOut = 0;
+        foreach ($bills as $b) {
+            $paid = round((float) $b->advpaid + (float) $b->setpaid, 2);
+            $out = round((float) $b->netamt - $paid, 2);
+            if ($onlyout === 'yes' && $out <= 0.005) {
+                continue;
+            }
+            $rows[] = [
+                'vno' => $b->vno,
+                'vdate' => $b->vdate,
+                'party' => $b->partyname ?: $b->party,
+                'funcname' => $b->func_name,
+                'billamt' => (float) $b->netamt,
+                'advance' => (float) $b->advpaid,
+                'settled' => (float) $b->setpaid,
+                'paid' => $paid,
+                'outstanding' => $out
+            ];
+            $totNet += (float) $b->netamt;
+            $totPaid += $paid;
+            $totOut += $out;
+            if ($out > 0.005) {
+                $nOut++;
+            }
+        }
+
+        return response()->json([
+            'report' => $rows,
+            'totals' => [
+                'bills' => count($rows),
+                'net' => round($totNet, 2),
+                'paid' => round($totPaid, 2),
+                'outstanding' => round($totOut, 2),
+                'nout' => $nOut
+            ]
+        ]);
+    }
+
     public function venueavailability(Request $request)
     {
         return view('property.banquetavailability');
@@ -4281,10 +4502,70 @@ class Banquet extends Controller
                 return redirect()->route('advancelist')->with('error', "Bill is already made, it can't be edit/delete.");
             }
 
+            // FINANCIAL SAFETY (BUG-038): never silently delete banquet advances.
+            // Audit paychargeh + ledger postings to paychargelog BEFORE deletion and
+            // remove BOTH tables (the ledger rows were previously left orphaned).
+            $reason = 'Banquet Advance Deleted (advancelist)';
+            $currentUser = Auth::user()->u_name ?? Auth::user()->name;
+
+            $rows = DB::table('paychargeh')->where('docid', $docid)->where('propertyid', $this->propertyid)->get();
+            foreach ($rows as $row) {
+                DB::table('paychargelog')->insert([
+                    'propertyid' => $row->propertyid,
+                    'docid' => $row->docid,
+                    'sno' => $row->sno,
+                    'vtype' => $row->vtype,
+                    'vno' => $row->vno,
+                    'vprefix' => $row->vprefix,
+                    'vdate' => $row->vdate,
+                    'vtime' => $row->vtime,
+                    'paycode' => $row->paycode,
+                    'paytype' => $row->paytype,
+                    'comments' => $row->comments,
+                    'roomno' => $row->roomno,
+                    'amtcr' => $row->amtcr,
+                    'amtdr' => $row->amtdr,
+                    'roomcat' => $row->roomcat,
+                    'restcode' => $row->restcode,
+                    'billamount' => $row->billamount,
+                    'taxper' => $row->taxper,
+                    'onamt' => $row->onamt,
+                    'taxstru' => $row->taxstru,
+                    'refdocid' => $row->contradocid,
+                    'remarks' => $reason . ' [paychargeh] (original u_name: ' . ($row->u_name ?? '') . ', original u_entdt: ' . ($row->u_entdt ?? '') . ')',
+                    'u_entdt' => $this->currenttime,
+                    'u_name' => $currentUser,
+                    'u_ae' => 'e',
+                ]);
+            }
+
+            $ledgerRows = Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
+            foreach ($ledgerRows as $lrow) {
+                DB::table('paychargelog')->insert([
+                    'propertyid' => $lrow->propertyid,
+                    'docid' => $lrow->docid,
+                    'sno' => $lrow->vsno ?? 0,
+                    'vtype' => $lrow->vtype,
+                    'vno' => $lrow->vno,
+                    'vprefix' => $lrow->vprefix,
+                    'vdate' => $lrow->vdate,
+                    'paycode' => $lrow->subcode,
+                    'comments' => $lrow->narration,
+                    'amtcr' => $lrow->amtcr,
+                    'amtdr' => $lrow->amtdr,
+                    'remarks' => $reason . ' [ledger] subcode: ' . ($lrow->subcode ?? '') . ' contrasub: ' . ($lrow->contrasub ?? ''),
+                    'u_entdt' => $this->currenttime,
+                    'u_name' => $currentUser,
+                    'u_ae' => 'e',
+                ]);
+            }
+
             DB::table('paychargeh')
                 ->where('docid', $docid)
                 ->where('propertyid', $this->propertyid)
                 ->delete();
+
+            Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
             return redirect()->route('advancelist')->with('success', 'Record deleted successfully.');
         } catch (\Exception $e) {

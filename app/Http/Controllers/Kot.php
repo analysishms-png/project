@@ -920,6 +920,11 @@ class Kot extends Controller
                 $docid = $this->propertyid . $vtype . '‎ ‎ ' . $vprefix . '‎ ‎ ‎ ‎ ' . $vno;
                 $generatedDocIDs[] = $docid;
 
+                // KOT Token sequence (legacy parity): per-outlet sequential token from Depart.CurTokenNoKOT
+                $token = ((int) $dprow->cur_token_no_kot) + 1;
+                Depart::where('propertyid', $this->propertyid)->where('dcode', $restcode)
+                    ->update(['cur_token_no_kot' => $token]);
+
                 $nckotyn = $request->input('nctypecheckbox') == 'on' ? 'Y' : 'N';
                 $nckot = $nckotyn == 'Y' ? $request->input('nctype') : '';
                 $pending = $nckotyn == 'Y' ? 'N' : 'Y';
@@ -1041,7 +1046,7 @@ class Kot extends Controller
                         'freesno' => '',
                         'printed' => '',
                         'schemecode' => '',
-                        'tokenno' => '',
+                        'tokenno' => (string) $token,
                         'printflag' => '',
                     ];
                     DB::table('kot')->insert($kotdata);

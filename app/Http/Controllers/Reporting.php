@@ -3821,6 +3821,626 @@ class Reporting extends Controller
       return response()->json($bookingData);
    }
 
+   /**
+    * Advance / Folio Reconciliation Report (read-only diagnostic, mission §10).
+    *
+    * Traces each reservation's advance: received at reservation (ADRES/ARRES via
+    * refdocid) -> transferred at check-in (folio paycharge rows) -> deletion
+    * history (paychargelog). A non-zero Recon on a checked-in folio flags an
+    * ADVANCE MISMATCH for investigation/restore. No data is modified.
+    */
+   public function advreconreport(Request $request)
+   {
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
+      return view('property.advreconreport', [
+         'ncurdate' => $this->ncurdate,
+         'company' => $company,
+         'statename' => $statename
+      ]);
+   }
+
+   public function advreconreportfetch(Request $request)
+   {
+      $request->validate([
+         'fromdate' => 'required|date',
+         'todate' => 'required|date'
+      ]);
+
+      $fromdate = $request->fromdate;
+      $todate = $request->todate;
+      $pid = (int) $this->propertyid;
+
+      $rows = DB::table('booking AS B')
+         ->leftJoin('guestfolio AS GF', function ($j) use ($pid) {
+            $j->on('GF.bookingdocid', '=', 'B.DocId')
+               ->where('GF.propertyid', '=', $pid);
+         })
+         ->leftJoin('roomocc AS RO', function ($j) use ($pid) {
+            $j->on('RO.docid', '=', 'GF.docid')
+               ->where('RO.propertyid', '=', $pid);
+         })
+         ->select([
+            'B.DocId',
+            'B.BookNo AS ResNo',
+            'B.vdate AS ResDate',
+            'B.ResStatus',
+            'B.Cancel',
+            'B.GuestName',
+            'B.NoofRooms',
+            'GF.folio_no AS FolioNo',
+            'GF.docid AS FolioDocid',
+            'GF.vdate AS CheckInDate',
+            'RO.roomno AS RoomNo',
+            'RO.depdate AS CheckOutDate',
+            DB::raw("(SELECT COALESCE(SUM(PC.amtcr - PC.amtdr), 0) FROM paycharge PC WHERE PC.refdocid = B.DocId AND PC.propertyid = {$pid} AND PC.vtype IN ('ADRES','ARRES')) AS ResAdvance"),
+            DB::raw("(SELECT COALESCE(SUM(PC.amtcr - PC.amtdr), 0) FROM paycharge PC WHERE PC.refdocid = B.DocId AND PC.propertyid = {$pid} AND PC.folionodocid IS NOT NULL AND PC.folionodocid <> '' AND PC.vtype <> 'REV') AS FolioAdvance"),
+            DB::raw("(SELECT COUNT(*) FROM paychargelog PL WHERE PL.propertyid = {$pid} AND (PL.refdocid = B.DocId OR PL.docid IN (SELECT PC2.docid FROM paycharge PC2 WHERE PC2.refdocid = B.DocId AND PC2.propertyid = {$pid} AND PC2.vtype IN ('ADRES','ARRES')))) AS DelCount"),
+            DB::raw("(SELECT COALESCE(SUM(COALESCE(PL.amtcr,0) - COALESCE(PL.amtdr,0)), 0) FROM paychargelog PL WHERE PL.propertyid = {$pid} AND (PL.refdocid = B.DocId OR PL.docid IN (SELECT PC2.docid FROM paycharge PC2 WHERE PC2.refdocid = B.DocId AND PC2.propertyid = {$pid} AND PC2.vtype IN ('ADRES','ARRES')))) AS DelAmount"),
+            DB::raw("(SELECT RM.name FROM paycharge PC LEFT JOIN revmast RM ON PC.paycode = RM.rev_code AND RM.propertyid = {$pid} WHERE PC.refdocid = B.DocId AND PC.propertyid = {$pid} AND PC.vtype IN ('ADRES','ARRES') ORDER BY PC.vdate, PC.sno LIMIT 1) AS PayMode"),
+         ])
+         ->where('B.Property_ID', $pid)
+         ->whereBetween('B.vdate', [$fromdate, $todate])
+         ->orderBy('B.vdate')
+         ->orderBy('B.BookNo')
+         ->get();
+
+      foreach ($rows as $row) {
+         $row->ResAdvance = (float) $row->ResAdvance;
+         $row->FolioAdvance = (float) $row->FolioAdvance;
+         $row->DelAmount = (float) $row->DelAmount;
+         $row->DelCount = (int) $row->DelCount;
+         $row->Recon = round($row->ResAdvance - $row->FolioAdvance - $row->DelAmount, 2);
+         $checkedIn = !empty($row->FolioDocid);
+         $cancelled = strtoupper((string) $row->Cancel) === 'Y';
+         if ($cancelled) {
+            $row->Flag = (abs($row->Recon) > 0.01) ? 'CANCELLED-CHECK' : 'CANCELLED';
+            $row->FlagType = (abs($row->Recon) > 0.01) ? 'danger' : 'secondary';
+         } elseif ($checkedIn) {
+            if ($row->Recon > 0.01) {
+               $row->Flag = 'MISMATCH';
+               $row->FlagType = 'danger';
+            } elseif ($row->Recon < -0.01) {
+               $row->Flag = 'OVER-CREDIT';
+               $row->FlagType = 'danger';
+            } else {
+               $row->Flag = 'OK';
+               $row->FlagType = 'success';
+            }
+         } else {
+            if ($row->ResAdvance > 0.01) {
+               $row->Flag = 'PENDING-TRANSFER';
+               $row->FlagType = 'warning';
+            } else {
+               $row->Flag = 'OK';
+               $row->FlagType = 'success';
+            }
+         }
+      }
+
+      return response()->json($rows);
+   }
+
+   public function advreconreportdetail(Request $request)
+   {
+      $docid = $request->docid;
+      $pid = (int) $this->propertyid;
+      if (empty($docid)) {
+         return response()->json(['status' => false, 'message' => 'Missing reservation DocId']);
+      }
+
+      $booking = DB::table('booking')->where('Property_ID', $pid)->where('DocId', $docid)->first();
+      if (!$booking) {
+         return response()->json(['status' => false, 'message' => 'Reservation not found']);
+      }
+
+      $resAdvanceRows = DB::table('paycharge AS PC')
+         ->leftJoin('revmast AS RM', function ($j) use ($pid) {
+            $j->on('PC.paycode', '=', 'RM.rev_code')->where('RM.propertyid', '=', $pid);
+         })
+         ->select('PC.*', 'RM.name AS PayModeName')
+         ->where('PC.propertyid', $pid)
+         ->where('PC.refdocid', $docid)
+         ->whereIn('PC.vtype', ['ADRES', 'ARRES'])
+         ->orderBy('PC.vdate')->orderBy('PC.sno')
+         ->get();
+
+      $folioAdvanceRows = DB::table('paycharge AS PC')
+         ->leftJoin('revmast AS RM', function ($j) use ($pid) {
+            $j->on('PC.paycode', '=', 'RM.rev_code')->where('RM.propertyid', '=', $pid);
+         })
+         ->select('PC.*', 'RM.name AS PayModeName')
+         ->where('PC.propertyid', $pid)
+         ->where('PC.refdocid', $docid)
+         ->whereNotNull('PC.folionodocid')
+         ->where('PC.folionodocid', '<>', '')
+         ->where('PC.vtype', '<>', 'REV')
+         ->orderBy('PC.vdate')->orderBy('PC.sno')
+         ->get();
+
+      $logRows = DB::table('paychargelog')
+         ->where('propertyid', $pid)
+         ->where(function ($q) use ($docid, $pid) {
+            $q->where('refdocid', $docid)
+               ->orWhereIn('docid', DB::table('paycharge')->where('propertyid', $pid)->where('refdocid', $docid)->whereIn('vtype', ['ADRES', 'ARRES'])->pluck('docid'));
+         })
+         ->orderByDesc('u_entdt')
+         ->get();
+
+      $folios = DB::table('guestfolio')->where('propertyid', $pid)->where('bookingdocid', $docid)->get();
+      $rooms = DB::table('roomocc')->where('propertyid', $pid)->whereIn('docid', $folios->pluck('docid'))->get();
+
+      return response()->json([
+         'status' => true,
+         'booking' => $booking,
+         'res_advance' => $resAdvanceRows,
+         'folio_advance' => $folioAdvanceRows,
+         'log' => $logRows,
+         'folios' => $folios,
+         'rooms' => $rooms,
+      ]);
+   }
+
+   /**
+    * Safe Restore / Re-post of a missing folio advance (mission §10).
+    *
+    * Reposts ONLY the missing difference (ResAdvance - FolioAdvance - Deleted)
+    * onto the existing folio, so a payment is NEVER duplicated. Guards:
+    *  - booking must exist, not cancelled, and be checked-in (folio present)
+    *  - folio must NOT be settled (roomocc type='O' or settled paycharge)
+    *  - missing amount must be > 0 (after a restore it becomes ~0, blocking re-run)
+    *  - a reservation advance row must exist to copy payment mode
+    *  - CHK voucher prefix must exist for the current date
+    * Writes a paychargelog audit row inside the same transaction.
+    */
+   public function advreconrestore(Request $request)
+   {
+      $docid = $request->docid;
+      $pid = (int) $this->propertyid;
+      if (empty($docid)) {
+         return response()->json(['status' => false, 'message' => 'Missing reservation DocId']);
+      }
+
+      $booking = DB::table('booking')->where('Property_ID', $pid)->where('DocId', $docid)->first();
+      if (!$booking) {
+         return response()->json(['status' => false, 'message' => 'Reservation not found']);
+      }
+      if (strtoupper((string) $booking->Cancel) === 'Y') {
+         return response()->json(['status' => false, 'message' => 'Cannot restore advance on a cancelled reservation']);
+      }
+
+      $folio = DB::table('guestfolio')->where('propertyid', $pid)->where('bookingdocid', $docid)->first();
+      if (!$folio) {
+         return response()->json(['status' => false, 'message' => 'Reservation is not checked-in — no folio to restore to']);
+      }
+      $folioDocid = $folio->docid;
+      $folioNo = $folio->folio_no;
+
+      // Refuse if the folio is already settled / guest checked out
+      $checkedOut = DB::table('roomocc')->where('propertyid', $pid)->where('docid', $folioDocid)->where('type', 'O')->exists();
+      $settled = DB::table('paycharge')->where('propertyid', $pid)->where('folionodocid', $folioDocid)->whereNotNull('settledate')->exists();
+      if ($checkedOut || $settled) {
+         return response()->json(['status' => false, 'message' => 'Folio is settled / guest checked-out — restore not allowed']);
+      }
+
+      // Amounts (same semantics as advreconreportfetch)
+      $resAdvance = (float) DB::table('paycharge')
+         ->where('propertyid', $pid)->where('refdocid', $docid)->whereIn('vtype', ['ADRES', 'ARRES'])
+         ->selectRaw('COALESCE(SUM(amtcr - amtdr), 0) AS total')->value('total');
+      $folioAdvance = (float) DB::table('paycharge')
+         ->where('propertyid', $pid)->where('refdocid', $docid)
+         ->whereNotNull('folionodocid')->where('folionodocid', '<>', '')->where('vtype', '<>', 'REV')
+         ->selectRaw('COALESCE(SUM(amtcr - amtdr), 0) AS total')->value('total');
+      $delAmount = (float) DB::table('paychargelog')
+         ->where('propertyid', $pid)
+         ->where(function ($q) use ($docid, $pid) {
+            $q->where('refdocid', $docid)
+               ->orWhereIn('docid', DB::table('paycharge')->where('propertyid', $pid)->where('refdocid', $docid)->whereIn('vtype', ['ADRES', 'ARRES'])->pluck('docid'));
+         })
+         ->selectRaw('COALESCE(SUM(COALESCE(amtcr,0) - COALESCE(amtdr,0)), 0) AS total')->value('total');
+
+      $missing = round($resAdvance - $folioAdvance - $delAmount, 2);
+      if ($missing <= 0.01) {
+         return response()->json(['status' => false, 'message' => 'No missing advance to restore (already balanced) — nothing to re-post']);
+      }
+
+      $advRow = DB::table('paycharge')
+         ->where('propertyid', $pid)->where('refdocid', $docid)->where('vtype', 'ADRES')
+         ->orderBy('vdate')->orderBy('sno')->first();
+      if (!$advRow) {
+         return response()->json(['status' => false, 'message' => 'No reservation advance row found to copy payment mode']);
+      }
+
+      // Next CHK voucher number
+      $voucherPrefix = DB::table('voucher_prefix')
+         ->where('propertyid', $pid)->where('v_type', 'CHK')
+         ->whereDate('date_from', '<=', $this->ncurdate)->whereDate('date_to', '>=', $this->ncurdate)
+         ->first();
+      if (!$voucherPrefix) {
+         return response()->json(['status' => false, 'message' => 'CHK voucher prefix not found for current date']);
+      }
+      $vno = (int) $voucherPrefix->start_srl_no + 1;
+      $vprefix = $voucherPrefix->prefix;
+
+      // Rebuild a voucher docid with the SAME format/separators as the folio docid
+      $newDocid = preg_replace('/\d+$/', (string) $vno, $folioDocid);
+      if ($newDocid === $folioDocid) {
+         $newDocid = $pid . 'CHK' . ' ' . $vprefix . ' ' . $vno;
+      }
+
+      $room = DB::table('roomocc')->where('propertyid', $pid)->where('docid', $folioDocid)->first();
+      $maxSno = (int) DB::table('paycharge')->where('propertyid', $pid)->where('folionodocid', $folioDocid)->max('sno');
+
+      DB::beginTransaction();
+      try {
+         // Duplicate guard inside the transaction: another restore may have slipped in
+         $dup = DB::table('paycharge')->where('propertyid', $pid)->where('docid', $newDocid)->exists();
+         if ($dup) {
+            DB::rollBack();
+            return response()->json(['status' => false, 'message' => 'Voucher docid collision — restore aborted (no duplicate created)']);
+         }
+
+         DB::table('paycharge')->insert([
+            'propertyid' => $pid,
+            'docid' => $newDocid,
+            'sno' => $maxSno + 1,
+            'sno1' => $advRow->sno1 ?? 1,
+            'vtype' => 'CHK',
+            'vno' => $vno,
+            'vprefix' => $vprefix,
+            'vdate' => $this->ncurdate,
+            'vtime' => date('H:i:s'),
+            'paycode' => $advRow->paycode,
+            'paytype' => $advRow->paytype,
+            'comments' => trim(($advRow->comments ?? '') . ' [ADVANCE RESTORED via reconciliation ' . date('d-m-Y H:i') . ']'),
+            'guestprof' => $folio->guestprof,
+            'comp_code' => '',
+            'travel_agent' => '',
+            'roomno' => $room->roomno ?? '',
+            'amtcr' => $missing,
+            'amtdr' => 0.00,
+            'roomcat' => $room->roomcat ?? '',
+            'roomtype' => 'RO',
+            'restcode' => 'FOM' . $pid,
+            'billamount' => $missing,
+            'taxper' => 0,
+            'onamt' => 0,
+            'taxstru' => '',
+            'taxcondamt' => 0,
+            'foliono' => $folioNo,
+            'folionodocid' => $folioDocid,
+            'refdocid' => $docid,
+            'u_entdt' => $this->currenttime,
+            'u_name' => Auth::user()->u_name ?? Auth::user()->name,
+            'u_ae' => 'a',
+         ]);
+
+         DB::table('voucher_prefix')
+            ->where('propertyid', $pid)->where('v_type', 'CHK')->where('prefix', $vprefix)
+            ->increment('start_srl_no');
+
+         // Audit trail: this restore is itself recorded in paychargelog
+         DB::table('paychargelog')->insert([
+            'propertyid' => $pid,
+            'docid' => $newDocid,
+            'sno' => $maxSno + 1,
+            'vtype' => 'CHK',
+            'vno' => $vno,
+            'vprefix' => $vprefix,
+            'vdate' => $this->ncurdate,
+            'vtime' => date('H:i:s'),
+            'paycode' => $advRow->paycode,
+            'paytype' => $advRow->paytype,
+            'comments' => 'Advance restored to folio ' . $folioNo . ' (missing Rs ' . number_format($missing, 2) . ')',
+            'guestprof' => $folio->guestprof,
+            'roomno' => $room->roomno ?? '',
+            'amtcr' => $missing,
+            'amtdr' => 0.00,
+            'foliono' => $folioNo,
+            'folionodocid' => $folioDocid,
+            'refdocid' => $docid,
+            'restcode' => 'FOM' . $pid,
+            'remarks' => 'ADVANCE RESTORED via reconciliation by ' . (Auth::user()->u_name ?? Auth::user()->name) . ' — original reservation ' . ($booking->BookNo ?? $docid),
+            'u_entdt' => $this->currenttime,
+            'u_name' => Auth::user()->u_name ?? Auth::user()->name,
+            'u_ae' => 'a',
+         ]);
+
+         DB::commit();
+      } catch (Exception $e) {
+         DB::rollBack();
+         Log::error('advreconrestore failed: ' . $e->getMessage());
+         return response()->json(['status' => false, 'message' => 'Restore failed: ' . $e->getMessage()]);
+      }
+
+      return response()->json([
+         'status' => true,
+         'message' => 'Advance of Rs ' . number_format($missing, 2) . ' restored to folio ' . $folioNo . ' (audit written)',
+      ]);
+   }
+
+
+   /**
+    * Front Office mismatch diagnostics (read-only). One page, tabbed queries:
+    * noshow | orphanrooms | folionoroom | cancelledfolio | resvfolio | settlement.
+    * No data is modified.
+    */
+   public function fodiagnostics(Request $request)
+   {
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
+      return view('property.fodiagnostics', [
+         'ncurdate' => $this->ncurdate,
+         'company' => $company,
+         'statename' => $statename
+      ]);
+   }
+
+   public function fodiagnosticsfetch(Request $request)
+   {
+      $tab = $request->tab ?? 'noshow';
+      $pid = (int) $this->propertyid;
+
+      switch ($tab) {
+         case 'noshow':
+            $rows = DB::table('booking AS B')
+               ->leftJoin('grpbookingdetails AS G', 'B.DocId', '=', 'G.BookingDocid')
+               ->select([
+                  'B.BookNo AS ResNo', 'B.DocId', 'B.GuestName', 'B.ResStatus', 'B.vdate AS ResDate',
+                  'G.ArrDate', 'G.DepDate', 'G.RoomNo AS BookedRoom', 'G.RoomCat AS BookedCat', 'G.Tarrif AS BookedRate',
+                  DB::raw("(SELECT COALESCE(SUM(PC.amtcr - PC.amtdr),0) FROM paycharge PC WHERE PC.refdocid = B.DocId AND PC.propertyid = {$pid} AND PC.vtype IN ('ADRES','ARRES')) AS Advance"),
+               ])
+               ->where('B.Property_ID', $pid)
+               ->where('B.Cancel', '<>', 'Y')
+               ->whereDate('G.ArrDate', '<', $this->ncurdate)
+               ->whereNotExists(function ($q) {
+                  $q->select(DB::raw(1))->from('guestfolio')->whereColumn('bookingdocid', 'B.DocId');
+               })
+               ->orderBy('G.ArrDate')
+               ->limit(500)
+               ->get();
+            break;
+
+         case 'orphanrooms':
+            $rows = DB::table('roomocc AS RO')
+               ->leftJoin('guestfolio AS GF', 'RO.docid', '=', 'GF.docid')
+               ->select('RO.docid', 'RO.roomno', 'RO.roomcat', 'RO.guestprof', 'RO.chkindate', 'RO.depdate', 'RO.type', 'RO.u_name', 'RO.u_entdt')
+               ->where('RO.propertyid', $pid)
+               ->whereNull('GF.docid')
+               ->orderByDesc('RO.u_entdt')
+               ->limit(500)
+               ->get();
+            break;
+
+         case 'folionoroom':
+            $rows = DB::table('guestfolio AS GF')
+               ->leftJoin('roomocc AS RO', 'RO.docid', '=', 'GF.docid')
+               ->select('GF.docid', 'GF.folio_no', 'GF.name', 'GF.vdate', 'GF.bookingdocid', 'GF.guestprof', 'GF.Company')
+               ->where('GF.propertyid', $pid)
+               ->whereNull('RO.docid')
+               ->orderByDesc('GF.vdate')
+               ->limit(500)
+               ->get();
+            break;
+
+         case 'cancelledfolio':
+            $rows = DB::table('guestfolio AS GF')
+               ->join('booking AS B', 'GF.bookingdocid', '=', 'B.DocId')
+               ->select('B.BookNo AS ResNo', 'B.DocId', 'B.ResStatus', 'B.CancelDate', 'B.CancelUName', 'GF.folio_no', 'GF.docid AS FolioDocid', 'GF.name', 'GF.vdate AS FolioDate')
+               ->where('GF.propertyid', $pid)
+               ->where('B.Cancel', 'Y')
+               ->orderByDesc('GF.vdate')
+               ->limit(500)
+               ->get();
+            break;
+
+         case 'resvfolio':
+            $rows = DB::table('roomocc AS RO')
+               ->join('grpbookingdetails AS G', 'RO.docid', '=', 'G.ContraDocId')
+               ->join('guestfolio AS GF', 'GF.docid', '=', 'RO.docid')
+               ->join('booking AS B', 'B.DocId', '=', 'GF.bookingdocid')
+               ->select([
+                  'B.BookNo AS ResNo', 'B.DocId', 'B.GuestName', 'GF.folio_no AS FolioNo',
+                  'RO.roomno AS OccRoom', 'G.RoomNo AS BookedRoom', 'RO.newroomno AS NewRoom',
+                  'G.RoomCat AS BookedCat', 'RO.roomcat AS OccCat',
+                  'G.Tarrif AS BookedRate', 'RO.roomrate AS OccRate',
+                  'G.Plan_Code AS BookedPlan', 'RO.plancode AS OccPlan',
+                  'G.ArrDate', 'G.DepDate', 'RO.chkindate AS OccInDate', 'RO.depdate AS OccOutDate',
+                  'B.Company', 'B.TravelAgency', 'B.BussSource', 'GF.Company AS FolCompany', 'GF.travelagent AS FolAgent',
+               ])
+               ->where('RO.propertyid', $pid)
+               ->where(function ($q) {
+                  $q->where(function ($q2) {
+                     $q2->where('G.RoomNo', '<>', '')->whereColumn('RO.roomno', '<>', 'G.RoomNo')->whereNull('RO.newroomno');
+                  })->orWhere(function ($q2) {
+                     $q2->where('G.RoomCat', '<>', '')->whereColumn('RO.roomcat', '<>', 'G.RoomCat');
+                  })->orWhere(function ($q2) {
+                     $q2->where('G.Tarrif', '>', 0)->where('RO.roomrate', '>', 0)->whereColumn('RO.roomrate', '<>', 'G.Tarrif');
+                  })->orWhere(function ($q2) {
+                     $q2->where('G.Plan_Code', '<>', '')->where('RO.plancode', '<>', '')->whereColumn('RO.plancode', '<>', 'G.Plan_Code');
+                  })->orWhere(function ($q2) {
+                     $q2->whereNotNull('G.DepDate')->whereNotNull('RO.depdate')->whereRaw('ABS(DATEDIFF(RO.depdate, G.DepDate)) > 2');
+                  });
+               })
+               ->orderBy('RO.u_entdt', 'desc')
+               ->limit(500)
+               ->get();
+
+            foreach ($rows as $row) {
+               $row->RoomMismatch = (!empty($row->BookedRoom) && $row->OccRoom !== $row->BookedRoom && empty($row->NewRoom)) ? 'Y' : '';
+               $row->CatMismatch = (!empty($row->BookedCat) && $row->OccCat !== $row->BookedCat) ? 'Y' : '';
+               $row->RateMismatch = ((float) $row->BookedRate > 0 && (float) $row->OccRate > 0 && (float) $row->OccRate !== (float) $row->BookedRate) ? 'Y' : '';
+               $row->PlanMismatch = (!empty($row->BookedPlan) && !empty($row->OccPlan) && $row->OccPlan !== $row->BookedPlan) ? 'Y' : '';
+               $row->DepMismatch = (!empty($row->DepDate) && !empty($row->OccOutDate) && abs(strtotime($row->OccOutDate) - strtotime($row->DepDate)) > 2 * 86400) ? 'Y' : '';
+               $row->CarryMismatch = ((!empty($row->Company) && empty($row->FolCompany)) || (!empty($row->TravelAgency) && empty($row->FolAgent))) ? 'Y' : '';
+            }
+            break;
+
+         case 'settlement':
+            $rows = DB::table('guestfolio AS GF')
+               ->join('roomocc AS RO', 'RO.docid', '=', 'GF.docid')
+               ->select([
+                  'GF.docid', 'GF.folio_no AS FolioNo', 'GF.name', 'RO.roomno', 'RO.chkoutdate',
+                  DB::raw("(SELECT COALESCE(SUM(PC.amtdr - PC.amtcr),0) FROM paycharge PC WHERE PC.folionodocid = GF.docid AND PC.settledate IS NULL) AS OpenBalance"),
+               ])
+               ->where('GF.propertyid', $pid)
+               ->where('RO.type', 'O')
+               ->havingRaw('ABS(OpenBalance) > 0.01')
+               ->orderByDesc('RO.chkoutdate')
+               ->limit(500)
+               ->get();
+            break;
+
+         default:
+            return response()->json(['status' => false, 'message' => 'Unknown tab']);
+      }
+
+      return response()->json(['status' => true, 'tab' => $tab, 'data' => $rows]);
+   }
+
+   public function roomrecon(Request $request)
+   {
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
+      return view('property.roomrecon', [
+         'ncurdate' => $this->ncurdate,
+         'company' => $company,
+         'statename' => $statename
+      ]);
+   }
+
+   /**
+    * Room Management reconciliation — read-only diagnostics.
+    * Compares RoomOcc / GuestFolio / PayCharge / room_mast / roomblockout
+    * against the invariants the legacy HMS maintained. No data mutation.
+    */
+   public function roomreconfetch(Request $request)
+   {
+      $tab = $request->tab ?? 'orphanocc';
+      $pid = (int) $this->propertyid;
+
+      switch ($tab) {
+         // 1. Active RoomOcc whose folio docid has no GuestFolio row (orphan occupancy)
+         case 'orphanocc':
+            $rows = DB::table('roomocc AS RO')
+               ->leftJoin('guestfolio AS GF', 'RO.docid', '=', 'GF.docid')
+               ->select('RO.docid', 'RO.roomno', 'RO.roomcat', 'RO.guestprof', 'RO.chkindate', 'RO.depdate', 'RO.type', 'RO.u_name', 'RO.u_entdt')
+               ->where('RO.propertyid', $pid)
+               ->whereNull('GF.docid')
+               ->orderByDesc('RO.u_entdt')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 2. RoomOcc rows pointing at a room missing from room_mast (deleted room / wrong code)
+         case 'noroominmast':
+            $rows = DB::table('roomocc AS RO')
+               ->leftJoin('room_mast AS RM', function ($j) {
+                  $j->on('RM.rcode', '=', 'RO.roomno')->on('RM.propertyid', '=', 'RO.propertyid');
+               })
+               ->select('RO.docid', 'RO.roomno', 'RO.roomcat', 'RO.type', 'RO.chkindate', 'RO.depdate', 'RO.propertyid AS roprop', 'RO.u_name', 'RO.u_entdt')
+               ->where('RO.propertyid', $pid)
+               ->where(function ($q) {
+                  $q->whereNull('RM.rcode')->orWhere('RO.roomno', '');
+               })
+               ->orderByDesc('RO.u_entdt')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 3. GuestFolio rows with NO RoomOcc row (folio without a room)
+         case 'folionoroom':
+            $rows = DB::table('guestfolio AS GF')
+               ->leftJoin('roomocc AS RO', 'RO.docid', '=', 'GF.docid')
+               ->select('GF.docid', 'GF.folio_no', 'GF.name', 'GF.vdate', 'GF.bookingdocid', 'GF.guestprof', 'GF.Company')
+               ->where('GF.propertyid', $pid)
+               ->whereNull('RO.docid')
+               ->orderByDesc('GF.vdate')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 4. Active RoomOcc folios with NO paycharge at all (checked-in, no charges posted)
+         case 'nopaycharge':
+            $rows = DB::table('roomocc AS RO')
+               ->leftJoin('paycharge AS PC', 'PC.folionodocid', '=', 'RO.docid')
+               ->select('RO.docid', 'RO.roomno', 'RO.guestprof', 'RO.chkindate', 'RO.depdate')
+               ->where('RO.propertyid', $pid)
+               ->where(function ($q) {
+                  $q->whereNull('RO.type')->orWhere('RO.type', '');
+               })
+               ->whereNull('PC.sn')
+               ->where('RO.chkindate', '>=', '2026-01-01')
+               ->orderBy('RO.chkindate', 'desc')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 5. Occupied rooms vs room_mast.room_stat (occupied room must not be Clean 'C')
+         case 'occstat':
+            $rows = DB::table('room_mast AS RM')
+               ->join('roomocc AS RO', function ($j) {
+                  $j->on('RO.roomno', '=', 'RM.rcode')->on('RO.propertyid', '=', 'RM.propertyid');
+               })
+               ->select('RM.rcode AS RoomNo', 'RM.room_stat AS MastStat', 'RM.name AS RoomName', 'RO.docid', 'RO.chkindate', 'RO.depdate')
+               ->where('RM.propertyid', $pid)
+               ->where('RM.type', 'RO')
+               ->where(function ($q) {
+                  $q->whereNull('RO.type')->orWhere('RO.type', '');
+               })
+               ->where('RM.room_stat', '<>', 'D')
+               ->orderBy('RM.rcode')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 6. Blocked (OOO/Maint) rooms that are simultaneously occupied — must never happen
+         case 'blockedoccupied':
+            $rows = DB::table('roomblockout AS RB')
+               ->join('roomocc AS RO', function ($j) {
+                  $j->on('RO.roomno', '=', 'RB.roomcode')->on('RO.propertyid', '=', 'RB.propertyid');
+               })
+               ->select('RB.roomcode AS RoomNo', 'RB.block', 'RB.reasons', 'RB.fromdate', 'RB.todate', 'RB.cleardate', 'RO.docid', 'RO.chkindate', 'RO.depdate')
+               ->where('RB.propertyid', $pid)
+               ->whereIn('RB.type', ['O', 'M'])
+               ->whereNull('RB.cleardate')
+               ->where(function ($q) {
+                  $q->whereNull('RO.type')->orWhere('RO.type', '');
+               })
+               ->orderBy('RB.roomcode')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 7. roomblockout rows still open past their todate (stale blocks)
+         case 'staleblock':
+            $rows = DB::table('roomblockout AS RB')
+               ->select('RB.roomcode AS RoomNo', 'RB.block', 'RB.reasons', 'RB.fromdate', 'RB.todate', 'RB.type', 'RB.cleardate', 'RB.u_name', 'RB.u_entdt')
+               ->where('RB.propertyid', $pid)
+               ->whereNull('RB.cleardate')
+               ->where('RB.todate', '<', $this->ncurdate)
+               ->orderBy('RB.todate')
+               ->limit(500)
+               ->get();
+            break;
+
+         // 8. Extra bed rooms (rate/stock reconciliation: extrabed on RoomOcc)
+         case 'extrabed':
+            $rows = DB::table('roomocc AS RO')
+               ->select('RO.docid', 'RO.roomno', 'RO.extrabed', 'RO.adult', 'RO.children', 'RO.chkindate', 'RO.depdate', 'RO.u_entdt')
+               ->where('RO.propertyid', $pid)
+               ->where('RO.extrabed', '>', 0)
+               ->orderByDesc('RO.u_entdt')
+               ->limit(500)
+               ->get();
+            break;
+
+         default:
+            return response()->json(['status' => false, 'message' => 'Unknown tab']);
+      }
+
+      return response()->json(['status' => true, 'tab' => $tab, 'data' => $rows]);
+   }
 
    public function expectedcheckout(Request $request)
    {

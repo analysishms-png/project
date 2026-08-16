@@ -41,6 +41,36 @@ This file tracks ALL changes made to the project. **Every code change MUST have 
 
 ## Changelog Entries
 
+### 2026-08-16 - security+fix+docs: XSS fix, SQL verification, helper restore, knowledge base
+
+#### Changed Files
+- `resources/views/tools/tickets.blade.php` - `{!! $ticket->problem !!}` → `{{ nl2br(e($ticket->problem)) }}` (BUG-022)
+- `resources/views/admin/tools/tickets.blade.php` - same (BUG-022)
+- `resources/views/property/mytickets.blade.php` - same (BUG-022)
+- `app/Helpers/Helpers.php` - Added missing `formatCurrency()` helper (BUG-027)
+- `.ai/MASTER_PROJECT_MAP.md`, `.ai/MODULE_STATUS.md`, `.ai/BUG_REGISTER.md`, `.ai/MISSING_FEATURES.md`, `.ai/MISSING_REPORTS.md`, `.ai/MISSING_LOGIC.md`, `.ai/SECURITY_AUDIT.md`, `.ai/PERFORMANCE_AUDIT.md`, `.ai/DATABASE_MAP.md`, `.ai/ROUTE_MAP.md`, `.ai/UI_MAP.md`, `.ai/LEGACY_TO_LARAVEL_MAP.md`, `.ai/CHANGELOG_AI.md`, `.ai/NEXT_TASK.md`, `.ai/COMPLETED_TASKS.md` - Created (verified knowledge base)
+- `.ai/known_bugs.md` - BUG-022 fixed, BUG-023 verified safe, BUG-027/028/029 added
+
+#### Description
+- **security**: Fixed stored XSS in 3 ticket views — `problem` is plain textarea content; raw output allowed script injection. Now escaped with `nl2br(e())` (line breaks preserved).
+- **security**: Verified BUG-023 — ToolsController dynamic SQL is auth-gated (superadmin/property-20) with whitelist + DB-introspection name validation. No change required.
+- **fix**: Added missing `formatCurrency` helper — 7 tests were failing (`undefined function`); docs claimed the helper existed but the repo (single commit `67e9744`) never had it.
+- **docs**: Built the 15 canonical knowledge-base documents from verified source inspection.
+
+#### Impact
+- Tests: **27 passed (33 assertions)** (was 20 passed / 7 failed)
+- Stored XSS eliminated; SQL-injection surface documented as safe
+- Knowledge base now reflects verified repo state (BUG-028: prior .ai docs overstate uncommitted work)
+
+#### Memory Updated
+- `.ai/CHANGELOG.md` - This entry
+- `.ai/CHANGELOG_AI.md` - Created (authoritative session log)
+- `.ai/known_bugs.md` - Updated statuses
+- `.ai/MEMORY.md` - Snapshot updated
+- `.ai/SECURITY.md` - SEC-03 marked fixed
+
+---
+
 ### 2026-08-07 - chore: Execute Phase 1 (package patches + Reverb migration)
 
 #### Changed Files

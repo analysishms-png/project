@@ -97,6 +97,17 @@ Route::post('nckotreportfetch', [Reporting::class, 'nckotreportfetch'])->name('n
 Route::get('advresreport', [Reporting::class, 'advresreport']);
 //fetch advance reservation report
 Route::post('advresreportfetch', [Reporting::class, 'advresreportfetch'])->name('advresreportfetch');
+//open Advance/Folio reconciliation report (read-only diagnostic)
+Route::get('advreconreport', [Reporting::class, 'advreconreport'])->name('advreconreport');
+//fetch Advance/Folio reconciliation data
+Route::post('advreconreportfetch', [Reporting::class, 'advreconreportfetch'])->name('advreconreportfetch');
+//fetch Advance/Folio reconciliation detail (per reservation)
+Route::post('advreconreportdetail', [Reporting::class, 'advreconreportdetail'])->name('advreconreportdetail');
+//safe restore/re-post of missing folio advance (guarded, audited, never duplicates)
+Route::post('advreconrestore', [Reporting::class, 'advreconrestore'])->name('advreconrestore');
+//Front Office mismatch diagnostics (read-only)
+Route::get('fodiagnostics', [Reporting::class, 'fodiagnostics'])->name('fodiagnostics');
+Route::post('fodiagnosticsfetch', [Reporting::class, 'fodiagnosticsfetch'])->name('fodiagnosticsfetch');
 //open Expected checkout report
 Route::get('expectedcheckout', [Reporting::class, 'expectedcheckout']);
 //fetch Expected checkout report
@@ -180,6 +191,9 @@ Route::get('fetchrewardmobilenumbers',    [Reporting::class, 'fetchrewardmobilen
 // Occupancy Forecast Report
 Route::get('occupancyforecast', [Reporting::class, 'occupancyforecast'])->name('occupancyforecast');
 Route::post('fetchoccupancyforecast', [Reporting::class, 'fetchoccupancyforecast'])->name('fetchoccupancyforecast');
+// Room Management reconciliation (read-only diagnostics)
+Route::get('roomrecon', [Reporting::class, 'roomrecon'])->name('roomrecon');
+Route::post('roomreconfetch', [Reporting::class, 'roomreconfetch'])->name('roomreconfetch');
 // Occupancy Forecast Print (DomPDF)
 Route::get('printoccupancyforecast', [Reporting::class, 'printoccupancyforecast'])->name('printoccupancyforecast');
 // Occupancy Forecast Excel Export

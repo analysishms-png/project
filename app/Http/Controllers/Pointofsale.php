@@ -15,6 +15,7 @@ use App\Models\Sale1;
 use App\Models\Sale2;
 use App\Models\Stock;
 use App\Models\Paycharge;
+use App\Models\PaychargeLog;
 use App\Models\MenuHelp;
 use App\Models\Depart;
 use App\Models\Revmast;
@@ -2973,6 +2974,11 @@ class Pointofsale extends Controller
             $existpaycharge = 0;
             $vprefix = $chkvpf->prefix;
         }
+        // FINANCIAL SAFETY: audit existing settlement rows before re-posting
+        PaychargeLog::auditDeleted(
+            Paycharge::where('propertyid', $this->propertyid)->whereIn('docid', $mergedwith)->get(),
+            'POS sale bill settlement re-posting'
+        );
         Paycharge::where('propertyid', $this->propertyid)->whereIn('docid', $mergedwith)->delete();
         $msno1 = 0;
         $roomoccdocid = $request->roomoccdocid;

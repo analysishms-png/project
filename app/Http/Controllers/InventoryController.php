@@ -41,6 +41,7 @@ use App\Models\GrpBookinDetail;
 use App\Models\Indent;
 use App\Models\Indent1;
 use App\Models\Ledger;
+use App\Services\LedgerLogService;
 use App\Models\PlanDetail;
 use App\Models\Purch1;
 use App\Models\Purch2;
@@ -52,6 +53,7 @@ use App\Models\Sale2;
 use App\Models\States;
 use App\Models\Sundrytype;
 use App\Models\Suntran;
+use App\Models\Suntranlog;
 use App\Models\TaxStructure;
 use App\Models\UnitMast;
 use App\Models\User;
@@ -728,7 +730,12 @@ class InventoryController extends Controller
 
         Stock::where('docid', $docid)->delete();
 
-        // Handle selected POs update
+        // Handle selected POs update: release POs previously consumed by this MR first,
+        // then re-link from selectedpos — so deselected POs return to pending (re-open semantics).
+        PurchaseOrder::where('propertyid', $this->propertyid)
+            ->where('mrcontradocId', $docid)
+            ->update(['mrcontradocId' => null, 'mrsno' => null]);
+
         $selectedpos = $request->input('selectedpos');
         if (!empty($selectedpos)) {
             $po_array = array_filter(array_map('trim', explode(',', $selectedpos)));
@@ -1221,12 +1228,22 @@ class InventoryController extends Controller
             $item->update(['delflag' => 'Y']);
         }
 
+        // FINANCIAL SAFETY: audit ledger rows before permanent deletion (LedgerLogService pattern,
+        // same as VoucherEntry) so the purchase posting stays traceable and re-postable.
         $ledger = Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
         if ($ledger) {
+            LedgerLogService::store($ledger, Auth::user()->u_name ?? Auth::user()->name ?? null);
             foreach ($ledger as $item) {
                 $item->delete();
             }
         }
+
+        // Release linked purchase orders back to pending (mrcontradocId/mrsno consumed markers)
+        // so the PO can be re-selected — same re-open semantics as legacy Indent.ClearYN.
+        PurchaseOrder::where('propertyid', $this->propertyid)
+            ->where('mrcontradocId', $docid)
+            ->update(['mrcontradocId' => null, 'mrsno' => null]);
+
         return back()->with('success', 'Purchase Bill deleted successfully');
     }
 
@@ -1446,11 +1463,20 @@ class InventoryController extends Controller
             Purch1::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             Purch2::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             Sale2::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
+            foreach (Suntran::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $oldsuntranrow) {
+                $suntranlog = new Suntranlog();
+                $suntranlog->fill($oldsuntranrow->toArray());
+                $suntranlog->save();
+            }
             Suntran::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             $chkmrentry = Stock::where('contradocid', $docid)->first();
             if (!$chkmrentry) {
                 Stock::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             }
+            LedgerLogService::store(
+                Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get(),
+                Auth::user()->u_name ?? Auth::user()->name ?? null
+            );
             Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             $taxable = $request->input('taxableamt');
             $totalamt = $request->input('totalamount');
@@ -2129,8 +2155,17 @@ class InventoryController extends Controller
             Purch1::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             Purch2::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             Sale2::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
+            foreach (Suntran::where('propertyid', $this->propertyid)->where('docid', $docid)->get() as $oldsuntranrow) {
+                $suntranlog = new Suntranlog();
+                $suntranlog->fill($oldsuntranrow->toArray());
+                $suntranlog->save();
+            }
             Suntran::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             Stock::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
+            LedgerLogService::store(
+                Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get(),
+                Auth::user()->u_name ?? Auth::user()->name ?? null
+            );
             Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             $taxable = $request->input('taxableamt');
             $totalamt = $request->input('totalamount');

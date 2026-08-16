@@ -258,12 +258,39 @@ class PurchaseOrderController extends Controller
     // Delete Purchase Order
     public function deletepurchaseorder(Request $request, $docid)
     {
-        PurchaseOrder::where('propertyid', $this->propertyid)
+        $permission = revokeopen(161114);
+        if (is_null($permission) || $permission->edit == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
+        $po = PurchaseOrder::where('propertyid', $this->propertyid)
             ->where('docid', $docid)
-            ->delete();
-        PurchaseOrderItem::where('propertyid', $this->propertyid)
-            ->where('docid', $docid)
-            ->delete();
+            ->first();
+
+        if (is_null($po)) {
+            return back()->with('error', 'Purchase Order not found!');
+        }
+
+        // FINANCIAL SAFETY: never delete a PO already converted into an MR/bill —
+        // the bill's stock rows reference it via mrcontradocId.
+        if (!empty($po->mrcontradocId) || !empty($po->mrsno)) {
+            return back()->with('error', 'Cannot delete: Purchase Order already converted to MR (' . $po->mrcontradocId . '). Delete the MR instead.');
+        }
+
+        DB::transaction(function () use ($docid) {
+            // Release the indent back to pending so it can be re-PO'd
+            // (legacy HMS re-opens Indent.ClearYN when the consuming purchase doc is deleted).
+            Indent::where('propertyid', $this->propertyid)
+                ->where('refdocId', $docid)
+                ->update(['refdocId' => '']);
+
+            PurchaseOrder::where('propertyid', $this->propertyid)
+                ->where('docid', $docid)
+                ->delete();
+            PurchaseOrderItem::where('propertyid', $this->propertyid)
+                ->where('docid', $docid)
+                ->delete();
+        });
 
         return back()->with('success', 'Purchase Order Entry Deleted');
     }

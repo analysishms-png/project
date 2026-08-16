@@ -312,7 +312,7 @@
 
                                 <div class="ticket-problem">
                                     <strong><i class="fas fa-file-alt me-2"></i>Problem Description:</strong>
-                                    <div class="mt-2">{!! $ticket->problem !!}</div>
+                                    <div class="mt-2">{{ nl2br(e($ticket->problem)) }}</div>
                                 </div>
 
                                 <div class="ticket-actions">

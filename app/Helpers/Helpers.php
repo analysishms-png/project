@@ -146,6 +146,14 @@ if (!function_exists('getDayNameFromDate')) {
     }
 }
 
+if (!function_exists('formatCurrency')) {
+    function formatCurrency($amount, $currency = '₹', $decimals = 2)
+    {
+        $formatted = number_format($amount, $decimals, '.', ',');
+        return $currency . ' ' . $formatted;
+    }
+}
+
 if (!function_exists('maxvno')) {
     function maxvno($vtype, $date = null)
     {

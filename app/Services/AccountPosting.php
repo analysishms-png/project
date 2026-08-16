@@ -8,6 +8,7 @@ use App\Models\EnviroFom;
 use App\Models\ExpenseEntry;
 use App\Models\Ledger;
 use App\Models\Paycharge;
+use App\Models\PaychargeLog;
 use App\Models\Revmast;
 use App\Models\Stock;
 use App\Models\SubGroup;
@@ -59,6 +60,11 @@ class AccountPosting
             foreach ($period as $date) {
                 $crdate = $date->format('Y-m-d');
 
+                // FINANCIAL SAFETY: audit deleted PPOS/IPOS rows before re-posting
+                PaychargeLog::auditDeleted(
+                    Paycharge::whereDate('vdate', $crdate)->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $propertyid)->get(),
+                    'Daily POS to Folio re-posting (AccountPosting)'
+                );
                 Paycharge::whereDate('vdate', $crdate)->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $propertyid)->delete();
 
                 $permission = revokeopen(141112);

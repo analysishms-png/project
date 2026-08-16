@@ -587,37 +587,10 @@ class Pos extends Controller
         $docid = $request->input('docid');
         $reason = $request->input('reason');
         $existingrowsdata = Paycharge::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
-        foreach ($existingrowsdata as $existingrows) {
-            $loginsertdata = [
-                'propertyid' => $this->propertyid,
-                'docid' => $existingrows->docid,
-                'vno' => $existingrows->vno,
-                'vtype' => $existingrows->vtype,
-                'sno' => $existingrows->sno,
-                'vdate' => $existingrows->vdate,
-                'vtime' => $existingrows->vtime,
-                'vprefix' => $existingrows->vprefix,
-                'paycode' => $existingrows->paycode,
-                'comments' => $existingrows->comments,
-                'guestprof' => $existingrows->guestprof,
-                'roomno' => $existingrows->roomno,
-                'amtdr' => $existingrows->amtdr,
-                'roomtype' => $existingrows->roomtype,
-                'roomcat' => $existingrows->roomcat,
-                'foliono' => $existingrows->foliono,
-                'restcode' => $existingrows->restcode,
-                'remarks' => $reason,
-                'billamount' => $existingrows->billamount,
-                'taxper' => $existingrows->taxper,
-                'onamt' => $existingrows->onamt,
-                'folionodocid' => $existingrows->folionodocid,
-                'taxcondamt' => $existingrows->taxcondamt,
-                'u_entdt' => $this->currenttime,
-                'u_name' => Auth::user()->u_name,
-                'u_ae' => 'e',
-            ];
-            PaychargeLog::insert($loginsertdata);
-        }
+
+        // FINANCIAL SAFETY: audit before delete (includes amtcr for credit rows)
+        PaychargeLog::auditDeleted($existingrowsdata, 'POS Bill Deleted: ' . $reason);
+
         Paycharge::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
         $msg = 'Bill Deleted Successfully';
@@ -785,7 +758,10 @@ class Pos extends Controller
         $start_srl_no = $chkvpf->start_srl_no + 1;
         // $vprefix = $chkvpf->prefix;
 
-        $delete = Paycharge::where('propertyid', $this->propertyid)->where('docid', $sale1docid)->delete();
+        // FINANCIAL SAFETY: audit existing sale-bill paycharge rows before re-posting
+        $existingrowsdata = Paycharge::where('propertyid', $this->propertyid)->where('docid', $sale1docid)->get();
+        PaychargeLog::auditDeleted($existingrowsdata, 'POS sale bill re-posting (room charge)');
+        Paycharge::where('propertyid', $this->propertyid)->where('docid', $sale1docid)->delete();
         $msno1 = 0;
         $roomdata = DB::table('roomocc')->where('propertyid', $this->propertyid)->where('roomno', $roomno)->whereNull('type')->first();
         if ($roomdata) {
@@ -1221,6 +1197,11 @@ class Pos extends Controller
 
         $mergedwith = !empty($sale1->mergedwith) ? explode(',', $sale1->mergedwith) : [$sale1->docid];
 
+        // FINANCIAL SAFETY: audit existing settlement rows before re-posting
+        PaychargeLog::auditDeleted(
+            Paycharge::where('propertyid', $this->propertyid)->whereIn('docid', $mergedwith)->get(),
+            'POS sale bill settlement re-posting'
+        );
         Paycharge::where('propertyid', $this->propertyid)->whereIn('docid', $mergedwith)->delete();
         $msno1 = 0;
         $roomoccdocid = $request->roomoccdocid;

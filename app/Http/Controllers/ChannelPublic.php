@@ -430,7 +430,7 @@ class ChannelPublic extends Controller
                             ->whereDate('date_from', '<=', $ncurdate)
                             ->whereDate('date_to', '>=', $ncurdate)
                             ->first();
-                        $vnop = $chkvpfp->start_srl_no;
+                        $vnop = $chkvpfp->start_srl_no + 1;
                         $docidp = $channelenviro->propertyid . $vtypep . ' ‎ ‎' . $vprefixyr . ' ‎ ‎ ‎ ' . $vnop;
 
                         $preamount = $mergedArray['ResGlobalInfo']['Total']['PartialPaymentInfo']['PartialAmount'];

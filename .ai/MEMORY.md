@@ -16,11 +16,18 @@ This document defines how AI agents maintain long-term memory for the Analysis H
 
 ---
 
-## 📊 Latest Analysis Snapshot (2026-08-07)
+## 📊 Latest Analysis Snapshot (2026-08-16 — VERIFIED)
 
-Full report: `.ai/ANALYSIS_REPORT.md` • Research log: `.ai/RESEARCH.md` • Upgrade plan: `.ai/UPGRADE_PLAN.md`
+> ⚠️ The 2026-08-07 snapshot below describes work that is **not in the repository** (repo has a single commit `67e9744` "Initial upload"). Verified state as of 2026-08-16:
+> - **Stored XSS fixed** (BUG-022): 3 ticket views now `{{ nl2br(e($ticket->problem)) }}`
+> - **ToolsController SQL verified safe** (BUG-023): whitelist + DB-introspection validation + auth gate (superadmin/property-20)
+> - **`formatCurrency` helper added** (BUG-027) — it was documented but missing from code; tests were failing (7 failed / 20 passed) → now **27 passed (33 assertions)**
+> - **Knowledge base built**: MASTER_PROJECT_MAP, MODULE_STATUS, BUG_REGISTER, MISSING_FEATURES/REPORTS/LOGIC, SECURITY_AUDIT, PERFORMANCE_AUDIT, DATABASE_MAP, ROUTE_MAP, UI_MAP, LEGACY_TO_LARAVEL_MAP, CHANGELOG_AI, NEXT_TASK, COMPLETED_TASKS
+> - **Work queue**: `.ai/NEXT_TASK.md` — next: advance/folio reconciliation report (P0)
 
-**Critical knowledge to remember:**
+Full report: `.ai/ANALYSIS_REPORT.md` (2026-08-07, partially outdated — cross-check with `.ai/MASTER_PROJECT_MAP.md`) • Research log: `.ai/RESEARCH.md` • Upgrade plan: `.ai/UPGRADE_PLAN.md`
+
+**Critical knowledge to remember (2026-08-07 snapshot — re-verify before relying):**
 - **PHP 8.2.33 / Laravel 10.50.2 / MySQL** (db_analysishms) / Composer 2.10.2
 - **NO Git repository** — ✅ **RESOLVED 2026-08-07**: git initialized (branch `main`, baseline commit `809669c`); DB backup pending (MySQL server stopped — start via XAMPP Control Panel)
 - **WebSockets: beyondcode → Laravel Reverb ^1.0** (Phase 1, 2026-08-07) — `BROADCAST_DRIVER=reverb`, server 127.0.0.1:8080, events unchanged (Pusher protocol), dispatch sites try/catch-wrapped. Legacy files deleted. Echo client still commented out; **REVERB_APP_* keys currently EMPTY in dev — set real values before enabling any frontend Echo client**

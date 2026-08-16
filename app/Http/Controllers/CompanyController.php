@@ -27,6 +27,7 @@ use App\Models\Countries;
 use App\Models\UserModule;
 use App\Models\MenuHelp;
 use App\Models\Paycharge;
+use App\Models\PaychargeLog;
 use App\Models\UserPermission;
 use App\Models\Items;
 use App\Models\ItemMast;
@@ -10996,10 +10997,15 @@ class CompanyController extends Controller
         $docid = $request->input('docid');
         $sno = $request->input('sno');
         $sno1 = $request->input('sno1');
+        DB::beginTransaction();
         $olddata = RoomOcc::where('propertyid', $this->propertyid)
             ->where('docid', $docid)->where('sno', $sno)
             ->where('sno1', $request->input('sno1'))
             ->first();
+        if (!$olddata) {
+            DB::rollBack();
+            return response()->json(['message' => 'Room occupancy record not found for room change'], 500);
+        }
         // return $olddata;
         $chkplanrow = PlanDetail::where('propertyid', $this->propertyid)->where('docid', $docid)->where('sno', $sno)->where('sno1', $request->input('sno1'))->first();
 
@@ -11135,7 +11141,7 @@ class CompanyController extends Controller
             'u_ae' => 'e',
         ];
 
-        if ($olddata->leaderyn = 'Y') {
+        if ($olddata->leaderyn == 'Y') {
             Paycharge::where('propertyid', $this->propertyid)
                 ->where('folionodocid', $docid)
                 ->update(['msno1' => $sno1]);
@@ -11149,8 +11155,10 @@ class CompanyController extends Controller
             RoomOcc::insert($insertnewdata);
             DB::table('guestfolio')->where('propertyid', $this->propertyid)->where('docid', $docid)->update($updateguestfolio);
             RoomOcc::where('propertyid', $this->propertyid)->where('docid', $docid)->where('sno', $request->input('sno'))->where('sno1', $request->input('sno1'))->update($updatinexistingrow);
+            DB::commit();
             return redirect('autorefreshmain');
         } catch (Exception $exception) {
+            DB::rollBack();
             return response()->json(['message' => 'Unable To Change Room' . $exception], 500);
         }
     }
@@ -13180,6 +13188,11 @@ class CompanyController extends Controller
 
         // return 'sagar';
 
+        // FINANCIAL SAFETY: audit deleted PPOS/IPOS rows before daily re-posting
+        PaychargeLog::auditDeleted(
+            Paycharge::where('vdate', $request->input('charge_date'))->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $this->propertyid)->get(),
+            'Daily POS to Folio re-posting (chargesposting)'
+        );
         Paycharge::where('vdate', $request->input('charge_date'))->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $this->propertyid)->delete();
         $roomchrgdueac = EnviroFom::where('propertyid', $this->propertyid)->first();
         if ($roomchrgdueac->roomchrgdueac == '') {
@@ -16148,6 +16161,11 @@ class CompanyController extends Controller
                 // return $fetchbillno;
 
                 $roundid = 'ROFF' . $this->propertyid;
+                // FINANCIAL SAFETY: audit the round-off row before deleting on bill cancel
+                $roundrow = DB::table('paycharge')->where('sno1', $request->input('sno1'))->where('folionodocid', $request->input('docid'))->where('paycode', $roundid)->first();
+                if ($roundrow) {
+                    PaychargeLog::auditDeleted($roundrow, 'Round-off removed on bill cancel');
+                }
                 $delpaychargeround = DB::table('paycharge')->where('sno1', $request->input('sno1'))->where('folionodocid', $request->input('docid'))->where('paycode', $roundid)->delete();
                 $fombilldetailsupdate = DB::table('fombilldetails')
                     ->where('propertyid', $this->propertyid)
@@ -16740,6 +16758,10 @@ class CompanyController extends Controller
             $amtdrr = $fetchifexist->amtdr;
         }
         if ($totalbalance != $billamt && isset($datacc['roundoff']) && $datacc['roundoff'] > 0) {
+            // FINANCIAL SAFETY: audit the round-off row before re-computing settlement
+            if ($fetchifexist) {
+                PaychargeLog::auditDeleted($fetchifexist, 'Round-off removed on settlement re-compute');
+            }
             DB::table('paycharge')->where('folionodocid', $docid)->where('sno1', $rocc->sno1 ?? $sno1)->where('paycode', $rofid)->delete();
             $vtype = 'REV';
             $chkvpf = VoucherPrefix::where('propertyid', $this->propertyid)
@@ -19633,12 +19655,53 @@ class CompanyController extends Controller
 
     public function deleteadvancedeposit($docid, $vno)
     {
-        $chk = Paycharge::where('docid', $docid)->where('vno', $vno)->first();
+        $rows = Paycharge::where('docid', $docid)->where('vno', $vno)->get();
 
-        if (is_null($chk)) {
+        if ($rows->isEmpty()) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid Vno'
+            ]);
+        }
+
+        // FINANCIAL SAFETY: never silently delete advance records.
+        // Audit trail is written to paychargelog BEFORE deletion (user, time, reason,
+        // original amounts and linkage) so the transaction stays traceable and the
+        // Advance/Folio reconciliation report can account for it.
+        $reason = 'Advance Deleted from Reservation';
+        $currentUser = Auth::user()->u_name ?? Auth::user()->name;
+        foreach ($rows as $row) {
+            DB::table('paychargelog')->insert([
+                'propertyid' => $row->propertyid,
+                'docid' => $row->docid,
+                'sno' => $row->sno,
+                'vtype' => $row->vtype,
+                'vno' => $row->vno,
+                'vprefix' => $row->vprefix,
+                'vdate' => $row->vdate,
+                'vtime' => $row->vtime,
+                'paycode' => $row->paycode,
+                'paytype' => $row->paytype,
+                'comments' => $row->comments,
+                'guestprof' => $row->guestprof,
+                'roomno' => $row->roomno,
+                'amtcr' => $row->amtcr,
+                'amtdr' => $row->amtdr,
+                'roomcat' => $row->roomcat,
+                'roomtype' => $row->roomtype,
+                'foliono' => $row->foliono,
+                'folionodocid' => $row->folionodocid,
+                'refdocid' => $row->refdocid,
+                'restcode' => $row->restcode,
+                'billamount' => $row->billamount,
+                'taxper' => $row->taxper,
+                'onamt' => $row->onamt,
+                'taxcondamt' => $row->taxcondamt,
+                'taxstru' => $row->taxstru,
+                'remarks' => $reason . ' (original u_name: ' . ($row->u_name ?? '') . ', original u_entdt: ' . ($row->u_entdt ?? '') . ')',
+                'u_entdt' => $this->currenttime,
+                'u_name' => $currentUser,
+                'u_ae' => 'e',
             ]);
         }
 

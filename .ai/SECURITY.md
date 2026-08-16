@@ -60,7 +60,7 @@ composer update phpoffice/phpspreadsheet --with-dependencies
 |----|---------|-------|----------|----------------|
 | SEC-01 | **No Git repository** — zero version control, .env unprotected in practice | A09/A05 | 🔴 HIGH | `git init` + baseline commit |
 | SEC-02 | **APP_DEBUG=true, APP_ENV=local** — stack traces/env leak | A05 | 🔴 HIGH | Set `APP_DEBUG=false`, `APP_ENV=production` before deployment |
-| SEC-03 | **Stored XSS**: `{!! $ticket->problem !!}` (unescaped user content) | A03 | 🔴 HIGH | `resources/views/tools/tickets.blade.php:394`, `admin/tools/tickets.blade.php:315`, `property/mytickets.blade.php:305` → use `{{ }}` or HTMLPurifier |
+| SEC-03 | ~~Stored XSS: `{!! $ticket->problem !!}`~~ **✅ FIXED 2026-08-16** → `{{ nl2br(e($ticket->problem)) }}` in 3 ticket views (line breaks preserved, content escaped) | A03 | 🔴 HIGH (fixed) | `resources/views/tools/tickets.blade.php`, `admin/tools/tickets.blade.php`, `property/mytickets.blade.php` |
 | SEC-04 | Raw CMS output `{!! $page->content !!}` | A03 | 🟠 MED | `frontend/page.blade.php:8,13` — OK only if superadmin-only editor |
 | SEC-05 | Raw JSON in inline `<script>`: `session('infosale')['printdata']`, `session('nightinfo')['bills']` | A03 | 🟠 MED | `property/layouts/header.blade.php:670,768` — json_encode safely |
 | SEC-06 | Dynamic SQL interpolation in `DB::raw()` (paycode/alias vars) | A03 | 🟠 MED | `Reporting.php`, `CheckRegister.php` — verify sources; bind parameters |
@@ -411,7 +411,7 @@ protected $except = [
 {!! $variable !!}
 ```
 
-> ⚠️ **Project violation found**: `{!! $ticket->problem !!}` in 3 ticket views (SEC-03). Never use `{!! !!}` with user-supplied content unless sanitized (e.g., HTMLPurifier).
+> ✅ **Fixed 2026-08-16**: `{!! $ticket->problem !!}` in 3 ticket views → `{{ nl2br(e($ticket->problem)) }}` (BUG-022). Rule remains: never use `{!! !!}` with user-supplied content unless sanitized.
 
 ### Input Sanitization
 ```php
@@ -565,7 +565,7 @@ Log::channel('security')->critical('Unauthorized access attempt', [
 ### Before Deployment
 - [ ] **Initialize Git** (SEC-01) — no production without version control
 - [ ] Disable debug mode — `APP_DEBUG=false`, `APP_ENV=production` (SEC-02)
-- [ ] **Fix stored XSS** in 3 ticket views (SEC-03)
+- [x] **Fix stored XSS** in 3 ticket views (SEC-03) — ✅ 2026-08-16
 - [ ] **Run `composer audit`** — fix phpspreadsheet + datatables advisories (CVE table above)
 - [ ] **Upgrade Laravel 10 (EOL) → 12** and PHP 8.2 (EOL Dec 2026) → 8.3/8.4 per `.ai/UPGRADE_PLAN.md`
 - [ ] Set strong APP_KEY

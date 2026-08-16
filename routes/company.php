@@ -1630,8 +1630,12 @@ Route::post('availablitybanquet', [Banquet::class, 'availablitybanquet'])->name(
 Route::get('venuestatus', [Banquet::class, 'venueavailabilitydaywise'])->name('venuestatus');
 // Fetch Availability Day Wise
 Route::post('availablitybanquetdaywise', [Banquet::class, 'availablitybanquetdaywise'])->name('availablitybanquetdaywise');
+// Open Banquet Outstanding Report
+Route::get('banqoutstanding', [Banquet::class, 'banqoutstanding'])->name('banqoutstanding');
+// Fetch Banquet Outstanding
+Route::post('banqoutstandingfetch', [Banquet::class, 'banqoutstandingfetch'])->name('banqoutstandingfetch');
 // Open Booking Enquiry
-Route::get('bookinginquiry', [BookingInquiryController::class, 'bookingenquiry'])->name('bookinginquiry');
+Route::get('bookinginquiry', [BookingInquiryController::class, 'bookingenquiry'])->name('bookingenquiry');
 // Submit Booking Enquiry
 Route::post('/booking-inquiry', [BookingInquiryController::class, 'store'])->name('bookinginquiry.store');
 // Open Update Booking Enquiry
@@ -1899,6 +1903,17 @@ Route::post('detailedtrialledger/fetch', [FinanceController::class, 'detailedTri
 Route::get('printdetailedtrialledger', [FinanceController::class, 'printDetailedTrialLedger'])->name('printdetailedtrialledger');
 // Detailed Trial Ledger Excel Export
 Route::get('detailedtrialledger/export', [FinanceController::class, 'exportDetailedTrialLedger'])->name('detailedtrialledger.export');
+
+// General Ledger Open
+Route::get('generalledger', [FinanceController::class, 'generalLedger'])->name('generalledger');
+// General Ledger Fetch
+Route::post('generalledger/fetch', [FinanceController::class, 'generalLedgerQuery'])->name('generalledger.fetch');
+// General Ledger Print
+Route::get('printgeneralledger', [FinanceController::class, 'printGeneralLedger'])->name('printgeneralledger');
+// General Ledger Excel Export
+Route::get('generalledger/export', [FinanceController::class, 'exportGeneralLedger'])->name('generalledger.export');
+// General Ledger Account List (for filter dropdown)
+Route::post('generalledger/accounts', [FinanceController::class, 'generalLedgerAccounts'])->name('generalledger.accounts');
 
 // Recipe Master
 Route::get('recipemaster', [RecipeMastController::class, 'recipemaster'])->name('recipemaster');

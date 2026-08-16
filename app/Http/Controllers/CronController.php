@@ -21,6 +21,7 @@ use App\Models\Countries;
 use App\Models\UserModule;
 use App\Models\MenuHelp;
 use App\Models\Paycharge;
+use App\Models\PaychargeLog;
 use App\Models\UserPermission;
 use App\Models\Items;
 use App\Models\ItemMast;
@@ -138,6 +139,11 @@ class CronController extends Controller
                         return back()->with('error', 'You are not eligible to post charges for this date: ' . date('d-m-Y', strtotime($envgeneral->ncur)));
                     }
 
+                    // FINANCIAL SAFETY: audit deleted PPOS/IPOS rows before nightly re-posting
+                    PaychargeLog::auditDeleted(
+                        Paycharge::where('vdate', $envgeneral->ncur)->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $propertyidenv)->get(),
+                        'Night audit daily POS to Folio re-posting'
+                    );
                     Paycharge::where('vdate', $envgeneral->ncur)->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $propertyidenv)->delete();
                     $roomchrgdueac = EnviroFom::where('propertyid', $propertyidenv)->first();
                     if ($roomchrgdueac->roomchrgdueac == '') {

@@ -403,9 +403,8 @@ class Reservation extends Controller
                         ->where('v_type', $vtypep)
                         ->whereDate('date_from', '<=', $ncurdate)
                         ->whereDate('date_to', '>=', $ncurdate)
-                        ->first();
-                    $vnop = $chkvpfp->start_srl_no;
-                    $docidp = $enviro->propertyid . $vtypep . ' ‎ ‎' . $vprefixyr . ' ‎ ‎ ‎ ' . $vnop;
+                        ->first();                    $vnop = $chkvpfp->start_srl_no + 1;
+                    $docidp = $enviro->propertyid . $vtypep . '  ‎ ‎' . $vprefixyr . ' ‎ ‎ ‎ ' . $vnop;
 
                     $preamount = $mergedArray['ResGlobalInfo']['Total']['PartialPaymentInfo']['PartialAmount'];
                     $amtdr = 0.00;

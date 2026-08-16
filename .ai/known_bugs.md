@@ -402,30 +402,31 @@ Run `git init`, commit baseline, and push to a private remote.
 
 ### BUG-022: Stored XSS in Ticket Views
 
-**Status**: ⚠️ PENDING  
+**Status**: ✅ FIXED (2026-08-16)  
 **Priority**: 🔴 HIGH  
 **Module**: Support Tickets / Security  
 
 **Description**:  
-`{!! $ticket->problem !!}` renders user-supplied ticket HTML without escaping in 3 views:
+`{!! $ticket->problem !!}` rendered user-supplied ticket text without escaping in 3 views:
 - `resources/views/tools/tickets.blade.php:394`
 - `resources/views/admin/tools/tickets.blade.php:315`
 - `resources/views/property/mytickets.blade.php:305`
 
 **Root Cause**:  
-Unescaped blade output of user-controlled content.
+Unescaped blade output of user-controlled content (plain-text textarea field).
 
 **Impact**:  
 Stored XSS — attacker can execute scripts in other admin/user sessions.
 
-**Recommendation**:  
-Use `{{ $ticket->problem }}` or sanitize with HTMLPurifier if rich text is required.
+**Fix (2026-08-16)**:  
+Replaced with `{{ nl2br(e($ticket->problem)) }}` in all 3 views — escapes content while preserving line breaks.  
+**Verification**: grep (no leftovers) + `php artisan view:cache` (all 549 views compile) + `php artisan test` (27 passed).
 
 ---
 
 ### BUG-023: Dynamic SQL Interpolation Needs Verification
 
-**Status**: ⚠️ VERIFY  
+**Status**: ✅ VERIFIED SAFE (2026-08-16)  
 **Priority**: 🟠 MEDIUM  
 **Module**: Reporting/Tools / Security  
 
@@ -433,14 +434,12 @@ Use `{{ $ticket->problem }}` or sanitize with HTMLPurifier if rich text is requi
 - `Reporting.php` / `CheckRegister.php`: `{$code}`, `{$alias}`, `{$effectiveSnoExpr}` embedded in `DB::raw()` (aliases sanitized via preg_replace; codes derive from propertyid/revmast)
 - `Tools/ToolsController.php:2428,2431,2508,2942,3080`: `DB::select("SHOW TABLES LIKE '{$tableName}'")` and `whereRaw($sqlWhere)` at 2534/2958/2997
 
-**Root Cause**:  
-String interpolation instead of parameter binding for dynamic identifiers.
+**Verification result (2026-08-16)**:  
+- `$allowedTables` is a **hardcoded whitelist**; `fetchtabledata`/`bulkupdaterecords`/etc. validate table names by exact match against `SHOW TABLES` and column names against `SHOW COLUMNS`.
+- `whereRaw($sqlWhere)` is a **by-design** superadmin/support DB tool; `ToolsController::__construct` middleware requires auth AND (superadmin role=1/propertyid=10 OR propertyid=20) — regular users get redirected.
+- Reporting interpolation sources are server-side (propertyid/revmast).
 
-**Impact**:  
-Potential SQL injection IF sources are ever user-controlled (superadmin tools especially).
-
-**Recommendation**:  
-Confirm `$allowedTables` is a hardcoded whitelist and `$sqlWhere` is server-side only; prefer whitelist checks before executing.
+**Verdict**: Not exploitable by non-privileged users. **Re-audit if the ToolsController constructor guard is ever removed.**
 
 ---
 
@@ -476,6 +475,25 @@ N+1 queries on list/report pages; files too large to safely refactor or test.
 
 **Recommendation**:  
 Add eager loading on hot paths first; then split CompanyController into domain services/controllers.
+
+---
+
+### BUG-027: formatCurrency Helper Missing (docs ≠ code)
+
+**Status**: ✅ FIXED (2026-08-16)  
+**Priority**: 🟠 MEDIUM  
+**Module**: Helpers / Tests  
+
+**Description**:  
+`.ai` docs (2026-08-07) claimed `formatCurrency` was added to `app/Helpers/Helpers.php`; the function **never existed in the repo** (single commit `67e9744`). Result: 7 tests failed with `Call to undefined function formatCurrency`.
+
+**Root Cause**:  
+Documented work was never committed — `.ai` overstates repo state (see BUG-028).
+
+**Fix (2026-08-16)**:  
+Added `formatCurrency($amount, $currency='₹', $decimals=2)` (function_exists guard) → `number_format($amount, $decimals, '.', ',')` prefixed by currency.
+
+**Verification**: `php artisan test` → **27 passed (33 assertions)**.
 
 ---
 
@@ -538,12 +556,15 @@ Cache master data (travel agents, revenue codes, room lists); move to database/R
 | BUG-018 | Pending | Medium | Monitoring |
 | BUG-019 | Pending | Low | Documentation |
 | BUG-020 | Pending | Low | Documentation |
-| BUG-021 | Pending | HIGH | DevOps/Security |
-| BUG-022 | Pending | HIGH | Security |
-| BUG-023 | Verify | Medium | Security |
+| BUG-021 | Verified (fixed) | HIGH | DevOps/Security |
+| BUG-022 | **Fixed 2026-08-16** | HIGH | Security |
+| BUG-023 | **Verified safe 2026-08-16** | Medium | Security |
 | BUG-024 | Pending | Medium | Security |
 | BUG-025 | Review | Medium | Architecture/Performance |
 | BUG-026 | Monitoring | Low | Performance |
+| BUG-027 | **Fixed 2026-08-16** | Medium | Helpers/Tests |
+| BUG-028 | Open | Low | Documentation |
+| BUG-029 | Open | Low | Code Quality |
 
 ---
 

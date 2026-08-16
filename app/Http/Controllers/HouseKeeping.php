@@ -338,6 +338,18 @@ class HouseKeeping extends Controller
                 $roommast->u_updatedt = $this->currenttime;
                 $roommast->save();
 
+                // Audit history: mark Out of Order status change (mirrors C/D audit rows)
+                $roomclean = new RoomClean;
+                $roomclean->propertyid = $this->propertyid;
+                $roomclean->hosuekeeper = $request->housekeeper ?? '';
+                $roomclean->roomno = $request->roomno;
+                $roomclean->remarks = mb_substr('OOO: ' . ($request->reasons ?? '') . ($request->block ? ' [' . $request->block . ']' : ''), 0, 50);
+                $roomclean->type = 'O';
+                $roomclean->u_entdt = $this->currenttime;
+                $roomclean->u_updatedt = null;
+                $roomclean->u_ae = 'a';
+                $roomclean->save();
+
                 DB::commit();
 
                 return response()->json([
@@ -347,6 +359,13 @@ class HouseKeeping extends Controller
             } elseif (in_array($request->roomstat, ['R'])) {
                 $rblkout = RoomBlockout::where('propertyid', $this->propertyid)->where('roomcode', $request->roomno)->where('type', 'O')
                     ->whereNull('cleardate')->first();
+                if (!$rblkout) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'No active Out of Order block found for room ' . $request->roomno,
+                    ]);
+                }
                 $rblkout->u_updatedt = $this->currenttime;
                 $rblkout->u_ae = 'e';
                 $rblkout->type = $request->roomstat;
@@ -361,6 +380,18 @@ class HouseKeeping extends Controller
                 $roommast->room_stat = 'C';
                 $roommast->u_updatedt = $this->currenttime;
                 $roommast->save();
+
+                // Audit history: mark release-from-OOO status change
+                $roomclean = new RoomClean;
+                $roomclean->propertyid = $this->propertyid;
+                $roomclean->hosuekeeper = $request->housekeeper ?? '';
+                $roomclean->roomno = $request->roomno;
+                $roomclean->remarks = mb_substr('Released from OOO: ' . ($request->clearremark ?? ''), 0, 50);
+                $roomclean->type = 'R';
+                $roomclean->u_entdt = $this->currenttime;
+                $roomclean->u_updatedt = null;
+                $roomclean->u_ae = 'a';
+                $roomclean->save();
 
                 DB::commit();
 
@@ -3982,6 +4013,18 @@ class HouseKeeping extends Controller
                 ->where('type', 'RO')
                 ->where('rcode', $roomno)
                 ->update(['room_stat' => 'O', 'u_updatedt' => $now]);
+
+            // Audit history: mark Out of Order status change (damage-report flow)
+            $roomclean = new RoomClean;
+            $roomclean->propertyid = $propertyId;
+            $roomclean->hosuekeeper = '';
+            $roomclean->roomno = $roomno;
+            $roomclean->remarks = mb_substr('OOO via damage report: ' . $reasons, 0, 50);
+            $roomclean->type = 'O';
+            $roomclean->u_entdt = $now;
+            $roomclean->u_updatedt = null;
+            $roomclean->u_ae = 'a';
+            $roomclean->save();
 
             return response()->json([
                 'success' => true,
