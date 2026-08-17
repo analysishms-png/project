@@ -1,5 +1,14 @@
 # UI NEXT TASK
 
+## DONE — UI Pass 4: COMPLETE BLUE transformation
+- Global design system recolored navy/teal → Bootstrap blue (#0d6efd) across hms.css, style.css, login, dashboard, 9 blades
+- Verified on QA: 0 purple theme remnants, 0 errors, suite 68 passed
+
+## NEXT — UI Pass 5 (module screens)
+- Convert remaining module-specific inline styles (POS, KOT, Banquet screens with bespoke colors)
+- Standardize report filter bars + summary cards (blue layout per master prompt §27)
+- Full module sweep for stray legacy colors
+
 ## DONE — UI Pass 3b (edit pages)
 - 11 update/edit blades now have standard "Edit X" page headers (40 screens total with headers)
 - 4 update pages' autocomplete null-listener pageerrors fixed

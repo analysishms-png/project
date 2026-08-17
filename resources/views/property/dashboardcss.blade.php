@@ -10,7 +10,7 @@
             .section-header-icon {
                 width: 45px;
                 height: 45px;
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 border-radius: 12px;
                 display: flex;
                 align-items: center;
@@ -37,7 +37,7 @@
             }
 
             .events-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 padding: 18px 22px;
                 display: flex;
                 justify-content: space-between;
@@ -125,7 +125,7 @@
                 display: block;
                 font-size: 22px;
                 font-weight: 700;
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 50%, #6ea8fe 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
@@ -158,12 +158,12 @@
             }
 
             .events-list::-webkit-scrollbar-thumb {
-                background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+                background: linear-gradient(180deg, #0d6efd 0%, #0a58ca 100%);
                 border-radius: 10px;
             }
 
             .events-list::-webkit-scrollbar-thumb:hover {
-                background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
+                background: linear-gradient(180deg, #0a58ca 0%, #084298 100%);
             }
 
             .event-item {
@@ -187,7 +187,7 @@
                 top: 0;
                 height: 100%;
                 width: 4px;
-                background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(180deg, #0d6efd 0%, #0a58ca 100%);
                 transform: scaleY(0);
                 transition: transform 0.3s ease;
             }
@@ -198,7 +198,7 @@
 
             .event-item:hover {
                 background: #fafbfc;
-                border-color: #764ba2;
+                border-color: #0a58ca;
                 box-shadow: 0 4px 16px rgba(118, 75, 162, 0.15);
                 transform: translateX(4px);
             }
@@ -208,7 +208,7 @@
                 align-items: center;
                 gap: 6px;
                 padding: 8px 14px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 color: #ffffff;
                 border-radius: 10px;
                 font-size: 13px;
@@ -260,7 +260,7 @@
 
             .event-user i,
             .event-type i {
-                color: #8b5cf6;
+                color: #0a58ca;
                 font-size: 12px;
             }
 
@@ -292,7 +292,7 @@
             }
 
             .btn-view-all {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 color: #ffffff;
                 border: none;
                 padding: 12px 32px;
@@ -547,7 +547,7 @@
                 left: 0;
                 right: 0;
                 height: 4px;
-                background: linear-gradient(90deg, #6366f1, #8b5cf6, #d946ef);
+                background: linear-gradient(90deg, #0d6efd, #0a58ca, #6ea8fe);
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
@@ -602,8 +602,8 @@
 
             /* Check In - Blue/Indigo */
             .checkin-icon {
-                background: linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%);
-                color: #5c6bc0;
+                background: linear-gradient(135deg, #e7f1ff 0%, #cfe2ff 100%);
+                color: #3d8bfd;
             }
 
             /* Checkout - Green */
@@ -626,14 +626,14 @@
 
             /* Expected CheckOut - Purple */
             .expected-checkout-icon {
-                background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-                color: #ab47bc;
+                background: linear-gradient(135deg, #e7f1ff 0%, #cfe2ff 100%);
+                color: #6ea8fe;
             }
 
             /* Expected Arrival - Teal/Cyan */
             .expected-arrival-icon {
                 background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
-                color: #26a69a;
+                color: #3d8bfd;
             }
 
             /* Unsettled - Red/Crimson */
@@ -692,7 +692,7 @@
             }
 
             .checkin-count {
-                background: linear-gradient(135deg, #5c6bc0 0%, #3f51b5 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #0a58ca 100%);
             }
 
             .checkout-count {
@@ -708,11 +708,11 @@
             }
 
             .expected-checkout-count {
-                background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
+                background: linear-gradient(135deg, #6ea8fe 0%, #084298 100%);
             }
 
             .expected-arrival-count {
-                background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #0a58ca 100%);
             }
 
             .unsettled-count {
@@ -772,7 +772,7 @@
             }
 
             .checkin-badge {
-                background: linear-gradient(135deg, #5c6bc0 0%, #3f51b5 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #0a58ca 100%);
             }
 
             .checkout-badge {
@@ -788,11 +788,11 @@
             }
 
             .expected-checkout-badge {
-                background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
+                background: linear-gradient(135deg, #6ea8fe 0%, #084298 100%);
             }
 
             .expected-arrival-badge {
-                background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #0a58ca 100%);
             }
 
             .unsettled-badge {
@@ -804,7 +804,7 @@
             }
 
             .expected-arrival-badge {
-                background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #0a58ca 100%);
             }
 
             /* Responsive Styles */
@@ -1002,7 +1002,7 @@
             }
 
             #roomModal .modal-header {
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 color: white;
             }
 
@@ -1013,7 +1013,7 @@
 
             /* Welcome Header Styles */
             .welcome-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 border-radius: 15px 15px 0 0;
                 padding: 25px 30px;
                 color: white;
@@ -1432,7 +1432,7 @@
 
             /* Analytics Dashboard Styles */
             .analytics-card {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
                 border-radius: 15px;
                 padding: 25px;
                 color: white;
@@ -1445,28 +1445,28 @@
                 box-shadow: 0 15px 40px rgba(0,0,0,0.3);
             }
             .analytics-card.color-1 {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             }
             .analytics-card.color-2 {
-                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #16a34a 100%);
             }
             .analytics-card.color-3 {
-                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                background: linear-gradient(135deg, #6ea8fe 0%, #3d8bfd 100%);
             }
             .analytics-card.color-4 {
-                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                background: linear-gradient(135deg, #0d6efd 0%, #6ea8fe 100%);
             }
             .analytics-card.color-5 {
-                background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #f59e0b 100%);
             }
             .analytics-card.color-6 {
-                background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+                background: linear-gradient(135deg, #3d8bfd 0%, #084298 100%);
             }
             .analytics-card.color-7 {
-                background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+                background: linear-gradient(135deg, #cfe2ff 0%, #cfe2ff 100%);
             }
             .analytics-card.color-8 {
-                background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+                background: linear-gradient(135deg, #6ea8fe 0%, #cfe2ff 100%);
             }
             .analytics-card .card-header-row {
                 display: flex;

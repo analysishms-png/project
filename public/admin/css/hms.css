@@ -6,23 +6,23 @@
    ===================================================================== */
 
 :root {
-  /* Brand */
-  --hms-primary:      #0f2b5b;
-  --hms-primary-2:    #14407e;
-  --hms-primary-3:    #0a1f42;
-  --hms-accent:       #0ea5a4;
-  --hms-accent-2:     #14b8b6;
+  /* Brand — blue (#0d6efd Bootstrap primary) */
+  --hms-primary:      #0d6efd;
+  --hms-primary-2:    #0a58ca;
+  --hms-primary-3:    #084298;
+  --hms-accent:       #3d8bfd;
+  --hms-accent-2:     #6ea8fe;
   --hms-secondary:    #64748b;
   --hms-success:      #16a34a;
   --hms-warning:      #f59e0b;
   --hms-danger:       #dc2626;
-  --hms-info:         #0ea5e9;
+  --hms-info:         #0d6efd;
 
   /* Surfaces */
-  --hms-bg:           #f1f5f9;
+  --hms-bg:           #f4f7fb;
   --hms-card-bg:      #ffffff;
-  --hms-sidebar-bg:   #0f2b5b;
-  --hms-sidebar-bg-2: #0a1f42;
+  --hms-sidebar-bg:   #0b5ed7;
+  --hms-sidebar-bg-2: #084298;
   --hms-topbar-bg:    #ffffff;
   --hms-border:       #e2e8f0;
   --hms-border-soft:  #eef2f7;
@@ -35,9 +35,9 @@
   /* Shape & depth */
   --hms-radius:       .75rem;
   --hms-radius-sm:    .5rem;
-  --hms-shadow-sm:    0 1px 2px rgba(15, 43, 91, .06);
-  --hms-shadow:       0 4px 16px rgba(15, 43, 91, .08);
-  --hms-shadow-lg:    0 12px 32px rgba(15, 43, 91, .14);
+  --hms-shadow-sm:    0 1px 2px rgba(13, 110, 253, .07);
+  --hms-shadow:       0 4px 16px rgba(13, 110, 253, .09);
+  --hms-shadow-lg:    0 12px 32px rgba(13, 110, 253, .15);
 
   /* Type */
   --hms-font:         "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -75,7 +75,7 @@ a {
 .header {
   background: var(--hms-topbar-bg);
   border-bottom: 1px solid var(--hms-border);
-  box-shadow: 0 1px 3px rgba(15, 43, 91, .05);
+  box-shadow: 0 1px 3px rgba(13, 110, 253, .06);
 }
 
 .header .header-content {
@@ -110,7 +110,7 @@ a {
   border-color: #cbd5e1;
 }
 
-/* ---------- Sidebar (deep navy) ---------- */
+/* ---------- Sidebar (deep blue) ---------- */
 .nk-sidebar {
   background: linear-gradient(180deg, var(--hms-sidebar-bg) 0%, var(--hms-sidebar-bg-2) 100%);
   border-right: 1px solid rgba(255, 255, 255, .06);
@@ -335,7 +335,7 @@ a {
 .form-select:focus,
 .custom-select:focus {
   border-color: var(--hms-accent);
-  box-shadow: 0 0 0 .2rem rgba(14, 165, 164, .15);
+  box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .15);
 }
 
 .form-control[readonly] {
@@ -456,7 +456,7 @@ a {
 
 .dt-search input:focus {
   border-color: var(--hms-accent);
-  box-shadow: 0 0 0 .2rem rgba(14, 165, 164, .15);
+  box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .15);
   outline: none;
 }
 

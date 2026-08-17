@@ -76,7 +76,7 @@
             transition: all 0.3s;
         }
         .column-filter:focus {
-            border-color: #667eea;
+            border-color: #0d6efd;
             box-shadow: 0 0 5px rgba(102,126,234,0.5);
             outline: none;
         }
@@ -89,7 +89,7 @@
             background: #343a40 !important;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             border: none;
             transition: all 0.3s;
         }
@@ -99,13 +99,13 @@
         }
         .dataTables_wrapper .dataTables_length select,
         .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid #667eea;
+            border: 1px solid #0d6efd;
             border-radius: 4px;
             padding: 5px 10px;
         }
         .page-item.active .page-link {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-color: #667eea;
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            border-color: #0d6efd;
         }
         .action-cell {
             text-align: center !important;
@@ -133,7 +133,7 @@
             display: inline-block;
             padding: 6px 12px;
             margin: 4px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: white;
             border-radius: 20px;
             cursor: pointer;
@@ -146,13 +146,13 @@
             box-shadow: 0 4px 8px rgba(102,126,234,0.4);
         }
         .active-input {
-            border: 2px solid #667eea !important;
+            border: 2px solid #0d6efd !important;
             box-shadow: 0 0 8px rgba(102,126,234,0.3) !important;
         }
         .column-suggestions-dropdown {
             position: absolute;
             background: white;
-            border: 2px solid #667eea;
+            border: 2px solid #0d6efd;
             border-radius: 6px;
             max-height: 250px;
             overflow-y: auto;
@@ -171,7 +171,7 @@
             border-bottom: 1px solid #f0f0f0;
         }
         .column-suggestion-item:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: white;
         }
         .column-suggestion-item:last-child {
@@ -183,7 +183,7 @@
             font-weight: bold;
             font-size: 12px;
             color: #495057;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #0d6efd;
             position: sticky;
             top: 0;
         }
@@ -866,7 +866,7 @@
                     showCancelButton: true,
                     confirmButtonText: 'Next',
                     cancelButtonText: 'Cancel',
-                    confirmButtonColor: '#667eea',
+                    confirmButtonColor: '#0d6efd',
                     width: '600px',
                     preConfirm: () => {
                         const columnValuePairs = document.getElementById('column_value_pairs').value;
@@ -1135,7 +1135,7 @@
                                 title: 'Success!',
                                 html: `<p>${response.message}</p>`,
                                 icon: 'success',
-                                confirmButtonColor: '#667eea'
+                                confirmButtonColor: '#0d6efd'
                             });
                             toastr.success(response.message);
                             $('#fetch_data_btn').click(); // Refresh data
@@ -1193,7 +1193,7 @@
                                 title: 'Success!',
                                 html: `<p>${response.message}</p><p><strong>Affected Rows:</strong> ${response.affected_rows}</p>`,
                                 icon: 'success',
-                                confirmButtonColor: '#667eea'
+                                confirmButtonColor: '#0d6efd'
                             });
                             toastr.success(response.message + ' (' + response.affected_rows + ' rows)');
                             $('#fetch_data_btn').click(); // Refresh data
@@ -1984,7 +1984,7 @@
                                 title: 'Success!',
                                 html: `<p>${response.message}</p><p><strong>Deleted Records:</strong> ${response.deleted_count}</p>`,
                                 icon: 'success',
-                                confirmButtonColor: '#667eea'
+                                confirmButtonColor: '#0d6efd'
                             });
                             toastr.success(response.message);
                         } else {

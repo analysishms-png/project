@@ -369,3 +369,13 @@
 - **FILES**: 11 update blades (updateroommaster, updateplanmaster, updatechargemaster, updateroomcategory, updatepartymaster, updatedepartmaster, updateroomfeature, updatecompanymaster, updatetaxform, updatetaxstructure, updaterecipemaster) + 4 null-guards (updateroommaster, updateroomcategory, updatechargemaster, updateroomfeature)
 - **CHANGE**: Standard "Edit X" page headers on all edit pages; fixed `#name`/`#namelist` autocomplete null-listener pageerrors (addEventListener on missing element) — same family as the Pass-3 list-page fixes
 - **TEST**: Playwright on QA — all 4 reachable edit routes render headers with 0 page errors; suite 68 passed (165 assertions); view:cache clean
+### Standards compliance audit + rule 10.6 fix (paychargelog service)
+- **FILES**: `app/Services/PayChargeLogService.php` (new), Banquet.php (5 sites), CompanyController.php (2), Reporting.php (1) — all inline `DB::table('paychargelog')->insert()` centralized into the service
+- **CHANGE**: HMS rule 10.6 — log-table writes must go through a dedicated service class. Pure insert passthrough (same table/data/transaction), mirrors LedgerLogService precedent.
+- **AUDIT**: documented in `.ai/STANDARDS_COMPLIANCE.md` — Eloquent-first (192+ legacy insert sites) and constructor gaps (34/119, incl. 2 public QR-ordering controllers) documented as legacy deviations, NOT refactored (would break functionality / rewrite financial logic).
+- **TEST**: php -l clean; suite 68 passed (165 assertions).
+### UI Pass 4 — Complete BLUE UI transformation (#0d6efd)
+- **FILES**: `public/admin/css/hms.css` (token recolor: navy/teal → Bootstrap blue #0d6efd family), `resources/views/auth/login.blade.php` (blue gradient), `resources/views/property/dashboardcss.blade.php` (63 purple/indigo/fuchsia hexes → blue family, semantic green/amber/red preserved), `public/admin/css/style.css` (95× #7571f9 → #0d6efd + purple label classes), 9 blades with #667eea/#764ba2 gradients (tickets, footer, recon reports, salebillentry, tablemanagement)
+- **CHANGE**: Whole-app blue identity — sidebar #0b5ed7→#084298 gradient, white topbar with blue accents, blue buttons/focus/links, blue DataTables styling, blue dashboard KPI gradients, blue login gateway. Centralized CSS variables (--hms-primary etc.), zero functionality change.
+- **TEST**: Playwright on QA — login gradient rgb(13,110,253), sidebar blue gradient, buttons #0d6efd, dashboard 5 KPI cards 0 errors, roommaster/outletsetup/poskot clean, mobile 358px fits; 0 purple remnants (only summernote editor's own "Cold Purple" swatch remains — editor content, not theme). Suite 68 passed (165 assertions).
+- **NOTE**: QA server needed `DB_DATABASE=analysis_qa` env override (a shell env var was overriding .env.qa — Dotenv immutability).

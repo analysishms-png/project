@@ -84,3 +84,18 @@
 - resources/views/property/updatetaxform.blade.php (header)
 - resources/views/property/updatetaxstructure.blade.php (header)
 - resources/views/property/updaterecipemaster.blade.php (header)
+
+## Pass 4 (blue transformation)
+- public/admin/css/hms.css (token recolor navy/teal → blue)
+- public/admin/css/style.css (95× #7571f9 → #0d6efd, label classes)
+- resources/views/auth/login.blade.php (blue gradient)
+- resources/views/property/dashboardcss.blade.php (63 hexes → blue family)
+- resources/views/admin/tools/tickets.blade.php
+- resources/views/tools/tickets.blade.php
+- resources/views/tools/tablemanagement.blade.php
+- resources/views/property/layouts/footer.blade.php
+- resources/views/property/mytickets.blade.php
+- resources/views/property/advreconreport.blade.php
+- resources/views/property/roomrecon.blade.php
+- resources/views/property/fodiagnostics.blade.php
+- resources/views/property/salebillentry.blade.php

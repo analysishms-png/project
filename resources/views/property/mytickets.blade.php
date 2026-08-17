@@ -23,7 +23,7 @@
         .ticket-number {
             font-size: 17px;
             font-weight: 700;
-            color: #667eea;
+            color: #0d6efd;
         }
 
         .ticket-status {
@@ -72,21 +72,21 @@
 
         .filter-tab {
             padding: 8px 16px;
-            border: 1px solid #667eea;
+            border: 1px solid #0d6efd;
             border-radius: 22px;
-            color: #667eea;
+            color: #0d6efd;
             background: #fff;
             cursor: pointer;
             font-weight: 600;
         }
 
         .filter-tab.active {
-            background: #667eea;
+            background: #0d6efd;
             color: #fff;
         }
 
         .page-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: #fff;
             padding: 24px;
             border-radius: 10px;

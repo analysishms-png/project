@@ -59,7 +59,7 @@
 
         #groupDiscountModal .modal-header,
         #itemDiscountModal .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: white;
             border-radius: 8px 8px 0 0;
         }
@@ -110,7 +110,7 @@
 
         #groupDiscountInput:focus,
         #itemDiscountInput:focus {
-            border-color: #667eea;
+            border-color: #0d6efd;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
 

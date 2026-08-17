@@ -4,15 +4,15 @@
 
 @section('content')
 <style>
-    /* ===== Analysis HMS Login — navy/teal brand (UI-only redesign) ===== */
+    /* ===== Analysis HMS Login — blue brand (UI-only redesign) ===== */
     .login-page {
         min-height: 100vh;
-        background: linear-gradient(160deg, #0f2b5b 0%, #0a1f42 100%);
+        background: linear-gradient(160deg, #0d6efd 0%, #084298 100%);
         position: relative;
         overflow-x: hidden;
     }
 
-    /* subtle teal glow accents */
+    /* subtle blue glow accents */
     .login-page::before {
         content: '';
         position: absolute;
@@ -20,7 +20,7 @@
         right: -20%;
         width: 70vw;
         height: 70vw;
-        background: radial-gradient(circle, rgba(14, 165, 164, .22) 0%, transparent 60%);
+        background: radial-gradient(circle, rgba(61, 139, 253, .25) 0%, transparent 60%);
         pointer-events: none;
     }
 
@@ -31,7 +31,7 @@
         left: -20%;
         width: 60vw;
         height: 60vw;
-        background: radial-gradient(circle, rgba(14, 165, 164, .14) 0%, transparent 60%);
+        background: radial-gradient(circle, rgba(61, 139, 253, .16) 0%, transparent 60%);
         pointer-events: none;
     }
 
@@ -63,7 +63,7 @@
     }
 
     .login-brand {
-        background: linear-gradient(135deg, #0f2b5b 0%, #14407e 60%, #0ea5a4 160%);
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 60%, #6ea8fe 160%);
         padding: 2rem 2rem 1.75rem;
         text-align: center;
     }
@@ -118,8 +118,8 @@
     }
 
     .login-page .form-control:focus {
-        border-color: #0ea5a4;
-        box-shadow: 0 0 0 .2rem rgba(14, 165, 164, .15);
+        border-color: #3d8bfd;
+        box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .18);
     }
 
     .login-page .input-group-text {
@@ -134,8 +134,8 @@
     }
 
     .login-page .btn-primary {
-        background-color: #0f2b5b !important;
-        border-color: #0f2b5b !important;
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
         border-radius: .5rem;
         padding: .7rem 1rem;
         font-weight: 600;
@@ -145,14 +145,14 @@
     }
 
     .login-page .btn-primary:hover {
-        background-color: #14407e !important;
-        border-color: #14407e !important;
-        box-shadow: 0 6px 16px rgba(15, 43, 91, .3);
+        background-color: #0a58ca !important;
+        border-color: #0a58ca !important;
+        box-shadow: 0 6px 16px rgba(13, 110, 253, .3);
     }
 
     .login-page .form-check-input:checked {
-        background-color: #0ea5a4;
-        border-color: #0ea5a4;
+        background-color: #0d6efd;
+        border-color: #0d6efd;
     }
 
     .login-page .form-check-label {
@@ -166,7 +166,7 @@
     }
 
     .login-page .btn-forgot:hover {
-        color: #0f2b5b;
+        color: #0d6efd;
     }
 
     .login-demo {
@@ -176,8 +176,8 @@
     }
 
     .login-demo .btn-outline-demo {
-        color: #0f2b5b;
-        border: 1.5px solid #0f2b5b;
+        color: #0d6efd;
+        border: 1.5px solid #0d6efd;
         border-radius: .5rem;
         font-weight: 600;
         font-size: .875rem;
@@ -188,7 +188,7 @@
     }
 
     .login-demo .btn-outline-demo:hover {
-        background: #0f2b5b;
+        background: #0d6efd;
         color: #ffffff;
     }
 

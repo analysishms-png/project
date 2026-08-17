@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\DateHelper;
+use App\Services\PayChargeLogService;
 use App\Helpers\ResHelper;
 use App\Helpers\UpdateRepeat;
 use App\Helpers\WhatsappSend;
@@ -1056,7 +1057,7 @@ class CompanyController extends Controller
                         'u_name' => Auth::user()->u_name,
                         'u_ae' => 'e',
                     ];
-                    DB::table('paychargelog')->insert($loginsertdata);
+                    PayChargeLogService::store($loginsertdata);
                 }
             }
 
@@ -19664,7 +19665,7 @@ class CompanyController extends Controller
             $reason = 'Advance Deleted from Reservation';
             $currentUser = Auth::user()->u_name ?? Auth::user()->name;
             foreach ($rows as $row) {
-                DB::table('paychargelog')->insert([
+                PayChargeLogService::store([
                     'propertyid' => $row->propertyid,
                     'docid' => $row->docid,
                     'sno' => $row->sno,

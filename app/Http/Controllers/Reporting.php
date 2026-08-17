@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\DateHelper;
+use App\Services\PayChargeLogService;
 use App\Services\DailyReportSnapshotService;
 use App\Models\Bookings;
 use Illuminate\Support\Facades\DB;
@@ -4146,7 +4147,7 @@ class Reporting extends Controller
             ->increment('start_srl_no');
 
          // Audit trail: this restore is itself recorded in paychargelog
-         DB::table('paychargelog')->insert([
+         PayChargeLogService::store([
             'propertyid' => $pid,
             'docid' => $newDocid,
             'sno' => $maxSno + 1,

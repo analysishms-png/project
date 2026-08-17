@@ -9,9 +9,9 @@
     <style>
         .diag-tab {
             padding: 8px 16px;
-            border: 2px solid #667eea;
+            border: 2px solid #0d6efd;
             background: #fff;
-            color: #667eea;
+            color: #0d6efd;
             border-radius: 25px;
             font-weight: 600;
             cursor: pointer;
@@ -20,7 +20,7 @@
         }
         .diag-tab.active,
         .diag-tab:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: #fff;
         }
         .badge-flag {

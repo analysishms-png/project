@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\DateHelper;
+use App\Services\PayChargeLogService;
 use App\Helpers\WhatsappSend;
 use App\Models\BookingDetail;
 use App\Models\BookingInquiry;
@@ -802,7 +803,7 @@ class Banquet extends Controller
 
         $rows = PaychargeH::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
         foreach ($rows as $row) {
-            DB::table('paychargelog')->insert([
+            PayChargeLogService::store([
                 'propertyid' => $row->propertyid,
                 'docid' => $row->docid,
                 'sno' => $row->sno,
@@ -833,7 +834,7 @@ class Banquet extends Controller
 
         $ledgerRows = Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
         foreach ($ledgerRows as $lrow) {
-            DB::table('paychargelog')->insert([
+            PayChargeLogService::store([
                 'propertyid' => $lrow->propertyid,
                 'docid' => $lrow->docid,
                 'sno' => $lrow->vsno ?? 0,
@@ -2430,7 +2431,7 @@ class Banquet extends Controller
                 ];
             }
             if (!empty($log)) {
-                DB::table('paychargelog')->insert($log);
+                PayChargeLogService::storeMany($log);
             }
 
             HallSale1::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
@@ -4554,7 +4555,7 @@ class Banquet extends Controller
 
             $rows = DB::table('paychargeh')->where('docid', $docid)->where('propertyid', $this->propertyid)->get();
             foreach ($rows as $row) {
-                DB::table('paychargelog')->insert([
+                PayChargeLogService::store([
                     'propertyid' => $row->propertyid,
                     'docid' => $row->docid,
                     'sno' => $row->sno,
@@ -4585,7 +4586,7 @@ class Banquet extends Controller
 
             $ledgerRows = Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
             foreach ($ledgerRows as $lrow) {
-                DB::table('paychargelog')->insert([
+                PayChargeLogService::store([
                     'propertyid' => $lrow->propertyid,
                     'docid' => $lrow->docid,
                     'sno' => $lrow->vsno ?? 0,

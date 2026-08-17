@@ -29,7 +29,7 @@
         .ticket-number {
             font-size: 18px;
             font-weight: bold;
-            color: #667eea;
+            color: #0d6efd;
         }
 
         .ticket-status {
@@ -68,7 +68,7 @@
 
         .ticket-info-item i {
             margin-right: 10px;
-            color: #667eea;
+            color: #0d6efd;
             width: 20px;
         }
 
@@ -111,9 +111,9 @@
 
         .filter-tab {
             padding: 10px 20px;
-            border: 2px solid #667eea;
+            border: 2px solid #0d6efd;
             background: white;
-            color: #667eea;
+            color: #0d6efd;
             border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -122,12 +122,12 @@
 
         .filter-tab:hover,
         .filter-tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: white;
         }
 
         .page-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: white;
             padding: 30px;
             border-radius: 10px;
@@ -364,7 +364,7 @@
     <div class="modal fade" id="transferModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white;">
                     <h5 class="modal-title"><i class="fas fa-exchange-alt me-2"></i>Transfer Ticket</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: invert(1);"></button>
                 </div>

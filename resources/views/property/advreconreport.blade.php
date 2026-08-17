@@ -61,7 +61,7 @@
         }
 
         .detail-section-title {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
             color: #fff;
             padding: 8px 14px;
             border-radius: 6px;
@@ -131,7 +131,7 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header"
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white;">
                     <h5 class="modal-title"><i class="fas fa-search-dollar me-2"></i>Advance Trace Detail</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                         style="filter: invert(1);"></button>

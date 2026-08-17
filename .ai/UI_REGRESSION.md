@@ -86,3 +86,10 @@ Verified on QA (Playwright): `roommaster`, `voucherentry`, `advancelist`, `check
 - 4 edit pages (updateroommast, updateroomcategory, updateplanmast, updatechargemaster) verified: standard header renders, 0 page errors
 - Fixed `#name` autocomplete null-listener pageerrors on 4 update blades (same family as list-page fixes)
 - Full suite: 68 passed (165 assertions)
+
+## Pass 4 — blue transformation regression
+- Login gradient rgb(13,110,253)→rgb(8,66,152) asserted; sidebar blue gradient; primary buttons #0d6efd
+- Dashboard: 5 KPI cards render, 0 page errors, gradients blue
+- roommaster / outletsetup / poskot / reservationlist / chargemaster: 0 errors, no purple theme hexes
+- Mobile login 358px fits, 0 errors
+- Suite: 68 passed (165 assertions)
