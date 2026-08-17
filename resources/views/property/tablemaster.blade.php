@@ -7,6 +7,8 @@
         <!-- row -->
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Table Master', 'hmsSubtitle' => 'Manage tables'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">
@@ -205,6 +207,9 @@
             var name = document.getElementById('name');
             var namelist = document.getElementById('namelist');
             var currentLiIndex = -1;
+            if (!name || !namelist) {
+                return;
+            }
             name.addEventListener('keydown', function(event) {
                 if (event.key === 'ArrowDown') {
                     event.preventDefault();

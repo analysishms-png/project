@@ -1915,6 +1915,39 @@ Route::get('generalledger/export', [FinanceController::class, 'exportGeneralLedg
 // General Ledger Account List (for filter dropdown)
 Route::post('generalledger/accounts', [FinanceController::class, 'generalLedgerAccounts'])->name('generalledger.accounts');
 
+// Day Book Open
+Route::get('daybook', [FinanceController::class, 'dayBook'])->name('daybook');
+// Day Book Fetch
+Route::post('daybook/fetch', [FinanceController::class, 'dayBookQuery'])->name('daybook.fetch');
+// Day Book Voucher Types (for filter dropdown)
+Route::post('daybook/vtypes', [FinanceController::class, 'dayBookVtypes'])->name('daybook.vtypes');
+// Day Book Print
+Route::get('printdaybook', [FinanceController::class, 'printDayBook'])->name('printdaybook');
+// Day Book Excel Export
+Route::get('daybook/export', [FinanceController::class, 'exportDayBook'])->name('daybook.export');
+
+// Journal Book Open (legacy JournalBook — ledger postings for a voucher type, default JV)
+Route::get('journalbook', [FinanceController::class, 'journalBook'])->name('journalbook');
+// Journal Book Fetch
+Route::post('journalbook/fetch', [FinanceController::class, 'journalBookQuery'])->name('journalbook.fetch');
+// Journal Book Voucher Types (for filter dropdown)
+Route::post('journalbook/vtypes', [FinanceController::class, 'journalBookVtypes'])->name('journalbook.vtypes');
+// Journal Book Print
+Route::get('printjournalbook', [FinanceController::class, 'printJournalBook'])->name('printjournalbook');
+// Journal Book Excel Export
+Route::get('journalbook/export', [FinanceController::class, 'exportJournalBook'])->name('journalbook.export');
+
+// Cash Book / Bank Book Open
+Route::get('cashbankbook', [FinanceController::class, 'cashBankBook'])->name('cashbankbook');
+// Cash Book / Bank Book Fetch
+Route::post('cashbankbook/fetch', [FinanceController::class, 'cashBankBookQuery'])->name('cashbankbook.fetch');
+// Cash Book / Bank Book Accounts (for filter dropdown)
+Route::post('cashbankbook/accounts', [FinanceController::class, 'cashBankBookAccounts'])->name('cashbankbook.accounts');
+// Cash Book / Bank Book Print
+Route::get('printcashbankbook', [FinanceController::class, 'printCashBankBook'])->name('printcashbankbook');
+// Cash Book / Bank Book Excel Export
+Route::get('cashbankbook/export', [FinanceController::class, 'exportCashBankBook'])->name('cashbankbook.export');
+
 // Recipe Master
 Route::get('recipemaster', [RecipeMastController::class, 'recipemaster'])->name('recipemaster');
 // Submit Recipe Master (new entries)

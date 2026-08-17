@@ -3,6 +3,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Item Entry', 'hmsSubtitle' => 'Manage inventory items'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

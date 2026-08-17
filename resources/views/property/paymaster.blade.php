@@ -4,6 +4,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Payment Type', 'hmsSubtitle' => 'Manage payment types'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">
@@ -348,7 +350,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
     <script>
-        new Datatable('#revmast');
+        new DataTable('#revmast');
     </script>
 @endsection
  

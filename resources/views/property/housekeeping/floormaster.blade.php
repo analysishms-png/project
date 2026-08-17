@@ -4,6 +4,8 @@
 
 <div class="content-body">
     <div class="container-fluid">
+        @include('property.layouts.pageheader', ['hmsTitle' => 'Floor Master', 'hmsSubtitle' => 'Manage hotel floors'])
+
         <div class="row justify-content-center">
             <div class="col-12">
 

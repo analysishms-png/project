@@ -85,6 +85,8 @@
 
 <div class="content-body">
     <div class="container-fluid">
+        @include('property.layouts.pageheader', ['hmsTitle' => 'Amenities Master', 'hmsSubtitle' => 'Manage amenities'])
+
 
         {{-- Entry Card --}}
         <div class="card">

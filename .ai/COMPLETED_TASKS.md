@@ -4,6 +4,92 @@
 
 ---
 
+## 2026-08-17 — Master QA pass: 6 Banquet financial atomicity defects + HolidayController auth gap (BUG-QA-001..007)
+- **Banquet** (P1 financial): `performaInvoiceSubmit` transaction re-enabled (was commented out, orphan `DB::commit()` active; rollbacks added on early returns + catch); `deletebanquetbill` (6-table delete), `deletePerformaInvoice` (5-table delete; catch no longer masks failures as `'success' => true`), `deleteadvancebanquet` (paychargelog + PaychargeH/Ledger), `deletebanquet` (inquiry + HallBook/VenueOcc), `banquetbillsubmit` (settlement delete+reinsert) — all wrapped with commit-on-success / rollback-on-error.
+- **HolidayController** (P1 security): zero auth guard — unauthenticated `GET /holiday/data` returned all rows; added sibling-pattern constructor middleware (now 302→login).
+- Swept all 27 write-bearing controllers (brace-aware parser): POS/Inventory/HK/Kot/Cron/AccountPosting/VoucherEntry already transactional; MainController admin routes verified guarded at controller level; orphaned legacy `holiday` table documented.
+- New `tests/Feature/BanquetHolidayQATest.php` (7 tests, 25 assertions). Suite: 54 passed (115 assertions). Docs: AI_QA_BUGS, AI_QA_PROGRESS.
+
+## 2026-08-17 — Housekeeping module testing pass: BUG-045 + 17 unguarded write paths + validation-catch crash
+- **BUG-045 (HIGH)**: housemaster CRUD guarded with `121512` (legacy dup, 0 rows on prop 135) → all prop-135 users blocked. Fixed: `revokeopen(151112) ?? revokeopen(121512)`.
+- Added permission guards to 17 previously-unguarded HK write paths (savehousecleaning, lostfound, laundry, cleaning-type, supervisor, floor, assignments, start-cleaning, cleaning-entry, damage, OOO, inspection) using codes from the live menuhelp route→code map; dual-code `??` fallbacks where routes map to different codes across properties.
+- Added transactions to updatehousemaster/deletehousekeepingmaster/updatehksupervisor/deletehksupervisor/storeoutofororder (multi-table writes: master + employee sync / blockout + room_mast + audit).
+- **BUG-046**: validation catches on storedamagereport/updatedamagereport/storeoutofororder crashed with "Array to string conversion" (implode over array-of-arrays) → fixed with Arr::flatten.
+- Cleanup: emoji variable `$jaldiwahasehato📢` → `$deleted`; duplicate `$scode` query removed.
+- New `tests/Feature/HouseKeepingModuleTest.php` (6 tests, 9 assertions). Suite: 47 passed (90 assertions).
+
+## 2026-08-17 — Transaction-safety audit (ML-02..07): re-enabled AccountPosting transaction (P0) + 8 untransactioned write paths
+- **P0**: `AccountPosting::accountpoststore` (Daily POS→Folio re-posting) had `DB::beginTransaction()`/`DB::commit()` **commented out** — re-enabled + rollback on the early env-check return. Without it, a mid-run failure leaves a day's PPOS/IPOS paycharge + HPOST ledger postings half-deleted.
+- **ML-04 (POS)**: wrapped `Pointofsale::salebillupdate` (Sale2/Stock/Suntran/Sale1 rewrite), `Pos::possalebillsettle` + `Pointofsale::salebillsettlesubmit` (settlement delete+reinsert; the original transaction was lost in a rewrite), `nillsettle` (paycharge+roomocc) in DB transactions.
+- **ML-06 (Inventory)**: wrapped `mrentrysubmit`, `openingstocksubmit`, `requisitionstocksubmit`, `requisitionstockupsubmit`, `requisitionstockisuedelete` (stock sets + Indent consumption marker + voucher serials).
+- **ML-05 verified**: `mergeroompost`/`mergereverseroompost` both transactional, no deletes (ML-08 audit N/A). **ML-07 verified**: VoucherEntry save/update/delete transactional with Dr=Cr balance checks.
+- Structural verification (1 begin + 1 commit + ≥1 rollback, no bare returns inside tx) on all 9 fixed methods; suite 41 passed (81 assertions).
+
+## 2026-08-17 — Walkin + reservation + FOM-charge master-data cache regression tests (PERF-03)
+- Added `test_walkin_page_master_data_stays_cached` (openwalkin, perm 141112), `test_reservation_page_master_data_stays_cached` (openreservations, perm 131111), and `test_fom_charge_list_stays_cached` (openplanaster, perm 121215) to `PerformanceEagerLoadTest`.
+- Each asserts: cold load must query the cached master table (subgroup / room_mast / revmast), warm load must issue 0 queries against it, and a `flush()` must force a re-query — covering the travelAgents+corporates, rooms, and fomCharges cache keys.
+- Real-controller profiles measured first: walkin subgroup 2→0; reservation subgroup 2→0 + room_mast 1→0; plan-master revmast 1→0. Dynamic fixtures; read-only; skip when DB down. Suite now 41 passed (81 assertions).
+
+## 2026-08-17 — Remaining loop batching: Banquet/POS/focc (PERF-02 tail)
+- Audited Banquet & POS hot LIST pages — already join-based (displaytable, saleregfetch, advancelistData, banqoutstandingfetch, etc.), no per-row loops.
+- Batched the remaining per-row loops in write/print paths: `possalebillsettle` mergedBills (2q per bill → 1 grouped fetch), Banquet tax-name lookups (1q per tax row → 1 batched first-row-wins map; rev_code not unique — Desk_code order reproduces `value()`), `focc_reportfetch` depart lookups (1q per row → 1 pluck).
+- Live parity verified: Pos 2 bills / 0 mismatches, Banquet 2 codes / 0, focc 8 codes / 0. Suite 38 passed (58 assertions).
+
+## 2026-08-17 — Per-date room availability caching (PERF-03 follow-up)
+- Cached the per-date room-availability queries that fire on every walkin/reservation page load (`getRoomswalkin` posts once per room row; each runs a 3-subquery NOT-IN over roomocc + grpbookingdetails + roomblockout).
+- `MasterDataCache::availableRooms()` is **version-keyed**: `flushAvailability()` bumps the per-property version counter → all date combos invalidated in one cache write; TTL 300s is a safety net.
+- **Wired remaining unwired write paths to `flushAvailability`** (2026-08-17): night audit `submitnightaudit` (roomocc.depdate updates + no-show grpbookingdetails cancel), room-move settlement `submitRoomSettle` + `Frontend/RoomSettlement`, ToolsController `deletedate` bulk purge (both branches), RoomController `mergeroompost`/`mergereverseroompost`. Verified CronController has **no** availability-table writes (autoCharge only posts paycharge). Brace-aware sweep across all controllers: **0 write methods lack flush**.
+- Flush wired into 12 booking/blockout write paths (walkin submit/update/room-change/delete, reservation update/delete, API + channel + frontend booking, HouseKeeping OOO create/clear, Pointofsale checkout). Reservation-submit auto-fill validation deliberately uncached (must be fresh).
+- Measured: getRoomswalkin 1q cold → 0q warm, byte-identical output, parity IDENTICAL vs raw query on a 15-room category. New regression test. Suite 38 passed (58 assertions).
+
+## 2026-08-17 — Master-data caching (PERF-03)
+- Added `App\Helpers\MasterDataCache`: `Cache::remember` for travelAgents, corporates, companiesAndAgents, rooms, fomCharges (per-property, 24h TTL, file driver).
+- Wired 17+ read sites (walkin, walkinprefilled, reservation, openreservation, FOM pages, advance options, roomresettlement, Reporting fetchcompname) + `flush()` on all 23 subgroup/revmast/room_mast write paths (automated sweep confirmed 0 missed).
+- Measured (live prop 135 walkin page): 15q/63.6ms → 13q/19ms; cache keys match raw DB exactly. Suite 37 passed (53 assertions).
+- Verified non-cached keys unaffected by MemberMaster (member comp_type), PrintController (BANQ desk), HouseKeeping (room_stat) writes.
+
+## 2026-08-17 — Journal Book report (legacy JournalBook parity)
+- Added **Journal Book** (`journalbook`): ledger postings for a voucher type in a date range (default `JV` = Journal, selectable), PDF print (`printjournalbook`), Excel export (`JournalBookExport`).
+- Reuses shared `dayBookRows()` (BUG-044-scoped join) + Trail Balance permission 111211; mirrors legacy `Proc_203_70_14FE4CC` query contract.
+- Live verification (prop 169, Apr 2026): JV 332 rows Dr=Cr=₹1,015,580.20 exact; PMT 174 rows Dr=Cr exact; export + PDF render smoke-tested. Suite 37 passed (53 assertions).
+- **Accounts report parity now COMPLETE**: General Ledger ✅, Day Book ✅, Cash/Bank Book ✅, Journal Book ✅ — remaining Aging/DueList need bucket-definition decision (P2).
+
+## 2026-08-17 — Batching hot report paths (PERF-02)
+- **Night Audit Daily Report** (`dailyreportfetch`): batched per-row aggregates into grouped `whereIn` queries — **224 → 66 queries, 14.2s → 7.4s** (live prop 135).
+- **In-house reserved rooms** (`reservedrooms`): per-booking advance lookup → one grouped `Paycharge` fetch — **880 → 5 queries, 1.7s → 0.04s**.
+- **Room-type availability** (`lookuproomtypefetch`): per-category × per-day queries → 2 bulk window fetches + in-memory date-overlap counting — **310 → 4 queries, 1.17s → 0.04s**; 154 daily values parity-checked, 0 mismatches.
+- **Room inventory** (`roominventoryfetch`): per-room balance/advance → one grouped Paycharge aggregate keyed by (folionodocid, sno1) — **110 → 3 queries**; 54 rooms parity-checked, 0 mismatches.
+- **Front-office dashboard** (`getindex`): today/yesterday memo-voucher sums batched (query count drops with outlet count); totals parity-verified.
+- Output verified **byte-identical** BEFORE/AFTER on all paths (0 diffs).
+- Added read-only query-count regression tests (`PerformanceEagerLoadTest`, 4 paths); suite now 37 passed (53 assertions).
+- Remaining PERF-02 N+1 sites (Banquet/Pos loops, focc_reportfetch depart lookup) still open.
+
+## 2026-08-16 — Cash Book / Bank Book reports (legacy CashBook/BankBook parity)
+- Added **Cash Book / Bank Book** (`cashbankbook`): ledger filtered by `acgroup.nature` (Cash = CASH-IN-HAND, Bank = BANK ACCOUNTS/OD-AC), per-account opening/running/closing balance, book toggle + optional account filter, PDF print, Excel export (`CashBankBookExport`).
+- Uses BUG-044-scoped join; canonical nature from acgroup (denormalized `ledger.groupnature` stale for 372 rows on prop 169).
+- Live verification (prop 169, Apr 2026): Cash 1 acct + Bank 3 accts, 0 identity mismatches, controller == export output. Suite 33 passed.
+
+## 2026-08-16 — Day Book report (legacy DayBook parity) + BUG-044 acgroup join fix
+- Added **Day Book report** (`daybook`): chronological register of all ledger postings in a date range with optional vtype filter, PDF print (`printdaybook`), Excel export (`DayBookExport`). Reuses Trail Balance permission 111211.
+- **BUG-044**: validated Dr/Cr parity on live DB and caught that the `acgroup` join (unscoped by property) multiplied report rows ~5% — `group_code` is shared across properties. Scoped all 12 join sites across General Ledger, Detailed Trial Ledger, and the new Day Book (controllers + 3 export classes). GL/DTL totals corrected as a result.
+- Live verification (prop 169, Apr 2026): JV filter Dr=Cr exact (332 rows, ₹1,015,580.20); ALL rows 2,822; GL identity 104 accounts / 0 mismatches; GL total = Day Book total ₹20,851,979.69. Suite 33 passed.
+
+## 2026-08-16 — Legacy-only module verification (8 forms, read-only)
+- Classified MODULE_STATUS ⚠️ list: Lost&Found EXISTS; Denomination/ForEx/MeterReading MISSING; PaxDetails/HotKey OBSOLETE; UnSettledBillsInfo REPLACED(partial); WakeUp = GM-01.
+- No code changes — scan + classification only. Tables verified against live DB (no `DenominationDetail`/`ForEx`/`FMReading`/`GuestWakeUp`).
+
+## 2026-08-16 — Bulk Tools deletion audit (BUG-043)
+- Fixed `ToolsController::deletedate` (Data Empty Tool): the `userupdate` audit was **dead code** (unreachable after both branches `return`) — a full property wipe left zero audit trail. Now writes a `userupdate` audit row with pre-wipe per-table row counts before deleting, in the same transaction.
+- `deletetablerecord` / `deletemultiplerecords` (Table Management) + `resetOutletData` (POS Recycle) now audit financial rows before delete via `auditFinancialDeletion()` → `PaychargeLog::auditDeleted` / `LedgerLogService::store` / `Suntranlog` copies.
+- ML-08 now fully DONE. KOT cancel path already verified non-ledger (KotModal + Stock).
+
+## 2026-08-16 — Accounts analysis + General Ledger report (legacy Led parity)
+- Added transaction-level **General Ledger** report (opening/running/closing balance per account, account filter, PDF print, Excel export) — Laravel only had the summary Detailed Trial Ledger.
+- Verified deletion audit: deletevoucherentry ✅ LedgerLogService, deleteledger ✅ guarded. No new financial-safety defects.
+- Live validation: 216 account identities + 67 running-balance recomputations OK on property 169.
+- Doc: `.ai/ACCOUNTS_GAPS.md`. Suite: 33 passed.
+- Remaining (documented): Day Book, Cash Book, Bank Book, Journal Book, Aging, Due List.
+
 ## 2026-08-16 — Purchase analysis + PO/Indent linkage fixes (BUG-040/041/042)
 
 - **Traced**: Indent → PO → MR/bill lifecycle (porder/porder1; Indent.refdocId consumption; porder.mrcontradocId/mrsno consumption markers; pendingpo/pendingindentitems filters) vs legacy (FrmPurch; Indent ClearYN re-open on purchase-delete).

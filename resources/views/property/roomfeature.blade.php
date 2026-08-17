@@ -6,6 +6,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Room Features', 'hmsSubtitle' => 'Manage room features'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

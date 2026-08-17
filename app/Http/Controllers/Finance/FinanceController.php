@@ -382,7 +382,12 @@ class FinanceController extends Controller
         $propertyid = $this->propertyid;
 
         $data = DB::table('subgroup as s')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 's.propertyid');
+            })
             ->leftJoin('ledger as l', function ($join) use ($propertyid) {
                 $join->on('s.sub_code', '=', 'l.subcode')
                     ->where('l.propertyid', $propertyid);
@@ -445,7 +450,12 @@ class FinanceController extends Controller
         $propertyid = $this->propertyid;
 
         $reportData = DB::table('subgroup as s')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 's.propertyid');
+            })
             ->leftJoin('ledger as l', function ($join) use ($propertyid) {
                 $join->on('s.sub_code', '=', 'l.subcode')
                     ->where('l.propertyid', $propertyid);
@@ -535,7 +545,12 @@ class FinanceController extends Controller
     {
         $propertyid = $this->propertyid;
         $accounts = DB::table('subgroup as s')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 's.propertyid');
+            })
             ->where('s.propertyid', $propertyid)
             ->where(function ($q) {
                 $q->where('s.activeyn', 'Y')->orWhereNull('s.activeyn');
@@ -561,8 +576,15 @@ class FinanceController extends Controller
 
         // Opening balances: all ledger activity before fromdate, per account
         $openingQuery = DB::table('ledger as l')
-            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            // LEFT join for legacy VIEWLEDGER parity (BUG-QA-010): postings with an
+            // empty/missing subcode must not be silently dropped from the ledger.
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
             ->where('l.propertyid', $propertyid)
             ->where('l.vdate', '<', $fromdate)
             ->where(function ($q) {
@@ -583,8 +605,14 @@ class FinanceController extends Controller
 
         // Transactions in period, per account, ordered by date/docid/vsno
         $txnQuery = DB::table('ledger as l')
-            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            // LEFT join for legacy VIEWLEDGER parity (BUG-QA-010).
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
             ->where('l.propertyid', $propertyid)
             ->whereBetween('l.vdate', [$fromdate, $todate])
             ->where(function ($q) {
@@ -699,8 +727,14 @@ class FinanceController extends Controller
 
         // Reuse the same composition logic
         $openingQuery = DB::table('ledger as l')
-            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            // LEFT join for legacy VIEWLEDGER parity (BUG-QA-010).
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
             ->where('l.propertyid', $propertyid)
             ->where('l.vdate', '<', $from)
             ->where(function ($q) {
@@ -720,8 +754,14 @@ class FinanceController extends Controller
             ->keyBy('sub_code');
 
         $txnQuery = DB::table('ledger as l')
-            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            // LEFT join for legacy VIEWLEDGER parity (BUG-QA-010).
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
             ->where('l.propertyid', $propertyid)
             ->whereBetween('l.vdate', [$from, $to])
             ->where(function ($q) {
@@ -830,6 +870,559 @@ class FinanceController extends Controller
         $companyName = $this->company->comp_name ?? '';
 
         $export = new \App\Exports\GeneralLedgerExport(
+            $request->fromdate,
+            $request->todate,
+            $this->propertyid,
+            $companyName,
+            $request->subcodes
+        );
+
+        return $export->download();
+    }
+
+    /**
+     * Day Book (legacy `DayBook`) — chronological register of ALL voucher postings
+     * in a date range, with optional vtype filter. Mirrors the legacy report:
+     * every ledger row (vdate/vtype/vno/docid/narration/dr/cr) with account name,
+     * ordered by date → docid → vsno. Read-only.
+     */
+    public function dayBook(Request $request)
+    {
+        $permission = revokeopen(111211);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
+        $fromdate = $this->datemanage['mtd']['start'];
+        $todate = $this->ncurdate;
+
+        $companyName = $this->company->comp_name ?? '';
+        $reportDate = $this->ncurdate;
+
+        return view('property.finance.daybook', compact('fromdate', 'todate', 'companyName', 'reportDate'));
+    }
+
+    public function dayBookVtypes(Request $request)
+    {
+        $propertyid = $this->propertyid;
+
+        // Distinct voucher types present in ledger for this property (active rows only)
+        $vtypes = DB::table('ledger as l')
+            ->where('l.propertyid', $propertyid)
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            })
+            ->select('l.vtype')
+            ->distinct()
+            ->orderBy('l.vtype')
+            ->pluck('vtype');
+
+        return response()->json(['data' => $vtypes]);
+    }
+
+    /**
+     * Shared Day Book query — returns the flat posting list + totals.
+     */
+    private function dayBookRows(string $fromdate, string $todate, ?string $vtype = null)
+    {
+        $propertyid = $this->propertyid;
+
+        $query = DB::table('ledger as l')
+            // Legacy query was `VIEWLEDGER LEFT JOIN SUBGROUP` — must be LEFT so postings
+            // whose subcode is empty/missing (e.g. HPOST advance legs when the property's
+            // roomchrgdueac account is unconfigured) are still listed and the Day/Journal
+            // Book totals reconcile to the raw ledger (BUG-QA-010: INNER JOIN silently
+            // dropped 683 rows / ₹7.02M dr across 41 properties in 2026).
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
+            ->where('l.propertyid', $propertyid)
+            ->whereBetween('l.vdate', [$fromdate, $todate])
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            });
+
+        if (! empty($vtype)) {
+            $query->where('l.vtype', $vtype);
+        }
+
+        $rows = $query
+            ->select(
+                'l.vdate',
+                'l.docid',
+                'l.vsno',
+                'l.vtype',
+                'l.vno',
+                'l.vprefix',
+                'l.narration',
+                'l.contrasub',
+                'l.chqno',
+                'l.chqdate',
+                'l.amtdr',
+                'l.amtcr',
+                'l.subcode',
+                's.name as account_name',
+                'a.group_name'
+            )
+            ->orderBy('l.vdate')
+            ->orderBy('l.docid')
+            ->orderBy('l.vsno')
+            ->get();
+
+        $totalDr = 0;
+        $totalCr = 0;
+        foreach ($rows as $r) {
+            $totalDr += (float) $r->amtdr;
+            $totalCr += (float) $r->amtcr;
+        }
+
+        return [
+            'rows' => $rows,
+            'total_dr' => $totalDr,
+            'total_cr' => $totalCr,
+        ];
+    }
+
+    public function dayBookQuery(Request $request)
+    {
+        $request->validate([
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $fromdate = $request->fromdate;
+        $todate = $request->todate;
+        $vtype = $request->input('vtype', '');
+
+        $result = $this->dayBookRows($fromdate, $todate, $vtype ?: null);
+
+        return response()->json([
+            'data' => $result['rows'],
+            'total_dr' => $result['total_dr'],
+            'total_cr' => $result['total_cr'],
+        ]);
+    }
+
+    public function printDayBook(Request $request)
+    {
+        $fromDate = $request->query('fromdate', $this->datemanage['mtd']['start']);
+        $toDate = $request->query('todate', $this->ncurdate);
+        $vtype = $request->query('vtype');
+
+        try {
+            $from = Carbon::parse($fromDate)->format('Y-m-d');
+            $to = Carbon::parse($toDate)->format('Y-m-d');
+        } catch (Exception $e) {
+            $from = $this->datemanage['mtd']['start'];
+            $to = $this->ncurdate;
+        }
+
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $result = $this->dayBookRows($from, $to, $vtype ?: null);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'property.print.printdaybook',
+            [
+                'company' => $this->company,
+                'rows' => $result['rows'],
+                'totalDr' => $result['total_dr'],
+                'totalCr' => $result['total_cr'],
+                'fromDate' => $from,
+                'toDate' => $to,
+                'vtype' => $vtype,
+            ]
+        )->setPaper('a4', 'landscape');
+
+        return $pdf->stream('day-book.pdf');
+    }
+
+    public function exportDayBook(Request $request)
+    {
+        $request->validate([
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $companyName = $this->company->comp_name ?? '';
+
+        $export = new \App\Exports\DayBookExport(
+            $request->fromdate,
+            $request->todate,
+            $this->propertyid,
+            $companyName,
+            $request->input('vtype', '')
+        );
+
+        return $export->download();
+    }
+
+    /**
+     * Journal Book (legacy `JournalBook`) — ledger postings for a single voucher
+     * type in a date range (default 'JV' = Journal). Legacy query:
+     *   SELECT V_DATE,credit,debit,v_type,v_no,v_add,CHQ_NO,CHQ_DATE,NARR,NAME,
+     *          MNARR,V_SNO,DOCID ... FROM VIEWLEDGER LEFT JOIN SUBGROUP ...
+     *   WHERE V_date BETWEEN ... AND V_TYPE='<type>' ... ORDER BY V_DATE,V_TYPE,V_NO,V_ADD,V_SNO
+     * Read-only; reuses Trail Balance permission 111211.
+     */
+    public function journalBook(Request $request)
+    {
+        $permission = revokeopen(111211);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
+        $fromdate = $this->datemanage['mtd']['start'];
+        $todate = $this->ncurdate;
+
+        $companyName = $this->company->comp_name ?? '';
+        $reportDate = $this->ncurdate;
+
+        return view('property.finance.journalbook', compact('fromdate', 'todate', 'companyName', 'reportDate'));
+    }
+
+    public function journalBookVtypes(Request $request)
+    {
+        $propertyid = $this->propertyid;
+
+        // Distinct voucher types present in ledger for this property (active rows only)
+        $vtypes = DB::table('ledger as l')
+            ->where('l.propertyid', $propertyid)
+            ->where(function ($q) {
+                $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+            })
+            ->select('l.vtype')
+            ->distinct()
+            ->orderBy('l.vtype')
+            ->pluck('vtype');
+
+        return response()->json(['data' => $vtypes]);
+    }
+
+    public function journalBookQuery(Request $request)
+    {
+        $request->validate([
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $fromdate = $request->fromdate;
+        $todate = $request->todate;
+        $vtype = $request->input('vtype', 'JV');
+
+        $result = $this->dayBookRows($fromdate, $todate, $vtype ?: null);
+
+        return response()->json([
+            'data' => $result['rows'],
+            'total_dr' => $result['total_dr'],
+            'total_cr' => $result['total_cr'],
+        ]);
+    }
+
+    public function printJournalBook(Request $request)
+    {
+        $fromDate = $request->query('fromdate', $this->datemanage['mtd']['start']);
+        $toDate = $request->query('todate', $this->ncurdate);
+        $vtype = $request->query('vtype', 'JV');
+
+        try {
+            $from = Carbon::parse($fromDate)->format('Y-m-d');
+            $to = Carbon::parse($toDate)->format('Y-m-d');
+        } catch (Exception $e) {
+            $from = $this->datemanage['mtd']['start'];
+            $to = $this->ncurdate;
+        }
+
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $result = $this->dayBookRows($from, $to, $vtype ?: null);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'property.print.printjournalbook',
+            [
+                'company' => $this->company,
+                'rows' => $result['rows'],
+                'totalDr' => $result['total_dr'],
+                'totalCr' => $result['total_cr'],
+                'fromDate' => $from,
+                'toDate' => $to,
+                'vtype' => $vtype,
+            ]
+        )->setPaper('a4', 'landscape');
+
+        return $pdf->stream('journal-book.pdf');
+    }
+
+    public function exportJournalBook(Request $request)
+    {
+        $request->validate([
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $companyName = $this->company->comp_name ?? '';
+
+        $export = new \App\Exports\JournalBookExport(
+            $request->fromdate,
+            $request->todate,
+            $this->propertyid,
+            $companyName,
+            $request->input('vtype', 'JV')
+        );
+
+        return $export->download();
+    }
+
+    /**
+     * Cash Book / Bank Book (legacy `CashBook`/`BankBook`) — ledger filtered to
+     * accounts whose acgroup nature is 'Cash' (CASH-IN-HAND) or 'Bank' (BANK
+     * ACCOUNTS / BANK OD-AC). Per-account opening/running/closing balance with
+     * optional account filter, PDF print, Excel export. Read-only.
+     */
+    public function cashBankBook(Request $request)
+    {
+        $permission = revokeopen(111211);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
+        $fromdate = $this->datemanage['mtd']['start'];
+        $todate = $this->ncurdate;
+
+        $companyName = $this->company->comp_name ?? '';
+        $reportDate = $this->ncurdate;
+
+        return view('property.finance.cashbankbook', compact('fromdate', 'todate', 'companyName', 'reportDate'));
+    }
+
+    public function cashBankBookAccounts(Request $request)
+    {
+        $request->validate([
+            'book' => 'required|in:Cash,Bank',
+        ]);
+
+        $propertyid = $this->propertyid;
+        $book = $request->book;
+
+        $accounts = DB::table('subgroup as s')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 's.propertyid');
+            })
+            ->where('s.propertyid', $propertyid)
+            ->where('a.nature', $book)
+            ->where(function ($q) {
+                $q->where('s.activeyn', 'Y')->orWhereNull('s.activeyn');
+            })
+            ->select('s.sub_code', 's.name', 'a.group_name')
+            ->orderBy('s.name')
+            ->get();
+
+        return response()->json(['data' => $accounts]);
+    }
+
+    /**
+     * Shared Cash/Bank Book query — per-account structure with opening/running/closing
+     * balance, filtered by acgroup nature ('Cash' or 'Bank').
+     */
+    private function cashBankBookRows(string $book, string $fromdate, string $todate, ?array $subcodes = null)
+    {
+        $propertyid = $this->propertyid;
+
+        $base = function () use ($book, $propertyid, $fromdate, $subcodes) {
+            $q = DB::table('ledger as l')
+                // LEFT join for parity with the legacy VIEWLEDGER query (BUG-QA-010):
+                // rows without a subgroup row must not silently disappear from the book.
+                ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+                ->leftJoin('acgroup as a', function ($join) {
+                    // group_code is NOT globally unique (shared across properties) — scope to the
+                    // property's own acgroup row or the join multiplies rows (BUG-044).
+                    $join->on('s.group_code', '=', 'a.group_code')
+                        ->on('a.propertyid', '=', 'l.propertyid');
+                })
+                ->where('l.propertyid', $propertyid)
+                ->where('a.nature', $book)
+                ->where(function ($q) {
+                    $q->whereNull('l.delflag')->orWhere('l.delflag', '!=', 'Y');
+                });
+
+            if (! empty($subcodes) && is_array($subcodes)) {
+                $q->whereIn('l.subcode', $subcodes);
+            }
+
+            return $q;
+        };
+
+        // Opening balances: all activity before fromdate for the book's accounts
+        $openings = $base()
+            ->where('l.vdate', '<', $fromdate)
+            ->select('s.sub_code', 's.name', 'a.group_name')
+            ->selectRaw('SUM(l.amtdr) AS opening_dr')
+            ->selectRaw('SUM(l.amtcr) AS opening_cr')
+            ->groupBy('s.sub_code', 's.name', 'a.group_name')
+            ->get()
+            ->keyBy('sub_code');
+
+        // Transactions in period
+        $txns = $base()
+            ->whereBetween('l.vdate', [$fromdate, $todate])
+            ->select(
+                'l.subcode',
+                's.name',
+                'a.group_name',
+                'l.vdate',
+                'l.docid',
+                'l.vsno',
+                'l.vtype',
+                'l.vno',
+                'l.vprefix',
+                'l.narration',
+                'l.contrasub',
+                'l.chqno',
+                'l.chqdate',
+                'l.amtdr',
+                'l.amtcr'
+            )
+            ->orderBy('s.name')
+            ->orderBy('l.vdate')
+            ->orderBy('l.docid')
+            ->orderBy('l.vsno')
+            ->get();
+
+        // Compose per-account structure with running balance
+        $accounts = [];
+        foreach ($txns as $t) {
+            $code = $t->subcode;
+            if (! isset($accounts[$code])) {
+                $op = $openings->get($code);
+                $openingDr = (float) ($op->opening_dr ?? 0);
+                $openingCr = (float) ($op->opening_cr ?? 0);
+                $accounts[$code] = [
+                    'sub_code' => $code,
+                    'name' => $t->name ?? '',
+                    'group_name' => $t->group_name ?? '',
+                    'opening_dr' => $openingDr,
+                    'opening_cr' => $openingCr,
+                    'opening_balance' => $openingDr - $openingCr,
+                    'transactions' => [],
+                ];
+            }
+            $accounts[$code]['transactions'][] = [
+                'vdate' => $t->vdate,
+                'docid' => $t->docid,
+                'vsno' => $t->vsno,
+                'vtype' => $t->vtype,
+                'vno' => $t->vno,
+                'vprefix' => $t->vprefix,
+                'narration' => $t->narration ?? '',
+                'contrasub' => $t->contrasub ?? '',
+                'chqno' => $t->chqno ?? '',
+                'chqdate' => $t->chqdate ?? '',
+                'amtdr' => (float) ($t->amtdr ?? 0),
+                'amtcr' => (float) ($t->amtcr ?? 0),
+            ];
+        }
+
+        $accounts = array_values($accounts);
+        usort($accounts, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
+
+        foreach ($accounts as &$acc) {
+            $running = $acc['opening_balance'];
+            foreach ($acc['transactions'] as &$tx) {
+                $running += $tx['amtdr'] - $tx['amtcr'];
+                $tx['running_balance'] = $running;
+            }
+            unset($tx);
+            $acc['closing_balance'] = $running;
+            $acc['total_dr'] = array_sum(array_column($acc['transactions'], 'amtdr'));
+            $acc['total_cr'] = array_sum(array_column($acc['transactions'], 'amtcr'));
+        }
+        unset($acc);
+
+        return $accounts;
+    }
+
+    public function cashBankBookQuery(Request $request)
+    {
+        $request->validate([
+            'book' => 'required|in:Cash,Bank',
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $book = $request->book;
+        $fromdate = $request->fromdate;
+        $todate = $request->todate;
+        $subcodes = $request->subcodes; // optional array of sub_code filters
+
+        $accounts = $this->cashBankBookRows($book, $fromdate, $todate, $subcodes);
+
+        return response()->json(['data' => $accounts]);
+    }
+
+    public function printCashBankBook(Request $request)
+    {
+        $book = $request->query('book', 'Cash');
+        if (! in_array($book, ['Cash', 'Bank'], true)) {
+            $book = 'Cash';
+        }
+        $fromDate = $request->query('fromdate', $this->datemanage['mtd']['start']);
+        $toDate = $request->query('todate', $this->ncurdate);
+        $subcodes = $request->query('subcodes');
+
+        try {
+            $from = Carbon::parse($fromDate)->format('Y-m-d');
+            $to = Carbon::parse($toDate)->format('Y-m-d');
+        } catch (Exception $e) {
+            $from = $this->datemanage['mtd']['start'];
+            $to = $this->ncurdate;
+        }
+
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $subcodes = $subcodes ? explode(',', $subcodes) : null;
+        $accounts = $this->cashBankBookRows($book, $from, $to, $subcodes);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'property.print.printcashbankbook',
+            [
+                'company' => $this->company,
+                'accounts' => $accounts,
+                'book' => $book,
+                'fromDate' => $from,
+                'toDate' => $to,
+            ]
+        )->setPaper('a4', 'landscape');
+
+        return $pdf->stream(strtolower($book) . '-book.pdf');
+    }
+
+    public function exportCashBankBook(Request $request)
+    {
+        $request->validate([
+            'book' => 'required|in:Cash,Bank',
+            'fromdate' => 'required|date',
+            'todate'   => 'required|date|after_or_equal:fromdate',
+        ]);
+
+        $companyName = $this->company->comp_name ?? '';
+
+        $export = new \App\Exports\CashBankBookExport(
+            $request->book,
             $request->fromdate,
             $request->todate,
             $this->propertyid,

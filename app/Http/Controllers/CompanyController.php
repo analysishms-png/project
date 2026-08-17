@@ -1012,53 +1012,68 @@ class CompanyController extends Controller
         }
         $savelogyn = DB::table('enviro_form')->where('propertyid', $this->propertyid)->value('guestchargesdeletelog');
 
-        if ($savelogyn == 'Y') {
-            $existingrowsdata = DB::table('paycharge')->where('propertyid', $this->propertyid)->where('vno', $dataid)->get();
-            foreach ($existingrowsdata as $existingrows) {
-                $loginsertdata = [
-                    'propertyid' => $this->propertyid,
-                    'docid' => $existingrows->docid,
-                    'vno' => $existingrows->vno,
-                    'vtype' => $existingrows->vtype,
-                    'sno' => $existingrows->sno,
-                    'vdate' => $existingrows->vdate,
-                    'vtime' => $existingrows->vtime,
-                    'vprefix' => $existingrows->vprefix,
-                    'paycode' => $existingrows->paycode,
-                    'comments' => $existingrows->comments,
-                    'guestprof' => $existingrows->guestprof,
-                    'roomno' => $existingrows->roomno,
-                    'amtdr' => $existingrows->amtdr,
-                    'roomtype' => $existingrows->roomtype,
-                    'roomcat' => $existingrows->roomcat,
-                    'foliono' => $existingrows->foliono,
-                    'restcode' => $existingrows->restcode,
-                    'remarks' => $reason,
-                    'billamount' => $existingrows->billamount,
-                    'taxper' => $existingrows->taxper,
-                    'onamt' => $existingrows->onamt,
-                    'folionodocid' => $existingrows->folionodocid,
-                    'taxcondamt' => $existingrows->taxcondamt,
-                    'u_entdt' => $this->currenttime,
-                    'u_name' => Auth::user()->u_name,
-                    'u_ae' => 'e',
-                ];
-                $insertintopaychargelog = DB::table('paychargelog')->insert($loginsertdata);
-            }
-        }
-
+        DB::beginTransaction();
         try {
+            if ($savelogyn == 'Y') {
+                $existingrowsdata = DB::table('paycharge')
+                    ->where('propertyid', $this->propertyid)
+                    ->where('vno', $dataid)
+                    ->where('vtype', $datavalue)
+                    ->get();
+                foreach ($existingrowsdata as $existingrows) {
+                    // FINANCIAL SAFETY: preserve full linkage so the Advance/Folio
+                    // reconciliation report can account for the deletion. refdocid
+                    // (reservation link) and amtcr are required — without them the
+                    // deleted advance is invisible to the report's DelAmount.
+                    $loginsertdata = [
+                        'propertyid' => $this->propertyid,
+                        'docid' => $existingrows->docid,
+                        'vno' => $existingrows->vno,
+                        'vtype' => $existingrows->vtype,
+                        'sno' => $existingrows->sno,
+                        'vdate' => $existingrows->vdate,
+                        'vtime' => $existingrows->vtime,
+                        'vprefix' => $existingrows->vprefix,
+                        'paycode' => $existingrows->paycode,
+                        'paytype' => $existingrows->paytype,
+                        'comments' => $existingrows->comments,
+                        'guestprof' => $existingrows->guestprof,
+                        'roomno' => $existingrows->roomno,
+                        'amtcr' => $existingrows->amtcr,
+                        'amtdr' => $existingrows->amtdr,
+                        'roomtype' => $existingrows->roomtype,
+                        'roomcat' => $existingrows->roomcat,
+                        'foliono' => $existingrows->foliono,
+                        'refdocid' => $existingrows->refdocid,
+                        'restcode' => $existingrows->restcode,
+                        'remarks' => $reason,
+                        'billamount' => $existingrows->billamount,
+                        'taxper' => $existingrows->taxper,
+                        'onamt' => $existingrows->onamt,
+                        'folionodocid' => $existingrows->folionodocid,
+                        'taxcondamt' => $existingrows->taxcondamt,
+                        'u_entdt' => $this->currenttime,
+                        'u_name' => Auth::user()->u_name,
+                        'u_ae' => 'e',
+                    ];
+                    DB::table('paychargelog')->insert($loginsertdata);
+                }
+            }
+
             $jaldiwahasehato = DB::table('paycharge')
                 ->where('propertyid', $this->propertyid)
                 ->where('vno', $dataid)
                 ->where('vtype', $datavalue)
                 ->delete();
             if ($jaldiwahasehato) {
+                DB::commit();
                 return true;
-            } else {
-                return response()->json(['message' => 'Unable to Delete Guest Ledger!'], 500);
             }
+
+            DB::rollBack();
+            return response()->json(['message' => 'Unable to Delete Guest Ledger!'], 500);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json(['message' => 'An error occurred: ' . $e->getMessage()], 500);
         }
     }
@@ -1325,11 +1340,7 @@ class CompanyController extends Controller
             ->orderBy('revmast.name', 'ASC')
             ->get();
 
-        $revmastdata = DB::table('revmast')
-            ->where('propertyid', $this->propertyid)
-            ->where('field_type', 'C')
-            ->where('Desk_code', 'FOM' . $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $revmastdata = \App\Helpers\MasterDataCache::fomCharges($this->propertyid);
         $envirodata = DB::table('enviro_form')
             ->where('propertyid', $this->propertyid)
             ->first();
@@ -1431,11 +1442,7 @@ class CompanyController extends Controller
             ->orderBy('name', 'ASC')
             ->distinct()
             ->get();
-        $chargedata = DB::table('revmast')
-            ->where('propertyid', $this->propertyid)
-            ->where('field_type', 'C')
-            ->where('Desk_code', 'FOM' . $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $chargedata = \App\Helpers\MasterDataCache::fomCharges($this->propertyid);
         return view('property.planmaster', [
             'data' => $data,
             'roomcat' => $roomcat,
@@ -1475,14 +1482,8 @@ class CompanyController extends Controller
             ->where('propertyid', $this->propertyid)
             ->where('activeYN', 'Y')
             ->orderBy('name', 'ASC')->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Corporate')
-            ->orderBy('name', 'ASC')->get();
-        $travelagent = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Travel Agency')
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::corporates($this->propertyid);
+        $travelagent = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
         $citydata = DB::table('cities')->where('propertyid', $this->propertyid)->where('activeyn', '1')
             ->orderBy('cityname', 'ASC')->get();
         $countrydata = DB::table('countries')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
@@ -1610,9 +1611,7 @@ class CompanyController extends Controller
             ->orderBy('name', 'ASC')
             ->distinct()
             ->get();
-        $roommast = DB::table('room_mast')
-            ->where('propertyid', $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $roommast = \App\Helpers\MasterDataCache::rooms($this->propertyid);
         $checkoutdate = DB::table('enviro_general')
             ->where('propertyid', $this->propertyid)
             ->value('ncur');
@@ -1620,14 +1619,8 @@ class CompanyController extends Controller
         $bsource = DB::table('busssource')
             ->where('propertyid', $this->propertyid)
             ->orderBy('name', 'ASC')->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Corporate')
-            ->orderBy('name', 'ASC')->get();
-        $travelagent = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Travel Agency')
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::corporates($this->propertyid);
+        $travelagent = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
         $citydata = DB::table('cities')->where('propertyid', $this->propertyid)
             ->orderBy('cityname', 'ASC')->get();
         $countrydata = DB::table('countries')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
@@ -1809,26 +1802,29 @@ class CompanyController extends Controller
             $checkindate = $row->chkindate;
             $previousdate = date('Y-m-d', strtotime('-1 day', strtotime($checkindate)));
 
-            $rooms = DB::table('room_mast')
-                ->select('rcode')
-                ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
-                    $query->select('roomno')
-                        ->from('roomocc')
-                        ->whereNull('chkoutdate')
-                        ->whereBetween('chkindate', [$checkindate, $checkindate])
-                        ->where('propertyid', $this->propertyid);
-                })
-                ->where('type', 'RO')
-                ->where('inclcount', 'Y')
-                ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
-                    $query->select('RoomNo')
-                        ->from('grpbookingdetails')
-                        ->whereBetween('Arrdate', [$checkindate, $checkindate])
-                        ->where('Property_ID', $this->propertyid);
-                })
-                ->where('propertyid', $this->propertyid)
-                ->where('room_cat', $row->roomcat)
-                ->get();
+            $roomCat = $row->roomcat;
+            $rooms = \App\Helpers\MasterDataCache::availableRooms($this->propertyid, 'updatewalkin', $roomCat, $checkindate, $checkindate, function () use ($checkindate, $previousdate, $roomCat) {
+                return DB::table('room_mast')
+                    ->select('rcode')
+                    ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
+                        $query->select('roomno')
+                            ->from('roomocc')
+                            ->whereNull('chkoutdate')
+                            ->whereBetween('chkindate', [$checkindate, $checkindate])
+                            ->where('propertyid', $this->propertyid);
+                    })
+                    ->where('type', 'RO')
+                    ->where('inclcount', 'Y')
+                    ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
+                        $query->select('RoomNo')
+                            ->from('grpbookingdetails')
+                            ->whereBetween('Arrdate', [$checkindate, $checkindate])
+                            ->where('Property_ID', $this->propertyid);
+                    })
+                    ->where('propertyid', $this->propertyid)
+                    ->where('room_cat', $roomCat)
+                    ->get();
+            });
         }
 
         $roomcat = DB::table('room_cat')
@@ -1841,9 +1837,7 @@ class CompanyController extends Controller
             ->orderBy('name', 'ASC')
             ->distinct()
             ->get();
-        $roommast = DB::table('room_mast')
-            ->where('propertyid', $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $roommast = \App\Helpers\MasterDataCache::rooms($this->propertyid);
         $checkoutdate = DB::table('enviro_general')
             ->where('propertyid', $this->propertyid)
             ->value('ncur');
@@ -1851,17 +1845,12 @@ class CompanyController extends Controller
         $bsource = DB::table('busssource')
             ->where('propertyid', $this->propertyid)
             ->orderBy('name', 'ASC')->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Corporate')
-            ->orderBy('name', 'ASC')->get();
-        $travelagent = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Travel Agency')
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::corporates($this->propertyid);
+        $travelagent = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
         $citydata = DB::table('cities')->where('propertyid', $this->propertyid)->where('activeyn', '1')
             ->orderBy('cityname', 'ASC')->get();
         $countrydata = DB::table('countries')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
+
         $gueststatus = DB::table('gueststats')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
         $nationalitydata = DB::table('countries')->where('propertyid', $this->propertyid)
             ->orderBy('nationality', 'ASC')->get();
@@ -2032,26 +2021,29 @@ class CompanyController extends Controller
             $checkindate = $row->ArrDate;
             $previousdate = date('Y-m-d', strtotime('-1 day', strtotime($checkindate)));
 
-            $rooms = DB::table('room_mast')
-                ->select('rcode')
-                ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
-                    $query->select('roomno')
-                        ->from('roomocc')
-                        ->whereNull('chkoutdate')
-                        ->whereBetween('chkindate', [$checkindate, $checkindate])
-                        ->where('propertyid', $this->propertyid);
-                })
-                ->where('type', 'RO')
-                ->where('inclcount', 'Y')
-                ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
-                    $query->select('RoomNo')
-                        ->from('grpbookingdetails')
-                        ->whereBetween('Arrdate', [$checkindate, $checkindate])
-                        ->where('Property_ID', $this->propertyid);
-                })
-                ->where('propertyid', $this->propertyid)
-                ->where('room_cat', $row->RoomCat)
-                ->get();
+            $roomCat = $row->RoomCat;
+            $rooms = \App\Helpers\MasterDataCache::availableRooms($this->propertyid, 'updatereservation', $roomCat, $checkindate, $checkindate, function () use ($checkindate, $previousdate, $roomCat) {
+                return DB::table('room_mast')
+                    ->select('rcode')
+                    ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
+                        $query->select('roomno')
+                            ->from('roomocc')
+                            ->whereNull('chkoutdate')
+                            ->whereBetween('chkindate', [$checkindate, $checkindate])
+                            ->where('propertyid', $this->propertyid);
+                    })
+                    ->where('type', 'RO')
+                    ->where('inclcount', 'Y')
+                    ->whereNotIn('rcode', function ($query) use ($checkindate, $previousdate) {
+                        $query->select('RoomNo')
+                            ->from('grpbookingdetails')
+                            ->whereBetween('Arrdate', [$checkindate, $checkindate])
+                            ->where('Property_ID', $this->propertyid);
+                    })
+                    ->where('propertyid', $this->propertyid)
+                    ->where('room_cat', $roomCat)
+                    ->get();
+            });
         }
 
         foreach ($updatedata as $row) {
@@ -2074,9 +2066,7 @@ class CompanyController extends Controller
             ->orderBy('name', 'ASC')
             ->distinct()
             ->get();
-        $roommast = DB::table('room_mast')
-            ->where('propertyid', $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $roommast = \App\Helpers\MasterDataCache::rooms($this->propertyid);
         $checkoutdate = DB::table('enviro_general')
             ->where('propertyid', $this->propertyid)
             ->value('ncur');
@@ -2084,17 +2074,12 @@ class CompanyController extends Controller
         $bsource = DB::table('busssource')
             ->where('propertyid', $this->propertyid)
             ->orderBy('name', 'ASC')->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Corporate')
-            ->orderBy('name', 'ASC')->get();
-        $travelagent = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Travel Agency')
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::corporates($this->propertyid);
+        $travelagent = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
         $citydata = DB::table('cities')->where('propertyid', $this->propertyid)->where('activeyn', '1')
             ->orderBy('cityname', 'ASC')->get();
         $countrydata = DB::table('countries')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
+
         $gueststatus = DB::table('gueststats')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
         $nationalitydata = DB::table('countries')->where('propertyid', $this->propertyid)
             ->orderBy('nationality', 'ASC')->get();
@@ -2193,6 +2178,7 @@ class CompanyController extends Controller
             $guestproftable = DB::table('guestprof')->where('docid', $docid)->where('propertyid', $this->propertyid)->delete();
             $guestfolio = DB::table('guestfolio')->where('docid', $docid)->where('propertyid', $this->propertyid)->delete();
             $guestfolioprofdetail = DB::table('guestfolioprofdetail')->where('doc_id', $docid)->where('propertyid', $this->propertyid)->delete();
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             return back()->with('success', 'Walkin Deleted Successfully');
         } catch (Exception $e) {
             return back()->with('error', 'Error! - ' . $e->getMessage());
@@ -2229,6 +2215,7 @@ class CompanyController extends Controller
             $guestproftable = DB::table('guestprof')->where('docid', $DocId)->where('propertyid', $this->propertyid)->delete();
             $grpbookingdetails = DB::table('grpbookingdetails')->where('BookingDocid', $DocId)->where('Property_ID', $this->propertyid)->delete();
             $bookingplandetails = DB::table('bookingplandetails')->where('docid', $DocId)->where('propertyid', $this->propertyid)->delete();
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             return back()->with('success', 'Reservation Deleted Successfully');
         } catch (Exception $e) {
             return back()->with('error', 'Error! - ' . $e->getMessage());
@@ -2337,11 +2324,7 @@ class CompanyController extends Controller
             ->where('room_cat.sn', base64_decode($request->input('sn')))
             ->first();
 
-        $revmastdata = DB::table('revmast')
-            ->where('propertyid', $this->propertyid)
-            ->where('field_type', 'C')
-            ->where('Desk_code', 'FOM' . $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $revmastdata = \App\Helpers\MasterDataCache::fomCharges($this->propertyid);
         $ratelistdata = DB::table('rate_list')
             ->where('propertyid', $this->propertyid)
             ->where('room_cat', base64_decode($request->input('cat_code')))
@@ -4529,6 +4512,7 @@ class CompanyController extends Controller
                 ->where('rev_code', $rev_code)
                 ->where('sn', $sn)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($deleted > 0) {
                 return back()->with('success', 'Tax Deleted Successfully');
@@ -4956,6 +4940,7 @@ class CompanyController extends Controller
             // }   
 
             DB::table('subgroup')->insert($insertdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
                 $vtype = "F_AO";
@@ -5090,6 +5075,7 @@ class CompanyController extends Controller
             ];
 
             DB::table('subgroup')->insert($insertdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
                 $vtype = "F_AO";
@@ -5405,6 +5391,7 @@ class CompanyController extends Controller
                 ->where('sub_code', $group_code)
                 ->where('propertyid', $this->propertyid)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($deleted) {
                 return back()->with('success', 'Ledger Deleted Successfully');
@@ -5455,6 +5442,7 @@ class CompanyController extends Controller
             DB::table($tableName)->where('sub_code', $request->sub_code)
                 ->where('propertyid', $this->propertyid)
                 ->update($insertData);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
 
@@ -5592,6 +5580,7 @@ class CompanyController extends Controller
             DB::table($tableName)->where('sub_code', $request->sub_code)
                 ->where('propertyid', $this->propertyid)
                 ->update($insertData);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
 
@@ -5744,6 +5733,7 @@ class CompanyController extends Controller
             ];
 
             $inserts = DB::table('subgroup')->insert($insertData);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
                 $vtype = "F_AO";
@@ -5908,6 +5898,7 @@ class CompanyController extends Controller
                 ->where('sn', $request->sn)
                 ->where('propertyid', $this->propertyid)
                 ->update($insertData);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
 
@@ -6658,6 +6649,7 @@ class CompanyController extends Controller
                 'u_ae' => 'a',
             ] + $data;
             DB::table($tableName)->insert($insertdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
                 $vtype = "F_AO";
@@ -6766,6 +6758,7 @@ class CompanyController extends Controller
                 ->where('sn', $request->input('sn'))
                 ->where('propertyid', $this->propertyid)
                 ->update($updatedata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if (!empty($request->refdate1)) {
 
@@ -6903,6 +6896,7 @@ class CompanyController extends Controller
                 ->where('sn', $sn)
                 ->where('propertyid', $this->propertyid)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($jaldiwahasehato📢) {
                 return back()->with('success', 'Charge Master Deleted Successfully');
@@ -7574,6 +7568,7 @@ class CompanyController extends Controller
             ] + $data;
 
             DB::table($tableName)->insert($insertdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             return back()->with('success', 'Room Master Inserted successfully!');
         } catch (Exception $e) {
@@ -7734,6 +7729,7 @@ class CompanyController extends Controller
                 ->where('sno', $request->input('sno'))
                 ->where('propertyid', $this->propertyid)
                 ->update($updatedata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
             return redirect('roommaster')->with('success', 'Room Master Updated successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Update Room Master!');
@@ -7798,6 +7794,7 @@ class CompanyController extends Controller
                 ->where('sno', $sno)
                 ->where('propertyid', $this->propertyid)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($jaldiwahasehato) {
                 return back()->with('success', 'Room Master Deleted Successfully');
@@ -9597,6 +9594,7 @@ class CompanyController extends Controller
         $revroundoff = revdiscroundoff($short_name, 'RO', $this->propertyid, $request->input('short_name') . $this->propertyid, $request->input('short_name') . ' - ROUND-OFF', $this->currenttime, '6' . $this->propertyid, 'C');
 
         DB::table('revmast')->insert($revmast);
+        \App\Helpers\MasterDataCache::flush($this->propertyid);
 
         $companylogo = '';
 
@@ -10966,6 +10964,7 @@ class CompanyController extends Controller
             //     'message' => 'Walk-in submission successful.fiifi',
             // ]);
 
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             return response()->json([
                 'redirecturl' => fomparameter()->pageopenwalkin,
                 'status' => 'success',
@@ -11155,6 +11154,7 @@ class CompanyController extends Controller
             RoomOcc::insert($insertnewdata);
             DB::table('guestfolio')->where('propertyid', $this->propertyid)->where('docid', $docid)->update($updateguestfolio);
             RoomOcc::where('propertyid', $this->propertyid)->where('docid', $docid)->where('sno', $request->input('sno'))->where('sno1', $request->input('sno1'))->update($updatinexistingrow);
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
             return redirect('autorefreshmain');
         } catch (Exception $exception) {
@@ -11327,6 +11327,7 @@ class CompanyController extends Controller
         DB::table('roomocc')->where('docid', $docid)->update($roomoccdata);
         DB::table('guestfolio')->where('docid', $docid)->update($guestfolio);
         DB::table('guestprof')->where('docid', $docid)->update($guestproft);
+        \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
 
 
         return redirect('autorefreshmain');
@@ -12410,6 +12411,8 @@ class CompanyController extends Controller
             ];
             Paycharge::where('folionodocid', $docid)->where('propertyid', $this->propertyid)->update($updata);
         }
+
+        \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
 
         return response()->json([
             'redirecturl' => 'roomstatus',
@@ -15389,6 +15392,8 @@ class CompanyController extends Controller
             }
 
             if (date('m-d', strtotime($this->ncurdate)) == '03-31') {
+                // Night audit moved depdates / cancelled no-shows — availability changed.
+                \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
                 DB::commit();
                 return back()->with('success', 'Night Audit Completed');
             }
@@ -15409,6 +15414,8 @@ class CompanyController extends Controller
                     'u_name' => Auth::user()->u_name,
                     'u_ae' => 'e',
                 ]);
+            // Night audit moved depdates / cancelled no-shows — availability changed.
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
             return redirect()->route('logout');
         } catch (Exception $e) {
@@ -15600,11 +15607,7 @@ class CompanyController extends Controller
             })
             ->orderBy('name', 'ASC')
             ->get();
-        $advanceCompanyOptions = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->whereIn('comp_type', ['Corporate', 'Travel Agency'])
-            ->orderBy('name', 'ASC')
-            ->get();
+        $advanceCompanyOptions = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
 
         return view('property.guestledger', [
             'data' => $paychargedata,
@@ -17181,10 +17184,7 @@ class CompanyController extends Controller
             ->where('revmast.active', 'Y')
             ->distinct()
             ->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->whereIn('comp_type', ['Corporate', 'Travel Agency'])
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
         $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->get();
 
         $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
@@ -17729,10 +17729,7 @@ class CompanyController extends Controller
             ->where('depart_pay.propertyid', $this->propertyid)
             ->get();
 
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->whereIn('comp_type', ['Corporate', 'Travel Agency'])
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
         $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->get();
 
         $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
@@ -18096,6 +18093,8 @@ class CompanyController extends Controller
 
 
             // exit;
+            // Room move / settle updated roomocc + grpbookingdetails — availability changed.
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
             $wpenv = EnviroWhatsapp::where('propertyid', $this->propertyid)->first();
 
@@ -18191,10 +18190,7 @@ class CompanyController extends Controller
             ->where('revmast.field_type', '=', 'P')
             ->where('revmast.propertyid', $this->propertyid)
             ->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->whereIn('comp_type', ['Corporate', 'Travel Agency'])
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
         return view('property.roomresettlement', [
             'companydata' => $companydata,
             'latestbillno' => $latestbillno,
@@ -18500,6 +18496,8 @@ class CompanyController extends Controller
                 'u_ae'         => 'a',
             ]);
 
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
+
             $agents = DB::table('subgroup')
                 ->where('propertyid', $this->propertyid)
                 ->where('comp_type', 'Travel Agency')
@@ -18577,6 +18575,7 @@ class CompanyController extends Controller
                 'u_entdt'      => now(),
                 'u_ae'         => 'a',
             ]);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             // Return updated company list for dropdown refresh
             $companies = DB::table('subgroup')
@@ -18613,9 +18612,7 @@ class CompanyController extends Controller
             ->orderBy('name', 'ASC')
             ->distinct()
             ->get();
-        $roommast = DB::table('room_mast')
-            ->where('propertyid', $this->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $roommast = \App\Helpers\MasterDataCache::rooms($this->propertyid);
         $totalroom = 0;
         foreach ($roommast as $row) {
             if ($row->type == 'RO') {
@@ -18629,14 +18626,8 @@ class CompanyController extends Controller
         $bsource = DB::table('busssource')
             ->where('propertyid', $this->propertyid)
             ->orderBy('name', 'ASC')->get();
-        $company = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Corporate')
-            ->orderBy('name', 'ASC')->get();
-        $travelagent = DB::table('subgroup')
-            ->where('propertyid', $this->propertyid)
-            ->where('comp_type', 'Travel Agency')
-            ->orderBy('name', 'ASC')->get();
+        $company = \App\Helpers\MasterDataCache::corporates($this->propertyid);
+        $travelagent = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
         $citydata = DB::table('cities')->where('propertyid', $this->propertyid)->where('activeyn', '1')
             ->orderBy('cityname', 'ASC')->get();
         $countrydata = DB::table('countries')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
@@ -19664,53 +19655,63 @@ class CompanyController extends Controller
             ]);
         }
 
-        // FINANCIAL SAFETY: never silently delete advance records.
-        // Audit trail is written to paychargelog BEFORE deletion (user, time, reason,
-        // original amounts and linkage) so the transaction stays traceable and the
-        // Advance/Folio reconciliation report can account for it.
-        $reason = 'Advance Deleted from Reservation';
-        $currentUser = Auth::user()->u_name ?? Auth::user()->name;
-        foreach ($rows as $row) {
-            DB::table('paychargelog')->insert([
-                'propertyid' => $row->propertyid,
-                'docid' => $row->docid,
-                'sno' => $row->sno,
-                'vtype' => $row->vtype,
-                'vno' => $row->vno,
-                'vprefix' => $row->vprefix,
-                'vdate' => $row->vdate,
-                'vtime' => $row->vtime,
-                'paycode' => $row->paycode,
-                'paytype' => $row->paytype,
-                'comments' => $row->comments,
-                'guestprof' => $row->guestprof,
-                'roomno' => $row->roomno,
-                'amtcr' => $row->amtcr,
-                'amtdr' => $row->amtdr,
-                'roomcat' => $row->roomcat,
-                'roomtype' => $row->roomtype,
-                'foliono' => $row->foliono,
-                'folionodocid' => $row->folionodocid,
-                'refdocid' => $row->refdocid,
-                'restcode' => $row->restcode,
-                'billamount' => $row->billamount,
-                'taxper' => $row->taxper,
-                'onamt' => $row->onamt,
-                'taxcondamt' => $row->taxcondamt,
-                'taxstru' => $row->taxstru,
-                'remarks' => $reason . ' (original u_name: ' . ($row->u_name ?? '') . ', original u_entdt: ' . ($row->u_entdt ?? '') . ')',
-                'u_entdt' => $this->currenttime,
-                'u_name' => $currentUser,
-                'u_ae' => 'e',
+        DB::beginTransaction();
+        try {
+            // FINANCIAL SAFETY: never silently delete advance records.
+            // Audit trail is written to paychargelog BEFORE deletion (user, time, reason,
+            // original amounts and linkage) so the transaction stays traceable and the
+            // Advance/Folio reconciliation report can account for it.
+            $reason = 'Advance Deleted from Reservation';
+            $currentUser = Auth::user()->u_name ?? Auth::user()->name;
+            foreach ($rows as $row) {
+                DB::table('paychargelog')->insert([
+                    'propertyid' => $row->propertyid,
+                    'docid' => $row->docid,
+                    'sno' => $row->sno,
+                    'vtype' => $row->vtype,
+                    'vno' => $row->vno,
+                    'vprefix' => $row->vprefix,
+                    'vdate' => $row->vdate,
+                    'vtime' => $row->vtime,
+                    'paycode' => $row->paycode,
+                    'paytype' => $row->paytype,
+                    'comments' => $row->comments,
+                    'guestprof' => $row->guestprof,
+                    'roomno' => $row->roomno,
+                    'amtcr' => $row->amtcr,
+                    'amtdr' => $row->amtdr,
+                    'roomcat' => $row->roomcat,
+                    'roomtype' => $row->roomtype,
+                    'foliono' => $row->foliono,
+                    'folionodocid' => $row->folionodocid,
+                    'refdocid' => $row->refdocid,
+                    'restcode' => $row->restcode,
+                    'billamount' => $row->billamount,
+                    'taxper' => $row->taxper,
+                    'onamt' => $row->onamt,
+                    'taxcondamt' => $row->taxcondamt,
+                    'taxstru' => $row->taxstru,
+                    'remarks' => $reason . ' (original u_name: ' . ($row->u_name ?? '') . ', original u_entdt: ' . ($row->u_entdt ?? '') . ')',
+                    'u_entdt' => $this->currenttime,
+                    'u_name' => $currentUser,
+                    'u_ae' => 'e',
+                ]);
+            }
+
+            Paycharge::where('docid', $docid)->where('vno', $vno)->delete();
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Advance Deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete advance: ' . $e->getMessage()
             ]);
         }
-
-        Paycharge::where('docid', $docid)->where('vno', $vno)->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Advance Deleted successfully'
-        ]);
     }
 
 
@@ -20055,6 +20056,7 @@ class CompanyController extends Controller
             ];
             DB::table('revmast')->insert($insertdata);
             DB::table($tableName)->insert($itemcatmastdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
             return back()->with('success', 'Item Inserted successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Insert Item!' . $e->getMessage() . 'On Line: ' . $e->getLine());
@@ -20115,6 +20117,7 @@ class CompanyController extends Controller
             ];
             DB::table('revmast')->where('propertyid', $this->propertyid)->where('rev_code', $request->input('upcode'))->update($updatedata);
             DB::table($tableName)->where('propertyid', $this->propertyid)->where('RestCode', $request->input('uprestcode'))->where('Code', $request->input('upcode'))->update($itemcatmastdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
             return back()->with('success', 'Item Category Updated successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Update Item Category!' . $e);
@@ -20584,6 +20587,7 @@ class CompanyController extends Controller
                 ->where('propertyid', $this->propertyid)
                 ->where('rev_code', $ucode)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($deleted1 || $deleted2) {
                 return back()->with('success', 'Item Category Deleted Successfully!');
@@ -21107,6 +21111,7 @@ class CompanyController extends Controller
             ];
             DB::table('revmast')->insert($insertdata);
             DB::table($tableName)->insert($itemcatmastdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
             return back()->with('success', 'Item Category Inserted successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Insert Item Category!' . $e);
@@ -21167,6 +21172,7 @@ class CompanyController extends Controller
             ];
             DB::table('revmast')->where('propertyid', $this->propertyid)->where('rev_code', $request->input('upcode'))->update($updatedata);
             DB::table($tableName)->where('propertyid', $this->propertyid)->where('Code', $request->input('upcode'))->update($itemcatmastdata);
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
             return back()->with('success', 'Item Category Updated successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Update Item Category!' . $e);
@@ -21611,6 +21617,7 @@ class CompanyController extends Controller
                 ->where('sub_code', $sub_code)
                 ->where('sn', $sn)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($deleted) {
                 return back()->with('success', 'Party Master Deleted Successfully!');
@@ -21688,6 +21695,7 @@ class CompanyController extends Controller
                 ->where('propertyid', $this->propertyid)
                 ->where('rev_code', $ucode)
                 ->delete();
+            \App\Helpers\MasterDataCache::flush($this->propertyid);
 
             if ($deleted1 || $deleted2) {
                 return back()->with('success', 'Item Category Deleted Successfully!');

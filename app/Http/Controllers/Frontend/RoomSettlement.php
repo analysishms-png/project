@@ -556,6 +556,8 @@ class RoomSettlement extends Controller
 
 
             // exit;
+            // Room move / settle updated roomocc + grpbookingdetails — availability changed.
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
             $wpenv = EnviroWhatsapp::where('propertyid', $this->propertyid)->first();
 

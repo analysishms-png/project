@@ -1486,6 +1486,11 @@ class Pointofsale extends Controller
             return back()->with('error', 'You can not delete all the items!');
         }
 
+        // FINANCIAL SAFETY: this method rewrites sale1/sale2/stock/suntran rows (update + delete + insert);
+        // wrap in a transaction so a mid-run failure rolls back instead of leaving a half-updated bill.
+        try {
+            DB::beginTransaction();
+
         $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
         $currentYear = date('Y', strtotime($ncurdate));
         $nextYear = $currentYear + 1;
@@ -2454,7 +2459,13 @@ class Pointofsale extends Controller
             }
         }
 
-        return back()->with('success', 'Sale Bill Updated Successfully!');
+            DB::commit();
+            return back()->with('success', 'Sale Bill Updated Successfully!');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('salebillupdate failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
+            return back()->with('error', 'Sale Bill Update failed: ' . $e->getMessage());
+        }
     }
 
     public function posparameter(Request $request)
@@ -2891,6 +2902,10 @@ class Pointofsale extends Controller
         $sno1 = $request->sno1;
         $sno = $request->sno;
 
+        // FINANCIAL SAFETY: updates paycharge (settledate) + roomocc (checkout) together.
+        try {
+            DB::beginTransaction();
+
         $uppaycharge = [
             'settledate' => $this->ncurdate,
             'u_updatedt' => $this->currenttime,
@@ -2917,11 +2932,18 @@ class Pointofsale extends Controller
             DB::table('roomocc')->where('propertyid', $this->propertyid)->where('docid', $docid)->where('sno1', $sno1)
                 ->where('sno', $sno)->update($uproomocc);
         }
+        \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Settlement Updated'
-        ]);
+            DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Settlement Updated'
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('nillsettle failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
+            return response()->json(['status' => false, 'message' => 'Settlement failed: ' . $e->getMessage()], 500);
+        }
     }
 
     public function salebillsettlesubmit(Request $request)
@@ -2936,7 +2958,10 @@ class Pointofsale extends Controller
             return back()->withErrors(['error' => 'Invalid sale1docid or rowcount']);
         }
 
-        // return 'sagar';
+        // FINANCIAL SAFETY: this method deletes existing settlement paycharge rows and re-posts them;
+        // wrap in a transaction so a mid-run failure rolls back instead of leaving the bill half-settled.
+        try {
+            DB::beginTransaction();
 
         for ($i = 1; $i <= $rowcount; $i++) {
             $chargetype[] = $request->input('chargetype' . $i);
@@ -3224,7 +3249,13 @@ class Pointofsale extends Controller
             }
         }
 
-        return redirect('autorefreshmain');
+            DB::commit();
+            return redirect('autorefreshmain');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('salebillsettlesubmit failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
+            return back()->withErrors(['error' => 'Settlement failed: ' . $e->getMessage()]);
+        }
     }
 
     public function departxhr(Request $request)

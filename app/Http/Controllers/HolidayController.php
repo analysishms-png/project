@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Auth;
 
 class HolidayController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (!isset(Auth::user()->name)) {
+                return redirect('/');
+            }
+            return $next($request);
+        });
+    }
+
     public function index()
     {
         return view('property.holidaymaster');

@@ -3,6 +3,8 @@
 @include('cdns.select')
 <div class="content-body">
     <div class="container-fluid">
+        @include('property.layouts.pageheader', ['hmsTitle' => 'Edit Recipe Master', 'hmsSubtitle' => 'Update recipe details and save'])
+
         <div class="row justify-content-center">
             <div class="col-lg-12">
                 <div class="card">

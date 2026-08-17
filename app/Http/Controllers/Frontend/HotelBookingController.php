@@ -323,6 +323,7 @@ class HotelBookingController extends Controller
                 ->increment('start_srl_no');
 
             DB::commit();
+            \App\Helpers\MasterDataCache::flushAvailability($propertyid);
 
             if (!is_null(whatsappparameter()) && whatsappparameter()->checkyn == 'Y') {
                 $company = Companyreg::where('propertyid', $propertyid)->first();

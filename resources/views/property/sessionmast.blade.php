@@ -8,6 +8,8 @@
         <!-- row -->
  
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Session Master', 'hmsSubtitle' => 'Manage financial sessions'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

@@ -1173,6 +1173,12 @@ class Pos extends Controller
             $chargetype[] = $request->input('chargetype' . $i);
         }
 
+        // FINANCIAL SAFETY: this method deletes existing settlement paycharge rows and re-posts them;
+        // the original implementation had a DB transaction which was lost in a rewrite — restore it
+        // so a mid-run failure rolls back instead of leaving the bill half-settled.
+        try {
+            DB::beginTransaction();
+
         $string = ['ROOM SETTLEMENT', 'Room'];
 
         $sale1 = Sale1::where('propertyid', $this->propertyid)->where('docid', $sale1docid)->first();
@@ -1255,22 +1261,40 @@ class Pos extends Controller
             DB::table('paycharge')->insert($paycharge2);
         }
 
-        // Collect all merged bills with their amounts
+        // Collect all merged bills with their amounts (batched — no per-bill queries)
         $mergedBills = [];
         if (!empty($sale1->mergedwith)) {
             $mergedwith = explode(',', $sale1->mergedwith);
-            foreach ($mergedwith as $docid) {
-                $sale1row = Sale1::where('propertyid', $this->propertyid)
-                    ->where('docid', $docid)->first();
+            $mergedDocs = array_filter($mergedwith);
+
+            // One grouped fetch for all merged Sale1 rows.
+            $mergedSale1 = Sale1::where('propertyid', $this->propertyid)
+                ->whereIn('docid', $mergedDocs)
+                ->get()
+                ->keyBy('docid');
+
+            // One grouped fetch for the first non-zero payment row per merged bill.
+            // (Original per-bill query had no ORDER BY, so MySQL returned the
+            // lowest-PK row first — PK is (propertyid, docid, sno, sno1).)
+            $mergedPaycharge = Paycharge::select('paycharge.amtcr', 'paycharge.sno1', 'revmast.rev_code', 'revmast.name', 'paycharge.amtdr', 'paycharge.vdate', 'paycharge.docid')
+                ->leftJoin('revmast', 'revmast.rev_code', '=', 'paycharge.paycode')
+                ->whereNot('paycharge.amtcr', 0.00)
+                ->whereIn('paycharge.docid', $mergedDocs)
+                ->orderBy('paycharge.sno')
+                ->get()
+                ->groupBy('docid')
+                ->map(function ($rows) {
+                    return $rows->first();
+                });
+
+            foreach ($mergedDocs as $docid) {
+                $sale1row = $mergedSale1->get($docid);
                 if ($sale1row) {
                     $mergedBills[] = [
                         'docid' => $docid,
                         'sale' => $sale1row,
                         'remaining' => $sale1row->netamt,
-                        'paycharge1' => Paycharge::select('paycharge.amtcr', 'paycharge.sno1', 'revmast.rev_code', 'revmast.name', 'paycharge.amtdr', 'paycharge.vdate')
-                            ->leftJoin('revmast', 'revmast.rev_code', '=', 'paycharge.paycode')
-                            ->whereNot('paycharge.amtcr', 0.00)
-                            ->where('paycharge.docid', $docid)->first()
+                        'paycharge1' => $mergedPaycharge->get($docid)
                     ];
                 }
             }
@@ -1458,7 +1482,13 @@ class Pos extends Controller
             }
         }
 
-        return back()->with('success', 'POS Settlement submitted successfully');
+            DB::commit();
+            return back()->with('success', 'POS Settlement submitted successfully');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('possalebillsettle failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
+            return back()->with('error', 'Settlement failed: ' . $e->getMessage());
+        }
     }
 
 

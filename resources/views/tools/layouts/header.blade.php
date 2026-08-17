@@ -27,8 +27,22 @@
     <link href="{{ asset('admin/plugins/timepicker/bootstrap-timepicker.min.css') }}" rel="stylesheet">
     <!-- Notify CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-notify@1.0.4/dist/simple-notify.css" />
+    <!-- DataTables 2.x (core + Buttons + Responsive, BS4 theme) -->
+    <link href="{{ asset('admin/plugins/datatables2/css/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/plugins/datatables2/css/buttons.bootstrap4.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/plugins/datatables2/css/responsive.dataTables.min.css') }}" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.3.2/spin.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/dataTables.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/dataTables.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/buttons.bootstrap4.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/buttons.print.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/jszip.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/pdfmake.min.js') }}"></script>
+    <script src="{{ asset('admin/plugins/datatables2/js/vfs_fonts.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 

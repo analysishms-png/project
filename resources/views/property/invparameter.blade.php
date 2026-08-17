@@ -3,6 +3,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Inventory Parameter', 'hmsSubtitle' => 'Inventory parameter settings'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

@@ -157,83 +157,122 @@ class DailyReport extends Controller
 
         $reportData = [];
 
+        // Batch the per-revcode FO aggregates (was 4 queries per revmast row).
+        $foPaycodes = $revmast->pluck('rev_code')->all();
+        $foToday = Paycharge::selectRaw('paycode, SUM(amtdr) - SUM(amtcr) AS Today')
+            ->where('restcode', 'FOM' . $this->propertyid)
+            ->whereIn('paycode', $foPaycodes)
+            ->where('paycode', '!=', 'TOUT' . $this->propertyid)
+            ->where('propertyid', $this->propertyid)
+            ->where('vdate', $fordate)
+            ->groupBy('paycode')
+            ->pluck('Today', 'paycode');
+
+        $foMtd = Paycharge::selectRaw('paycode, SUM(amtdr) - SUM(amtcr) AS MTD')
+            ->where('restcode', 'FOM' . $this->propertyid)
+            ->whereIn('paycode', $foPaycodes)
+            ->where('paycode', '!=', 'TOUT' . $this->propertyid)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->groupBy('paycode')
+            ->pluck('MTD', 'paycode');
+
+        $foFtd = Paycharge::selectRaw('paycode, SUM(amtdr) - SUM(amtcr) AS FTD')
+            ->where('restcode', 'FOM' . $this->propertyid)
+            ->whereIn('paycode', $foPaycodes)
+            ->where('paycode', '!=', 'TOUT' . $this->propertyid)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->groupBy('paycode')
+            ->pluck('FTD', 'paycode');
+
+        $foYtd = Paycharge::selectRaw('paycode, SUM(amtdr) - SUM(amtcr) AS YTD')
+            ->where('restcode', 'FOM' . $this->propertyid)
+            ->whereIn('paycode', $foPaycodes)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->groupBy('paycode')
+            ->pluck('YTD', 'paycode');
+
         foreach ($revmast as $row) {
-            $today = Paycharge::where('vdate', $fordate)
-                ->where('restcode', 'FOM' . $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->where('paycode', '!=', 'TOUT' . $this->propertyid)
-                ->where('propertyid', $this->propertyid)
-                ->selectRaw('SUM(amtdr) - SUM(amtcr) AS Today')
-                ->first();
-
-            $mtd = Paycharge::whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
-                ->where('restcode', 'FOM' . $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->where('paycode', '!=', 'TOUT' . $this->propertyid)
-                ->where('propertyid', $this->propertyid)
-                ->selectRaw('SUM(amtdr) - SUM(amtcr) AS MTD')
-                ->first();
-
-            $ftd = Paycharge::whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
-                ->where('restcode', 'FOM' . $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->where('paycode', '!=', 'TOUT' . $this->propertyid)
-                ->where('propertyid', $this->propertyid)
-                ->selectRaw('SUM(amtdr) - SUM(amtcr) AS FTD')
-                ->first();
-
-            $ytd = Paycharge::whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
-                ->where('restcode', 'FOM' . $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->where('propertyid', $this->propertyid)
-                ->selectRaw('SUM(amtdr) - SUM(amtcr) AS YTD')
-                ->first();
-
             $reportData[] = [
                 'category' => 'Front Office',
                 'rev_code' => $row->rev_code,
                 'Name' => $row->Name,
                 'field_type' => $row->field_type,
                 'Nature' => $row->Nature,
-                'Today' => $today ? $today->Today : 0,
-                'MTD' => $mtd ? $mtd->MTD : 0,
-                'FTD' => $ftd ? $ftd->FTD : 0,
-                'YTD' => $ytd ? $ytd->YTD : 0
+                'Today' => $foToday[$row->rev_code] ?? null,
+                'MTD' => $foMtd[$row->rev_code] ?? null,
+                'FTD' => $foFtd[$row->rev_code] ?? null,
+                'YTD' => $foYtd[$row->rev_code] ?? null
             ];
         }
 
         // return $reportData;
 
+        // Batch the per-cell Sales Summary aggregates (was 3 queries per
+        // department x category cell). Each paycode maps to one CatType.
+        $catPaycodes = ItemCatMast::select('CatType', 'RevCode')
+            ->where('propertyid', $this->propertyid)
+            ->whereNotNull('RevCode')
+            ->where('RevCode', '<>', '')
+            ->whereNotNull('CatType')
+            ->where('CatType', '<>', '')
+            ->get()
+            ->groupBy('CatType')
+            ->map(function ($rows) {
+                return $rows->pluck('RevCode')->unique()->values()->all();
+            });
+
+        $salesDcodes = $departments->pluck('dcode')->all();
+        $allSalesPaycodes = $catPaycodes->flatten()->unique()->values()->all();
+
+        $cellToday = Paycharge::selectRaw('restcode, paycode, SUM(amtdr - amtcr) AS Today')
+            ->whereIn('restcode', $salesDcodes)
+            ->whereIn('paycode', $allSalesPaycodes)
+            ->where('propertyid', $this->propertyid)
+            ->where('vdate', $fordate)
+            ->groupBy('restcode', 'paycode')
+            ->get()
+            ->keyBy(fn ($r) => $r->restcode . '|' . $r->paycode);
+
+        $cellMtd = Paycharge::selectRaw('restcode, paycode, SUM(amtdr - amtcr) AS MTD')
+            ->whereIn('restcode', $salesDcodes)
+            ->whereIn('paycode', $allSalesPaycodes)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->groupBy('restcode', 'paycode')
+            ->get()
+            ->keyBy(fn ($r) => $r->restcode . '|' . $r->paycode);
+
+        $cellYtd = Paycharge::selectRaw('restcode, paycode, SUM(amtdr - amtcr) AS YTD')
+            ->whereIn('restcode', $salesDcodes)
+            ->whereIn('paycode', $allSalesPaycodes)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->groupBy('restcode', 'paycode')
+            ->get()
+            ->keyBy(fn ($r) => $r->restcode . '|' . $r->paycode);
+
         foreach ($departments as $department) {
             foreach ($categories as $category) {
-                $today = Paycharge::leftJoin('itemcatmast', function ($query) use ($department, $category) {
-                    $query->on('itemcatmast.Code', '=', 'paycharge.paycode')
-                        ->where('itemcatmast.propertyid', $this->propertyid)
-                        ->where('itemcatmast.RestCode', $department->dcode);
-                })
-                    ->where('vdate', $fordate)
-                    ->where('paycharge.restcode', $department->dcode)
-                    ->whereIn('paycode', function ($query) use ($category) {
-                        $query->select('RevCode')->from('itemcatmast')->where('CatType', $category->NAME);
-                    })
-                    ->selectRaw('SUM(amtdr - amtcr) AS Today')
-                    ->first();
-
-                $mtd = Paycharge::whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
-                    ->where('paycharge.restcode', $department->dcode)
-                    ->whereIn('paycode', function ($query) use ($category) {
-                        $query->select('RevCode')->from('itemcatmast')->where('CatType', $category->NAME);
-                    })
-                    ->selectRaw('SUM(amtdr - amtcr) AS MTD')
-                    ->first();
-
-                $ytd = Paycharge::whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
-                    ->where('paycharge.restcode', $department->dcode)
-                    ->whereIn('paycode', function ($query) use ($category) {
-                        $query->select('RevCode')->from('itemcatmast')->where('CatType', $category->NAME);
-                    })
-                    ->selectRaw('SUM(amtdr - amtcr) AS YTD')
-                    ->first();
+                $today = null;
+                $mtd = null;
+                $ytd = null;
+                foreach ($catPaycodes[$category->NAME] ?? [] as $pc) {
+                    $cell = $cellToday[$department->dcode . '|' . $pc] ?? null;
+                    if ($cell !== null) {
+                        $today = ($today ?? 0.0) + (float) $cell->Today;
+                    }
+                    $cell = $cellMtd[$department->dcode . '|' . $pc] ?? null;
+                    if ($cell !== null) {
+                        $mtd = ($mtd ?? 0.0) + (float) $cell->MTD;
+                    }
+                    $cell = $cellYtd[$department->dcode . '|' . $pc] ?? null;
+                    if ($cell !== null) {
+                        $ytd = ($ytd ?? 0.0) + (float) $cell->YTD;
+                    }
+                }
 
                 $reportData[] = [
                     'rcategory' => 'Sales Summary',
@@ -241,9 +280,9 @@ class DailyReport extends Controller
                     'rev_code' => $department->dcode,
                     'Name' => $category->NAME,
                     'short_name' => $department->short_name,
-                    'Today' => $today ? $today->Today : 0,
-                    'MTD' => $mtd ? $mtd->MTD : 0,
-                    'YTD' => $ytd ? $ytd->YTD : 0
+                    'Today' => $today,
+                    'MTD' => $mtd,
+                    'YTD' => $ytd
                 ];
             }
 
@@ -424,97 +463,100 @@ class DailyReport extends Controller
             ->whereIn('field_type', ['T'])
             ->get();
 
+        // Batch the per-tax-revcode aggregates (was 3 queries per tax code).
+        $taxPaycodes = $taxp->pluck('rev_code')->all();
+        $taxToday = Paycharge::selectRaw('paycode, SUM(amtdr) AS Today')
+            ->where('propertyid', $this->propertyid)
+            ->whereIn('paycode', $taxPaycodes)
+            ->where('vdate', $fordate)
+            ->groupBy('paycode')
+            ->pluck('Today', 'paycode');
+
+        $taxMtd = Paycharge::selectRaw('paycode, SUM(amtdr) AS MTD')
+            ->where('propertyid', $this->propertyid)
+            ->whereIn('paycode', $taxPaycodes)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->groupBy('paycode')
+            ->pluck('MTD', 'paycode');
+
+        $taxYtd = Paycharge::selectRaw('paycode, SUM(amtdr) AS YTD')
+            ->where('propertyid', $this->propertyid)
+            ->whereIn('paycode', $taxPaycodes)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->groupBy('paycode')
+            ->pluck('YTD', 'paycode');
+
         foreach ($taxp as $row) {
-            $today = Paycharge::selectRaw("SUM(amtdr) AS Today")
-                ->where('propertyid', $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->where('vdate', $fordate)
-                ->first();
-
-            $mtd = Paycharge::selectRaw("SUM(amtdr) AS MTD")
-                ->where('propertyid', $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
-                ->first();
-
-            $ytd = Paycharge::selectRaw("SUM(amtdr) AS YTD")
-                ->where('propertyid', $this->propertyid)
-                ->where('paycode', $row->rev_code)
-                ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
-                ->first();
-
             $reportData[] = [
                 'category' => 'Tax Summary',
                 'rev_code' => $row->rev_code,
                 'Name' => $row->name,
                 'short_name' => $row->name,
-                'Today' => $today ? $today->Today : 0,
-                'MTD' => $mtd ? $mtd->MTD : 0,
-                'YTD' => $ytd ? $ytd->YTD : 0
+                'Today' => $taxToday[$row->rev_code] ?? null,
+                'MTD' => $taxMtd[$row->rev_code] ?? null,
+                'YTD' => $taxYtd[$row->rev_code] ?? null
             ];
         }
 
         $deposit = Revmast::select('rev_code', 'name')->where('propertyid', $this->propertyid)->whereNot('nature', 'Room')
             ->whereIn('field_type', ['P'])->get();
-        $depfield = [];
+
+        // Batch the per-deposit-revcode aggregates (was 3 queries per code).
+        // CHK advance docids (any deposit paytype) are excluded from the sums.
+        $depRevcodes = $deposit->pluck('rev_code')->all();
+        $depNames = $deposit->pluck('name')->all();
+
+        $chkToday = Paycharge::where('vtype', 'CHK')
+            ->whereIn('paytype', $depNames)
+            ->where('propertyid', $this->propertyid)
+            ->where('vdate', $fordate)
+            ->pluck('docid')->all();
+
+        $chkMtd = Paycharge::where('vtype', 'CHK')
+            ->whereIn('paytype', $depNames)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->pluck('docid')->all();
+
+        $chkYtd = Paycharge::where('vtype', 'CHK')
+            ->whereIn('paytype', $depNames)
+            ->where('propertyid', $this->propertyid)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->pluck('docid')->all();
+
+        $depToday = Paycharge::selectRaw('paycode, SUM(amtcr) - SUM(amtdr) AS Today')
+            ->where('propertyid', $this->propertyid)
+            ->whereIn('paycode', $depRevcodes)
+            ->where('vdate', $fordate)
+            ->whereNotIn('docid', $chkToday)
+            ->groupBy('paycode')
+            ->pluck('Today', 'paycode');
+
+        $depMtd = Paycharge::selectRaw('paycode, SUM(amtcr) - SUM(amtdr) AS MTD')
+            ->where('propertyid', $this->propertyid)
+            ->whereIn('paycode', $depRevcodes)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->whereNotIn('docid', $chkMtd)
+            ->groupBy('paycode')
+            ->pluck('MTD', 'paycode');
+
+        $depYtd = Paycharge::selectRaw('paycode, SUM(amtcr) - SUM(amtdr) AS YTD')
+            ->where('propertyid', $this->propertyid)
+            ->whereIn('paycode', $depRevcodes)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->whereNotIn('docid', $chkYtd)
+            ->groupBy('paycode')
+            ->pluck('YTD', 'paycode');
+
         foreach ($deposit as $row) {
-            $depfield[] = $row->name;
-
-            $mtdstart = $ranges['mtd']['start'];
-            $mtdend = $ranges['mtd']['end'];
-            $ytdstart = $ranges['ftd']['start'];
-            $ytdend = $ranges['ftd']['end'];
-
-            $today = Revmast::leftJoin('paycharge', 'revmast.rev_code', '=', 'paycharge.paycode')
-                ->where('revmast.field_type', 'P')
-                ->where('paycharge.paycode', $row->rev_code)
-                ->where('paycharge.vdate', $fordate)
-                ->whereNotIn('paycharge.docid', function ($query) use ($fordate, $depfield) {
-                    $query->select('docid')
-                        ->from('paycharge')
-                        ->where('vtype', 'CHK')
-                        ->whereIn('paytype', $depfield)
-                        ->where('vdate', $fordate);
-                })
-                ->selectRaw('SUM(paycharge.amtcr) - SUM(paycharge.amtdr) AS Today')
-                ->first();
-
-            $mtd = Revmast::leftJoin('paycharge', 'revmast.rev_code', '=', 'paycharge.paycode')
-                ->where('revmast.field_type', 'P')
-                ->where('paycharge.paycode', $row->rev_code)
-                ->whereBetween('paycharge.vdate', [$mtdstart, $mtdend])
-                ->whereNotIn('paycharge.docid', function ($query) use ($mtdstart, $mtdend, $depfield) {
-                    $query->select('docid')
-                        ->from('paycharge')
-                        ->where('vtype', 'CHK')
-                        ->whereIn('paytype', $depfield)
-                        ->whereBetween('paycharge.vdate', [$mtdstart, $mtdend]);
-                })
-                ->selectRaw('SUM(paycharge.amtcr) - SUM(paycharge.amtdr) AS MTD')
-                ->first();
-
-            $ytd = Revmast::leftJoin('paycharge', 'revmast.rev_code', '=', 'paycharge.paycode')
-                ->where('revmast.field_type', 'P')
-                ->where('paycharge.paycode', $row->rev_code)
-                ->whereBetween('paycharge.vdate', [$ytdstart, $ytdend])
-                ->whereNotIn('paycharge.docid', function ($query) use ($ytdstart, $ytdend, $depfield) {
-                    $query->select('docid')
-                        ->from('paycharge')
-                        ->where('vtype', 'CHK')
-                        ->whereIn('paytype', $depfield)
-                        ->whereBetween('paycharge.vdate', [$ytdstart, $ytdend]);
-                })
-                ->selectRaw('SUM(paycharge.amtcr) - SUM(paycharge.amtdr) AS YTD')
-                ->first();
-
             $reportData[] = [
                 'category' => 'Payment Summary',
                 'rev_code' => $row->rev_code,
                 'Name' => $row->name,
                 'short_name' => $row->name,
-                'Today' => $today ? $today->Today : 0,
-                'MTD' => $mtd ? $mtd->MTD : 0,
-                'YTD' => $ytd ? $ytd->YTD : 0
+                'Today' => $depToday[$row->rev_code] ?? null,
+                'MTD' => $depMtd[$row->rev_code] ?? null,
+                'YTD' => $depYtd[$row->rev_code] ?? null
             ];
         }
 
@@ -550,61 +592,45 @@ class DailyReport extends Controller
             ]);
         }
 
+        // Batch the per-roomcat occupancy counts (was 3 queries per category).
+        $roomcats = $occupancy->pluck('roomcat')->all();
+        $occToday = Paycharge::selectRaw('roomcat, COUNT(*) AS Today')
+            ->whereIn('roomcat', $roomcats)
+            ->where('vdate', $fordate)
+            ->where('amtdr', '>', 0)
+            ->where('paycode', "RMCH$this->propertyid")
+            ->where('propertyid', $this->propertyid)
+            ->groupBy('roomcat')
+            ->pluck('Today', 'roomcat');
+
+        $occMtd = Paycharge::selectRaw('roomcat, COUNT(*) AS MTD')
+            ->whereIn('roomcat', $roomcats)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->where('amtdr', '>', 0)
+            ->where('paycode', "RMCH$this->propertyid")
+            ->where('propertyid', $this->propertyid)
+            ->groupBy('roomcat')
+            ->pluck('MTD', 'roomcat');
+
+        $occYtd = Paycharge::selectRaw('roomcat, COUNT(*) AS YTD')
+            ->whereIn('roomcat', $roomcats)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->where('amtdr', '>', 0)
+            ->where('paycode', "RMCH$this->propertyid")
+            ->where('propertyid', $this->propertyid)
+            ->groupBy('roomcat')
+            ->pluck('YTD', 'roomcat');
+
         foreach ($occupancy as $row) {
-            $today = Paycharge::selectRaw("count('roomno') AS Today")
-                ->where('roomcat', $row->roomcat)
-                ->where('vdate', $fordate)
-                ->whereIn('paycode', function ($query) {
-                    $query->select('rev_code')
-                        ->from('revmast')
-                        ->where('flag_type', 'FOM')
-                        ->where('field_type', 'C')
-                        ->where('nature', 'Room Charge');
-                })
-                ->where('amtdr', '>', 0)
-                ->where('paycode', "RMCH$this->propertyid")
-                ->where('propertyid', $this->propertyid)
-                ->first();
-
-            $mtd = Paycharge::selectRaw("count('roomno') AS MTD")
-                ->where('roomcat', $row->roomcat)
-                ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
-                ->whereIn('paycode', function ($query) {
-                    $query->select('rev_code')
-                        ->from('revmast')
-                        ->where('flag_type', 'FOM')
-                        ->where('field_type', 'C')
-                        ->where('nature', 'Room Charge');
-                })
-                ->where('amtdr', '>', 0)
-                ->where('paycode', "RMCH$this->propertyid")
-                ->where('propertyid', $this->propertyid)
-                ->first();
-
-            $ytd = Paycharge::selectRaw("count('roomno') AS YTD")
-                ->where('roomcat', $row->roomcat)
-                ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
-                ->whereIn('paycode', function ($query) {
-                    $query->select('rev_code')
-                        ->from('revmast')
-                        ->where('flag_type', 'FOM')
-                        ->where('field_type', 'C')
-                        ->where('nature', 'Room Charge');
-                })
-                ->where('amtdr', '>', 0)
-                ->where('paycode', "RMCH$this->propertyid")
-                ->where('propertyid', $this->propertyid)
-                ->first();
-
             $occupancyRow = [
                 'totalrooms' => $row->norooms,
                 'category' => "Room Category",
                 'rev_code' => $row->roomcat,
                 'Name' => $row->roomcatname,
                 'short_name' => $row->roomcatname,
-                'Today' => $today ? $today->Today : 0,
-                'MTD' => $mtd ? $mtd->MTD : 0,
-                'YTD' => $ytd ? $ytd->YTD : 0
+                'Today' => $occToday[$row->roomcat] ?? 0,
+                'MTD' => $occMtd[$row->roomcat] ?? 0,
+                'YTD' => $occYtd[$row->roomcat] ?? 0
             ];
 
             $reportData[] = $occupancyRow;
@@ -829,48 +855,47 @@ class DailyReport extends Controller
             ],
         ];
 
+        // Batch the per-roomcat room-average aggregates (was 3 queries per category).
+        $roomChargeRevcodes = Revmast::where('propertyid', $this->propertyid)
+            ->where('flag_type', 'FOM')
+            ->where('field_type', 'C')
+            ->where('nature', 'Room Charge')
+            ->pluck('rev_code')->all();
+
+        $avgToday = Paycharge::selectRaw('roomcat, COUNT(roomno) as todaycount, SUM(amtdr - amtcr) as Today')
+            ->whereIn('roomcat', $roomcats)
+            ->where('vdate', $fordate)
+            ->where('propertyid', $this->propertyid)
+            ->where('amtdr', '>', 0)
+            ->whereIn('paycode', $roomChargeRevcodes)
+            ->groupBy('roomcat')
+            ->get()
+            ->keyBy('roomcat');
+
+        $avgMtd = Paycharge::selectRaw('roomcat, COUNT(roomno) as mtdcount, SUM(amtdr - amtcr) as MTD')
+            ->whereIn('roomcat', $roomcats)
+            ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
+            ->where('propertyid', $this->propertyid)
+            ->where('amtdr', '>', 0)
+            ->whereIn('paycode', $roomChargeRevcodes)
+            ->groupBy('roomcat')
+            ->get()
+            ->keyBy('roomcat');
+
+        $avgYtd = Paycharge::selectRaw('roomcat, COUNT(roomno) as ytdcount, SUM(amtdr - amtcr) as YTD')
+            ->whereIn('roomcat', $roomcats)
+            ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
+            ->where('propertyid', $this->propertyid)
+            ->where('amtdr', '>', 0)
+            ->whereIn('paycode', $roomChargeRevcodes)
+            ->groupBy('roomcat')
+            ->get()
+            ->keyBy('roomcat');
+
         foreach ($occupancy as $row) {
-            $today = Paycharge::selectRaw('COUNT(roomno) as todaycount, SUM(amtdr - amtcr) as Today')
-                ->where('roomcat', $row->roomcat)
-                ->where('vdate', $fordate)
-                ->where('propertyid', $this->propertyid)
-                ->where('amtdr', '>', 0)
-                ->whereIn('paycode', function ($query) {
-                    $query->select('rev_Code')
-                        ->from('revmast')
-                        ->where('flag_type', 'FOM')
-                        ->where('Field_Type', 'C')
-                        ->where('Nature', 'Room Charge');
-                })
-                ->first();
-
-            $mtd = Paycharge::selectRaw('COUNT(roomno) as mtdcount, SUM(amtdr - amtcr) as MTD')
-                ->where('roomcat', $row->roomcat)
-                ->whereBetween('vdate', [$ranges['mtd']['start'], $ranges['mtd']['end']])
-                ->where('propertyid', $this->propertyid)
-                ->where('amtdr', '>', 0)
-                ->whereIn('paycode', function ($query) {
-                    $query->select('rev_Code')
-                        ->from('revmast')
-                        ->where('flag_type', 'FOM')
-                        ->where('Field_Type', 'C')
-                        ->where('Nature', 'Room Charge');
-                })
-                ->first();
-
-            $ytd = Paycharge::selectRaw('COUNT(roomno) as ytdcount, SUM(amtdr - amtcr) as YTD')
-                ->where('roomcat', $row->roomcat)
-                ->whereBetween('vdate', [$ranges['ftd']['start'], $ranges['ftd']['end']])
-                ->where('propertyid', $this->propertyid)
-                ->where('amtdr', '>', 0)
-                ->whereIn('paycode', function ($query) {
-                    $query->select('rev_Code')
-                        ->from('revmast')
-                        ->where('flag_type', 'FOM')
-                        ->where('Field_Type', 'C')
-                        ->where('Nature', 'Room Charge');
-                })
-                ->first();
+            $avg = $avgToday[$row->roomcat] ?? null;
+            $avgm = $avgMtd[$row->roomcat] ?? null;
+            $avgy = $avgYtd[$row->roomcat] ?? null;
 
             $reportData[] = [
                 'totalrooms' => $row->norooms,
@@ -878,12 +903,12 @@ class DailyReport extends Controller
                 'rev_code' => $row->roomcat,
                 'Name' => $row->roomcatname,
                 'short_name' => $row->roomcatname,
-                'todaycount' => $today->todaycount ?? 0,
-                'mtdcount' => $mtd->mtdcount ?? 0,
-                'ytdcount' => $ytd->ytdcount ?? 0,
-                'Today' => $today->Today ?? 0,
-                'MTD' => $mtd->MTD ?? 0,
-                'YTD' => $ytd->YTD ?? 0
+                'todaycount' => $avg->todaycount ?? 0,
+                'mtdcount' => $avgm->mtdcount ?? 0,
+                'ytdcount' => $avgy->ytdcount ?? 0,
+                'Today' => $avg->Today ?? 0,
+                'MTD' => $avgm->MTD ?? 0,
+                'YTD' => $avgy->YTD ?? 0
             ];
         }
 

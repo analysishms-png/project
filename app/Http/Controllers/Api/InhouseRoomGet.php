@@ -242,9 +242,19 @@ class InhouseRoomGet extends Controller
                 )
                 ->get();
 
+            // Batch the per-booking advance lookup (was 1 query per booking row).
+            $bookingDocids = $bookedroomdata->pluck('BookingDocid')->unique()->filter()->values();
+            $advances = collect();
+            if ($bookingDocids->isNotEmpty()) {
+                $advances = Paycharge::where('propertyid', $propertyid)
+                    ->where('sno', 1)
+                    ->whereIn('refdocid', $bookingDocids)
+                    ->get()
+                    ->groupBy('refdocid');
+            }
+
             foreach ($bookedroomdata as $row) {
-                $advance = Paycharge::where('propertyid', $propertyid)->where('sno', 1)->where('refdocid', $row->BookingDocid)->get() ?? '';
-                $row->advance = $advance;
+                $row->advance = $advances->get($row->BookingDocid, collect());
             }
 
             $emptycategory = GrpBookinDetail::select(

@@ -28,7 +28,12 @@ class DetailedTrialLedgerExport
     public function getData()
     {
         return DB::table('subgroup as s')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 's.propertyid');
+            })
             ->leftJoin('ledger as l', function ($join) {
                 $join->on('s.sub_code', '=', 'l.subcode')
                     ->where('l.propertyid', $this->propertyid);

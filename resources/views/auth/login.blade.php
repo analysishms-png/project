@@ -1,102 +1,312 @@
 @extends('frontend.layouts.main')
 
+@section('body-class', 'login-page')
+
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">{{ __('Login') }}</div>
+<style>
+    /* ===== Analysis HMS Login — navy/teal brand (UI-only redesign) ===== */
+    .login-page {
+        min-height: 100vh;
+        background: linear-gradient(160deg, #0f2b5b 0%, #0a1f42 100%);
+        position: relative;
+        overflow-x: hidden;
+    }
 
-                <div class="card-body">
-                    <form method="POST" action="{{ route('login') }}">
-                        @csrf
+    /* subtle teal glow accents */
+    .login-page::before {
+        content: '';
+        position: absolute;
+        top: -30%;
+        right: -20%;
+        width: 70vw;
+        height: 70vw;
+        background: radial-gradient(circle, rgba(14, 165, 164, .22) 0%, transparent 60%);
+        pointer-events: none;
+    }
 
-                        <div class="row mb-3">
-                            <label for="email" class="col-md-4 col-form-label text-md-end">{{ __('Username') }}</label>
+    .login-page::after {
+        content: '';
+        position: absolute;
+        bottom: -35%;
+        left: -20%;
+        width: 60vw;
+        height: 60vw;
+        background: radial-gradient(circle, rgba(14, 165, 164, .14) 0%, transparent 60%);
+        pointer-events: none;
+    }
 
-                            <div class="col-md-6">
-                                <input id="u_name" type="text"
-                                    class="form-control @error('u_name') is-invalid @enderror" name="u_name"
-                                    value="{{ old('email') }}" required autocomplete="u_name" autofocus>
+    /* hide marketing chrome on the login gateway only */
+    .login-page #topbar,
+    .login-page #header,
+    .login-page #footer {
+        display: none !important;
+    }
 
-                                @error('u_name')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                                @enderror
-                            </div>
+    .login-shell {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 460px;
+        margin: 0 auto;
+        padding: 3.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100vh;
+    }
 
-                           
+    .login-card {
+        border: 0 !important;
+        border-radius: 1rem !important;
+        box-shadow: 0 24px 64px rgba(4, 14, 32, .45) !important;
+        overflow: hidden;
+    }
 
-                        </div>
+    .login-brand {
+        background: linear-gradient(135deg, #0f2b5b 0%, #14407e 60%, #0ea5a4 160%);
+        padding: 2rem 2rem 1.75rem;
+        text-align: center;
+    }
 
-                        <div class="row mb-3">
-                            <label for="password" class="col-md-4 col-form-label text-md-end">{{ __('Password')
-                                }}</label>
+    .login-logo {
+        width: 76px;
+        height: 76px;
+        margin: 0 auto 1rem;
+        background: #ffffff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 24px rgba(4, 14, 32, .35);
+    }
 
-                            <div class="col-md-6">
-                                <input id="password" type="password"
-                                    class="form-control @error('password') is-invalid @enderror" name="password"
-                                    required autocomplete="current-password">
+    .login-logo img {
+        max-height: 52px;
+        max-width: 52px;
+        border-radius: 50%;
+    }
 
-                                @error('password')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                                @enderror
-                            </div>
+    .login-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+    }
 
-                            <label for="propertyid" class="col-md-4 mt-3 col-form-label text-md-end">{{ __('Propertyid')
-                            }}</label>
-                        <div class="col-md-6 mt-3">
-                            <input id="propertyid" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(\..*)\./g, '$1');" type="text"
-                                class="form-control @error('propertyid') is-invalid @enderror" name="propertyid"
-                                value="{{ old('email') }}" required autocomplete="propertyid" autofocus>
+    .login-tagline {
+        margin: .35rem 0 0;
+        color: rgba(248, 250, 252, .75);
+        font-size: .85rem;
+    }
 
-                            @error('propertyid')
-                            <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </span>
-                            @enderror
-                        </div>
-                        </div>
+    .login-card .card-body {
+        padding: 2rem 2.25rem 1.5rem;
+    }
 
-                        <div class="row mb-3">
-                            <div class="col-md-6 offset-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="remember" id="remember" {{
-                                        old('remember') ? 'checked' : '' }}>
+    .login-page .form-label {
+        font-weight: 600;
+        color: #334155;
+        font-size: .85rem;
+    }
 
-                                    <label class="form-check-label" for="remember">
-                                        {{ __('Remember Me') }}
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        
+    .login-page .form-control {
+        border-radius: .5rem;
+        padding: .65rem .9rem;
+        border-color: #cbd5e1;
+        font-size: .9rem;
+    }
 
-                        <div class="row mb-0">
-                            <div class="col-md-8 offset-md-4">
-                                <button type="submit" class="btn btn-primary">
-                                    {{ __('Login') }}
-                                </button>
+    .login-page .form-control:focus {
+        border-color: #0ea5a4;
+        box-shadow: 0 0 0 .2rem rgba(14, 165, 164, .15);
+    }
 
-                                @if (Route::has('password.request'))
-                                <a class="btn btn-link" href="{{ route('password.request') }}">
-                                    {{ __('Forgot Your Password?') }}
-                                </a>
-                                @endif
-                            </div>
-                            <div class="mt-2 text-center">
-                                <a class="btn btn-success" href="{{ url('/') }}#demo-request">Don't Have Login ID & Password ? Request Demo Now..</a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+    .login-page .input-group-text {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #64748b;
+        border-radius: .5rem 0 0 .5rem;
+    }
+
+    .login-page .input-group .form-control {
+        border-radius: 0 .5rem .5rem 0;
+    }
+
+    .login-page .btn-primary {
+        background-color: #0f2b5b !important;
+        border-color: #0f2b5b !important;
+        border-radius: .5rem;
+        padding: .7rem 1rem;
+        font-weight: 600;
+        font-size: .95rem;
+        letter-spacing: .02em;
+        transition: all .2s ease;
+    }
+
+    .login-page .btn-primary:hover {
+        background-color: #14407e !important;
+        border-color: #14407e !important;
+        box-shadow: 0 6px 16px rgba(15, 43, 91, .3);
+    }
+
+    .login-page .form-check-input:checked {
+        background-color: #0ea5a4;
+        border-color: #0ea5a4;
+    }
+
+    .login-page .form-check-label {
+        color: #475569;
+        font-size: .875rem;
+    }
+
+    .login-page .btn-forgot {
+        color: #64748b;
+        font-size: .85rem;
+    }
+
+    .login-page .btn-forgot:hover {
+        color: #0f2b5b;
+    }
+
+    .login-demo {
+        border-top: 1px solid #eef2f7;
+        padding: 1.25rem 2.25rem 1.5rem;
+        text-align: center;
+    }
+
+    .login-demo .btn-outline-demo {
+        color: #0f2b5b;
+        border: 1.5px solid #0f2b5b;
+        border-radius: .5rem;
+        font-weight: 600;
+        font-size: .875rem;
+        width: 100%;
+        padding: .6rem 1rem;
+        background: #ffffff;
+        transition: all .2s ease;
+    }
+
+    .login-demo .btn-outline-demo:hover {
+        background: #0f2b5b;
+        color: #ffffff;
+    }
+
+    .login-copyright {
+        margin-top: 1.5rem;
+        text-align: center;
+        color: rgba(248, 250, 252, .5);
+        font-size: .78rem;
+    }
+
+    @media (max-width: 575.98px) {
+        .login-shell {
+            padding: 2rem 1rem;
+        }
+
+        .login-card .card-body {
+            padding: 1.5rem 1.25rem 1.25rem;
+        }
+
+        .login-demo {
+            padding: 1rem 1.25rem 1.25rem;
+        }
+
+        .login-brand {
+            padding: 1.5rem 1rem 1.25rem;
+        }
+    }
+</style>
+
+<div class="login-shell">
+    <div class="login-card card">
+        <div class="login-brand">
+            <div class="login-logo">
+                <img src="{{ asset('assets/img/logo.gif') }}" alt="Analysis HMS">
             </div>
+            <h1 class="login-title">Analysis HMS</h1>
+            <p class="login-tagline">Hotel Management System</p>
+        </div>
+
+        <div class="card-body">
+            <form method="POST" action="{{ route('login') }}">
+                @csrf
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">{{ __('Username') }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input id="u_name" type="text"
+                            class="form-control @error('u_name') is-invalid @enderror" name="u_name"
+                            value="{{ old('email') }}" required autocomplete="u_name" autofocus
+                            placeholder="Enter username or email">
+                    </div>
+                    @error('u_name')
+                    <span class="invalid-feedback d-block" role="alert">
+                        <strong>{{ $message }}</strong>
+                    </span>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">{{ __('Password') }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                        <input id="password" type="password"
+                            class="form-control @error('password') is-invalid @enderror" name="password"
+                            required autocomplete="current-password" placeholder="Enter your password">
+                    </div>
+                    @error('password')
+                    <span class="invalid-feedback d-block" role="alert">
+                        <strong>{{ $message }}</strong>
+                    </span>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label for="propertyid" class="form-label">{{ __('Property ID') }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-building"></i></span>
+                        <input id="propertyid" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(\..*)\./g, '$1');" type="text"
+                            class="form-control @error('propertyid') is-invalid @enderror" name="propertyid"
+                            value="{{ old('email') }}" required autocomplete="propertyid" autofocus
+                            placeholder="Enter property ID">
+                    </div>
+                    @error('propertyid')
+                    <span class="invalid-feedback d-block" role="alert">
+                        <strong>{{ $message }}</strong>
+                    </span>
+                    @enderror
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{
+                            old('remember') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="remember">
+                            {{ __('Remember Me') }}
+                        </label>
+                    </div>
+
+                    @if (Route::has('password.request'))
+                    <a class="btn-forgot" href="{{ route('password.request') }}">
+                        {{ __('Forgot Password?') }}
+                    </a>
+                    @endif
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> {{ __('Login') }}
+                </button>
+            </form>
+        </div>
+
+        <div class="login-demo">
+            <a class="btn-outline-demo" href="{{ url('/') }}#demo-request">Don't Have Login ID & Password ? Request Demo Now..</a>
         </div>
     </div>
 
+    <p class="login-copyright">© {{ date('Y') }} Analysis HMS. All rights reserved.</p>
 </div>
 
 <script>

@@ -133,7 +133,11 @@ class HouseKeeping extends Controller
 
     public function housemaster(Request $request)
     {
-        $permission = revokeopen(121512);
+        // BUG-045: guard with the canonical housekeeping code 151112 first,
+        // falling back to the legacy duplicate 121512 (some older props/users
+        // only have 121512). Previously the guard ONLY checked 121512, which
+        // blocked housemaster on props like 135 that use 151112.
+        $permission = revokeopen(151112) ?? revokeopen(121512);
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
@@ -146,13 +150,12 @@ class HouseKeeping extends Controller
 
     public function submithousemaster(Request $request)
     {
-        $permission = revokeopen(121512);
+        // BUG-045: canonical 151112 with legacy 121512 fallback (see housemaster()).
+        $permission = revokeopen(151112) ?? revokeopen(121512);
         if (is_null($permission) || $permission->ins == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
         $data = $request->except('_token');
-        $scode = HousekeeperMast::where('propertyid', $this->propertyid)
-            ->max('scode');
         $scode = HousekeeperMast::where('propertyid', $this->propertyid)->max('scode');
         if ($scode === null) {
             $scode = 1;
@@ -187,7 +190,8 @@ class HouseKeeping extends Controller
 
     public function updatehousemaster(Request $request)
     {
-        $permission = revokeopen(121512);
+        // BUG-045: canonical 151112 with legacy 121512 fallback (see housemaster()).
+        $permission = revokeopen(151112) ?? revokeopen(121512);
         if (is_null($permission) || $permission->edit == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
@@ -201,6 +205,7 @@ class HouseKeeping extends Controller
         }
 
         try {
+            DB::beginTransaction();
             $updatedata = [
                 'name' => $request->input('updatename'),
                 'activeYN' => $request->input('upactiveYN'),
@@ -232,19 +237,23 @@ class HouseKeeping extends Controller
             }
             // ─────────────────────────────────────────────────────────────────────
 
+            DB::commit();
             return back()->with('success', 'House Keeping Master Updated successfully!');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
 
     public function deletehousekeepingmaster(Request $request, $sn, $ucode)
     {
-        $permission = revokeopen(121512);
+        // BUG-045: canonical 151112 with legacy 121512 fallback (see housemaster()).
+        $permission = revokeopen(151112) ?? revokeopen(121512);
         if (is_null($permission) || $permission->del == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
         try {
+            DB::beginTransaction();
             // ── Employee Sync before delete ───────────────────────────────────────
             $housekeeper = HousekeeperMast::where('propertyid', $this->propertyid)
                 ->where('scode', $ucode)
@@ -264,22 +273,32 @@ class HouseKeeping extends Controller
             }
             // ─────────────────────────────────────────────────────────────────────
 
-            $jaldiwahasehato📢 = HousekeeperMast::where('propertyid', $this->propertyid)
+            $deleted = HousekeeperMast::where('propertyid', $this->propertyid)
                 ->where('scode', $ucode)
                 ->where('sn', $sn)
                 ->delete();
-            if ($jaldiwahasehato📢) {
+            if ($deleted) {
+                DB::commit();
                 return back()->with('success', 'House Keeping Master Deleted successfully!');
             } else {
+                DB::rollBack();
                 return back()->with('error', 'Unable to Delete House Keeping Master!');
             }
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
 
     public function savehousecleaning(Request $request)
     {
+        $permission = revokeopen(151111);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You have no permission to execute this functionality!',
+            ], 403);
+        }
         if (empty($request->roomno)) {
             return response()->json([
                 'status' => 'error',
@@ -350,6 +369,7 @@ class HouseKeeping extends Controller
                 $roomclean->u_ae = 'a';
                 $roomclean->save();
 
+                \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
                 DB::commit();
 
                 return response()->json([
@@ -374,6 +394,7 @@ class HouseKeeping extends Controller
                 $rblkout->clearuser = Auth::user()->u_name;
                 $rblkout->clearremark = $request->clearremark;
                 $rblkout->save();
+                \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
 
                 $roommast = RoomMast::where('propertyid', $this->propertyid)->where('inclcount', 'Y')->where('type', 'RO')->where('rcode', $request->roomno)
                     ->first();
@@ -507,6 +528,10 @@ class HouseKeeping extends Controller
 
     public function submithksupervisor(Request $request)
     {
+        $permission = revokeopen(121514);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         if (HkSupervisor::where('propertyid', $this->propertyid)
             ->where('name', strtoupper($request->name))
             ->exists()
@@ -538,6 +563,10 @@ class HouseKeeping extends Controller
 
     public function updatehksupervisor(Request $request)
     {
+        $permission = revokeopen(121514);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         if (HkSupervisor::where('propertyid', $this->propertyid)
             ->where('name', strtoupper($request->name))
             ->where('sn', '!=', $request->sn)
@@ -547,6 +576,7 @@ class HouseKeeping extends Controller
         }
 
         try {
+            DB::beginTransaction();
             HkSupervisor::where('sn', $request->sn)
                 ->where('propertyid', $this->propertyid)
                 ->update([
@@ -575,15 +605,22 @@ class HouseKeeping extends Controller
             }
             // ─────────────────────────────────────────────────────────────────────
 
+            DB::commit();
             return response()->json(['success' => true, 'message' => 'Supervisor updated successfully!']);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Unable to update: ' . $e->getMessage()]);
         }
     }
 
     public function deletehksupervisor(Request $request)
     {
+        $permission = revokeopen(121514);
+        if (is_null($permission) || $permission->del == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
+            DB::beginTransaction();
             $supervisor = HkSupervisor::where('sn', $request->sn)
                 ->where('propertyid', $this->propertyid)
                 ->first();
@@ -606,8 +643,10 @@ class HouseKeeping extends Controller
                 ->where('propertyid', $this->propertyid)
                 ->delete();
 
+            DB::commit();
             return response()->json(['success' => true, 'message' => 'Supervisor deleted successfully!']);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Unable to delete: ' . $e->getMessage()]);
         }
     }
@@ -626,6 +665,10 @@ class HouseKeeping extends Controller
 
     public function submitcleaningtype(Request $request)
     {
+        $permission = revokeopen(121513);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         if (DB::table('hkcleaningtype')
             ->where('propertyid', $this->propertyid)
             ->where('name', strtoupper($request->name))
@@ -657,6 +700,10 @@ class HouseKeeping extends Controller
 
     public function updatecleaningtype(Request $request)
     {
+        $permission = revokeopen(121513);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         if (DB::table('hkcleaningtype')
             ->where('propertyid', $this->propertyid)
             ->where('name', strtoupper($request->name))
@@ -685,6 +732,10 @@ class HouseKeeping extends Controller
 
     public function deletecleaningtype(Request $request)
     {
+        $permission = revokeopen(121513);
+        if (is_null($permission) || $permission->del == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             DB::table('hkcleaningtype')
                 ->where('sn', $request->sn)
@@ -770,6 +821,10 @@ class HouseKeeping extends Controller
 
     public function submitfloormaster(Request $request)
     {
+        $permission = revokeopen(121511);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         if (HkFloor::where('propertyid', $this->propertyid)->where('name', strtoupper($request->name))->exists()) {
             return response()->json(['success' => false, 'message' => 'Floor name already exists!']);
         }
@@ -797,6 +852,10 @@ class HouseKeeping extends Controller
 
     public function updatefloormaster(Request $request)
     {
+        $permission = revokeopen(121511);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         if (HkFloor::where('propertyid', $this->propertyid)
             ->where('name', strtoupper($request->name))
             ->where('id', '!=', $request->id)
@@ -821,6 +880,10 @@ class HouseKeeping extends Controller
 
     public function deletefloormaster(Request $request)
     {
+        $permission = revokeopen(121511);
+        if (is_null($permission) || $permission->del == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $floor = HkFloor::where('id', $request->id)->where('propertyid', $this->propertyid)->firstOrFail();
             $floor->delete();
@@ -1060,6 +1123,10 @@ class HouseKeeping extends Controller
 
     public function storelostfound(Request $request)
     {
+        $permission = revokeopen(151117);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             date_default_timezone_set('Asia/Kolkata');
@@ -1171,6 +1238,10 @@ class HouseKeeping extends Controller
 
     public function updatelostfound(Request $request)
     {
+        $permission = revokeopen(151117);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             $id = $request->input('id');
@@ -1334,6 +1405,10 @@ class HouseKeeping extends Controller
 
     public function storelaundrysend(Request $request)
     {
+        $permission = revokeopen(151414);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             date_default_timezone_set('Asia/Kolkata');
@@ -1421,6 +1496,10 @@ class HouseKeeping extends Controller
 
     public function storelaundryreceive(Request $request)
     {
+        $permission = revokeopen(151415);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             date_default_timezone_set('Asia/Kolkata');
@@ -1485,6 +1564,10 @@ class HouseKeeping extends Controller
 
     public function updatelaundrysend(Request $request)
     {
+        $permission = revokeopen(151414);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             date_default_timezone_set('Asia/Kolkata');
@@ -1555,6 +1638,10 @@ class HouseKeeping extends Controller
 
     public function updatelaundryreceive(Request $request)
     {
+        $permission = revokeopen(151415);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             date_default_timezone_set('Asia/Kolkata');
@@ -2106,7 +2193,7 @@ class HouseKeeping extends Controller
                     END AS priority
                 ")
             )
-            ->join('hkfloors as FL', function ($j) {
+            ->leftJoin('hkfloors as FL', function ($j) {
                 $j->whereRaw('RM.floor COLLATE utf8mb4_unicode_ci = FL.code COLLATE utf8mb4_unicode_ci');
             })
             ->leftJoin('roomocc as RC', function ($j) use ($propertyId) {
@@ -2156,7 +2243,7 @@ class HouseKeeping extends Controller
                     ->where('RM.propertyid', $propertyId)
                     ->where('RM.type', 'RO');
             })
-            ->join('hkfloors as FL', function ($j) {
+            ->leftJoin('hkfloors as FL', function ($j) {
                 $j->whereRaw('RM.floor COLLATE utf8mb4_unicode_ci = FL.code COLLATE utf8mb4_unicode_ci');
             })
             ->leftJoin('roomocc as RC', function ($j) use ($propertyId) {
@@ -2213,7 +2300,7 @@ class HouseKeeping extends Controller
                     ->where('RM.propertyid', $propertyId)
                     ->where('RM.type', 'RO');
             })
-            ->join('hkfloors as FL', function ($j) {
+            ->leftJoin('hkfloors as FL', function ($j) {
                 $j->whereRaw('RM.floor COLLATE utf8mb4_unicode_ci = FL.code COLLATE utf8mb4_unicode_ci');
             })
             ->leftJoin('roomocc as RC', function ($j) use ($propertyId) {
@@ -2295,7 +2382,7 @@ class HouseKeeping extends Controller
                 ->where('RM.propertyid', $propertyId)
                 ->where('RM.type', 'RO');
         })
-        ->join('hkfloors as FL', function ($j) {
+        ->leftJoin('hkfloors as FL', function ($j) {
             $j->whereRaw('RM.floor COLLATE utf8mb4_unicode_ci = FL.code COLLATE utf8mb4_unicode_ci');
         })
         ->leftJoin('roomocc as RC', function ($j) use ($propertyId) {
@@ -2395,7 +2482,7 @@ class HouseKeeping extends Controller
                     ->where('RM.propertyid', $propertyId)
                     ->where('RM.type', 'RO');
             })
-            ->join('hkfloors as FL', function ($j) {
+            ->leftJoin('hkfloors as FL', function ($j) {
                 $j->whereRaw('RM.floor COLLATE utf8mb4_unicode_ci = FL.code COLLATE utf8mb4_unicode_ci');
             })
             ->leftJoin('room_cat as C', 'RM.room_cat', '=', 'C.cat_code')
@@ -2579,6 +2666,10 @@ class HouseKeeping extends Controller
 
  public function saveAssignmentReport(Request $request)
     {
+        $permission = revokeopen(151113) ?? revokeopen(151114);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         $propertyId = $this->propertyid;
         $asOnDate = getNcurDate();
         $assignments = json_decode($request->input('assignments', '[]'), true);
@@ -2711,6 +2802,10 @@ class HouseKeeping extends Controller
 
     public function unassignRooms(Request $request)
     {
+        $permission = revokeopen(151113) ?? revokeopen(151114);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         $propertyId = $this->propertyid;
         $asOnDate   = getNcurDate();
         $rooms      = json_decode($request->input('rooms', '[]'), true);  // array of {roomno, code}
@@ -2770,7 +2865,7 @@ class HouseKeeping extends Controller
                 'RM.room_stat',
                 'RC.folioNo'
             )
-            ->join('hkfloors as FL', function ($j) {
+            ->leftJoin('hkfloors as FL', function ($j) {
                 $j->whereRaw('RM.floor COLLATE utf8mb4_unicode_ci = FL.code COLLATE utf8mb4_unicode_ci');
             })
             ->leftJoin('roomocc as RC', function ($j) use ($propertyId) {
@@ -2868,7 +2963,11 @@ class HouseKeeping extends Controller
         // UPDATED: system current date instead of hardcoded
         $housekeeperWorkloads = DB::table('hkroomassigns as HA')
             ->leftJoin('housekeeparmast as H', 'HA.code', '=', 'H.scode')
-            ->select(DB::raw('COUNT(HA.roomno) as total_assigned'), 'H.name as HouseKeeper')
+            ->select(
+                DB::raw('COUNT(HA.roomno) as total_assigned'),
+                DB::raw("SUM(CASE WHEN HA.status = 'cleaned' THEN 1 ELSE 0 END) as done_count"),
+                'H.name as HouseKeeper'
+            )
             ->where('HA.propertyid', $this->propertyid)
             ->where('HA.vdate', ncurdate())
             ->groupBy('H.name')
@@ -3169,6 +3268,10 @@ class HouseKeeping extends Controller
 
     public function submitstartcleaning(Request $request)
     {
+        $permission = revokeopen(151114) ?? revokeopen(151115);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
 
@@ -3475,6 +3578,10 @@ class HouseKeeping extends Controller
 
     public function submitcleaningentry(Request $request)
     {
+        $permission = revokeopen(151115) ?? revokeopen(151112);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
             $cleaningId = $request->input('cleaning_id');
@@ -3779,6 +3886,10 @@ class HouseKeeping extends Controller
      */
     public function storedamagereport(Request $request)
     {
+        $permission = revokeopen(151118);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
 
@@ -3815,7 +3926,7 @@ class HouseKeeping extends Controller
 
             return response()->json(['success' => true, 'message' => 'Damage report saved successfully! ID: DR/' . $propertyId . '/' . $damageid]);
         } catch (\Illuminate\Validation\ValidationException $ve) {
-            return response()->json(['success' => false, 'message' => implode(' ', $ve->errors())], 422);
+            return response()->json(['success' => false, 'message' => implode(' ', Arr::flatten($ve->errors()))], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
@@ -3917,6 +4028,10 @@ class HouseKeeping extends Controller
      */
     public function updatedamagereport(Request $request)
     {
+        $permission = revokeopen(151216);
+        if (is_null($permission) || $permission->edit == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
 
@@ -3950,7 +4065,7 @@ class HouseKeeping extends Controller
                 'message' => 'Status updated to ' . $request->status . '.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $ve) {
-            return response()->json(['success' => false, 'message' => implode(' ', $ve->errors())], 422);
+            return response()->json(['success' => false, 'message' => implode(' ', Arr::flatten($ve->errors()))], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
@@ -3961,6 +4076,10 @@ class HouseKeeping extends Controller
      */
     public function storeoutofororder(Request $request)
     {
+        $permission = revokeopen(151118);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
 
@@ -3977,6 +4096,9 @@ class HouseKeeping extends Controller
             $oooType = $request->ooo_type;
             // reasons comes from damage report description; fallback to ooo_type
             $reasons = trim($request->reasons ?? $oooType);
+
+            // FINANCIAL SAFETY: close old blockout + insert new + room_mast + audit — one unit.
+            DB::beginTransaction();
 
             // Close any existing open OOO blockout for this room
             RoomBlockout::where('propertyid', $propertyId)
@@ -4025,6 +4147,8 @@ class HouseKeeping extends Controller
             $roomclean->u_updatedt = null;
             $roomclean->u_ae = 'a';
             $roomclean->save();
+            \App\Helpers\MasterDataCache::flushAvailability($propertyId);
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -4032,8 +4156,10 @@ class HouseKeeping extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $ve) {
-            return response()->json(['success' => false, 'message' => implode(' ', $ve->errors())], 422);
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => implode(' ', Arr::flatten($ve->errors()))], 422);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
@@ -4364,6 +4490,10 @@ class HouseKeeping extends Controller
 
     public function submitinspection(Request $request)
     {
+        $permission = revokeopen(151116);
+        if (is_null($permission) || $permission->ins == 0) {
+            return response()->json(['success' => false, 'message' => 'You have no permission to execute this functionality!'], 403);
+        }
         try {
             $propertyId = $this->propertyid;
 

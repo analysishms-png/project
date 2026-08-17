@@ -43,6 +43,8 @@
 | BUG-031 | **Historical paychargelog rows have amtcr=NULL** — old `deleteguestledger` copied only amtdr, so deleted advance *amounts* are unrecoverable from the log (trail exists: user/time/reason) | Medium | OPEN (data limitation — document, don't rewrite history) | Financial audit |
 | BUG-032 | **Live DB is `analysis`, not `db_analysishms`** — .ai docs referenced a DB that doesn't exist; .env points to `analysis` (live, 215 tables, 598K paycharge rows) | Medium | OPEN (docs reconciled in this register; verify backup target) | Infrastructure |
 | BUG-037 | **Unlogged paycharge deletions in POS/re-posting flows** — `possalebillsettle`, `possalebillsettleupdate`, `salebillsettlesubmit`, `chargesposting`, night-audit cron, `AccountPosting`, 2 ROFF deletes deleted paycharge rows with NO paychargelog audit; `deletebillxhr` logged but omitted amtcr | **HIGH** | **FIXED 2026-08-16** | Financial safety / POS |
+| BUG-043 | **Tools bulk-delete paths unlogged / dead-code audit** — `deletedate` (Data Empty Tool) audit was unreachable dead code → full property wipe left ZERO audit trail; `deletetablerecord`/`deletemultiplerecords` (Table Management) + `resetOutletData` (POS Recycle) deleted paycharge/ledger/suntran rows with no financial audit | **HIGH** | **FIXED 2026-08-16** | Financial safety / Tools |
+| BUG-044 | **acgroup join multiplies ledger report rows** — `leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')` without property scoping: `acgroup.group_code` is NOT globally unique (shared across properties, verified: 30158→prop 157/158, 31104→103/104, …), so General Ledger / Detailed Trial Ledger / new Day Book reports inflated row counts + totals (~5.1% on prop 169: 2,822→2,967 rows; ₹20.85M→₹21.23M Dr) | **MEDIUM** | **FIXED 2026-08-16** | Finance reports / Accounts |
 
 ---
 
@@ -169,6 +171,21 @@
 - **Fix**: PO delete now runs in a transaction that first releases `Indent.refdocId=''` for linked indents, then deletes PO + items. Matches legacy HMS re-open (`Update Indent Set ClearYN='' Where DocId In (Select distinct Contradocid From Stock Where DocID=...)`).
 - **Guard**: deleting a PO already converted to an MR (`mrcontradocId`/`mrsno` set) is now **blocked** — user must delete the MR first (same class as Banquet "Bill Submitted can not update").
 - **Verification**: php -l clean; 33 tests pass.
+
+### BUG-044: acgroup join multiplies ledger report rows — FIXED ✅
+- **Severity**: MEDIUM (report accuracy) — Status: ✅ FIXED 2026-08-16
+- **Root cause**: every finance-report query joined `acgroup` on `group_code` alone. `acgroup.group_code` is not globally unique — verified duplicates across properties (30158: props 157+158; 31104: 103+104; 31105: 103+105; 31106: 103+106; 31110: 109+110). The join therefore matched multiple `acgroup` rows per subgroup → multiplied ledger rows + inflated Dr/Cr totals.
+- **Affected**: `FinanceController` General Ledger (query + print), Detailed Trial Ledger (query + print), `generalLedgerAccounts` dropdown; `GeneralLedgerExport`, `DetailedTrialLedgerExport`, and the new `DayBookExport`. 12 join sites fixed.
+- **Fix**: `leftJoin('acgroup as a', fn) → on('s.group_code','=','a.group_code')->on('a.propertyid','=','l.propertyid'|'s.propertyid')` — scope to the property's own acgroup row.
+- **Verified (live DB, prop 169, Apr 2026)**: Day Book JV rows 473→**332**, Dr=Cr=₹1,015,580.20 exact; Day Book ALL 2,967→**2,822**; GL export total now equals Day Book total ₹20,851,979.69; GL identity check 104 accounts / 0 mismatches. Tests 33 passed.
+- **Discovered while validating the new Day Book report** (vtype filter Dr/Cr parity caught the inflation).
+
+### BUG-043: Tools bulk-delete paths unlogged / dead-code audit — FIXED ✅
+- **Severity**: HIGH (financial) — user requirement: "Ensure every financial deletion is logged."
+- **Finding**: (1) `ToolsController::deletedate` (Data Empty Tool) — the `$userupdate` audit block sat **after both branches' `return`** → unreachable dead code. The tool wipes 42 tables (paycharge, ledger, suntran, kot, sale1/2, purch1/2, hallbook…) per property with **zero audit trail**, and it deletes paychargelog/suntranlog/kotlog/sale*log/stocklog itself, so the only surviving trail can be `userupdate`. (2) `deletetablerecord` + `deletemultiplerecords` (Table Management) and `resetOutletData` (POS Recycle) deleted financial rows (paycharge/ledger/suntran) with only a `userupdate` note and no financial audit — missed by BUG-037 (POS sites only).
+- **Fix**: (1) `deletedate` now captures pre-wipe per-table row counts and writes a `userupdate` audit row (user, property, type, counts) **BEFORE** deleting, inside the same transaction (failed wipe rolls the audit back too — no false record). (2) new `auditFinancialDeletion()` helper routes deleted rows to `PaychargeLog::auditDeleted` / `LedgerLogService::store` / `Suntranlog` copies before delete in all three tools.
+- **Non-impact**: insert-only audit before existing deletes — no behavior/contract change; KOT cancel path already verified non-ledger (KotModal + Stock).
+- **Verification**: php -l clean; 33 tests pass (39 assertions).
 
 ### BUG-042: PO consumption marker (`mrcontradocId`) never released on MR delete/edit — FIXED ✅
 - **Severity**: HIGH (workflow lock — POs stuck "consumed" forever).

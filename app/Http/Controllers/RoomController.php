@@ -178,40 +178,42 @@ class RoomController extends Controller
         //     ->orderBy('rm.rcode')
         //     ->get();
 
-        $rooms = DB::table('room_mast as rm')
-            ->select('rm.rcode', 'rm.room_cat')
-            ->where('rm.propertyid', $propertyid)
-            ->where('rm.room_cat', $cid)
-            ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $cid, $checkindate, $checkoutdate) {
-                $query->select('ro.roomno')
-                    ->from('roomocc as ro')
-                    ->where('ro.propertyid', $propertyid)
-                    ->whereNull('ro.type')
-                    ->where('ro.roomcat', $cid)
-                    ->where('ro.chkindate', '<', $checkoutdate)
-                    ->where('ro.depdate', '>', $checkindate);
-            })
-            ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $cid, $checkindate, $checkoutdate) {
-                $query->select('gb.RoomNo')
-                    ->from('grpbookingdetails as gb')
-                    ->where('gb.Property_ID', $propertyid)
-                    ->where('gb.RoomCat', $cid)
-                    ->where('gb.ArrDate', '<', $checkoutdate)
-                    ->where('gb.DepDate', '>', $checkindate)
-                    ->where('gb.ContraDocId', '')
-                    ->where('gb.chkoutyn', 'N')
-                    ->where('gb.Cancel', 'N')
-                    ->where('gb.RoomNo', '!=', 0);
-            })
-            ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $checkindate, $checkoutdate) {
-                $query->select('rb.roomcode')
-                    ->from('roomblockout as rb')
-                    ->where('rb.propertyid', $propertyid)
-                    ->where('rb.fromdate', '<', $checkoutdate)
-                    ->where('rb.todate', '>', $checkindate)
-                    ->where('rb.type', 'O');
-            })
-            ->get();
+        $rooms = \App\Helpers\MasterDataCache::availableRooms($propertyid, 'reservation', $cid, $checkindate, $checkoutdate, function () use ($propertyid, $cid, $checkindate, $checkoutdate) {
+            return DB::table('room_mast as rm')
+                ->select('rm.rcode', 'rm.room_cat')
+                ->where('rm.propertyid', $propertyid)
+                ->where('rm.room_cat', $cid)
+                ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $cid, $checkindate, $checkoutdate) {
+                    $query->select('ro.roomno')
+                        ->from('roomocc as ro')
+                        ->where('ro.propertyid', $propertyid)
+                        ->whereNull('ro.type')
+                        ->where('ro.roomcat', $cid)
+                        ->where('ro.chkindate', '<', $checkoutdate)
+                        ->where('ro.depdate', '>', $checkindate);
+                })
+                ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $cid, $checkindate, $checkoutdate) {
+                    $query->select('gb.RoomNo')
+                        ->from('grpbookingdetails as gb')
+                        ->where('gb.Property_ID', $propertyid)
+                        ->where('gb.RoomCat', $cid)
+                        ->where('gb.ArrDate', '<', $checkoutdate)
+                        ->where('gb.DepDate', '>', $checkindate)
+                        ->where('gb.ContraDocId', '')
+                        ->where('gb.chkoutyn', 'N')
+                        ->where('gb.Cancel', 'N')
+                        ->where('gb.RoomNo', '!=', 0);
+                })
+                ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $checkindate, $checkoutdate) {
+                    $query->select('rb.roomcode')
+                        ->from('roomblockout as rb')
+                        ->where('rb.propertyid', $propertyid)
+                        ->where('rb.fromdate', '<', $checkoutdate)
+                        ->where('rb.todate', '>', $checkindate)
+                        ->where('rb.type', 'O');
+                })
+                ->get();
+        });
 
         // Log::info(json_encode($rooms));
 
@@ -359,38 +361,40 @@ class RoomController extends Controller
         $checkoutdate = $request->post('checkoutdate');
         $propertyid = $this->propertyid;
 
-        $rooms = DB::table('room_mast as rm')
-            ->select('rm.rcode', 'rm.room_cat')
-            ->where('rm.propertyid', $propertyid)
-            ->where('rm.room_cat', $cid)
-            ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $cid, $checkindate, $checkoutdate) {
-                $query->select('ro.roomno')
-                    ->from('roomocc as ro')
-                    ->where('ro.propertyid', $propertyid)
-                    ->whereNull('ro.type')
-                    ->where('ro.roomcat', $cid)
-                    ->where('ro.chkindate', '<', $checkoutdate)
-                    ->where('ro.depdate', '>=', $checkindate);
-            })
-            ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $checkindate, $checkoutdate) {
-                $query->select('gb.RoomNo')
-                    ->from('grpbookingdetails as gb')
-                    ->where('gb.Property_ID', $propertyid)
-                    ->where('gb.ArrDate', '<', $checkoutdate)
-                    ->where('gb.DepDate', '>', $checkoutdate)
-                    ->where('gb.chkoutyn', 'N')
-                    ->where('gb.Cancel', 'N')
-                    ->where('gb.RoomNo', '!=', 0);
-            })
-            ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $checkindate, $checkoutdate) {
-                $query->select('rb.roomcode')
-                    ->from('roomblockout as rb')
-                    ->where('rb.fromdate', '<', $checkoutdate)
-                    ->where('rb.todate', '>', $checkindate)
-                    ->where('rb.propertyid', $propertyid)
-                    ->where('rb.type', 'O');
-            })
-            ->get();
+        $rooms = \App\Helpers\MasterDataCache::availableRooms($propertyid, 'walkin', $cid, $checkindate, $checkoutdate, function () use ($propertyid, $cid, $checkindate, $checkoutdate) {
+            return DB::table('room_mast as rm')
+                ->select('rm.rcode', 'rm.room_cat')
+                ->where('rm.propertyid', $propertyid)
+                ->where('rm.room_cat', $cid)
+                ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $cid, $checkindate, $checkoutdate) {
+                    $query->select('ro.roomno')
+                        ->from('roomocc as ro')
+                        ->where('ro.propertyid', $propertyid)
+                        ->whereNull('ro.type')
+                        ->where('ro.roomcat', $cid)
+                        ->where('ro.chkindate', '<', $checkoutdate)
+                        ->where('ro.depdate', '>=', $checkindate);
+                })
+                ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $checkindate, $checkoutdate) {
+                    $query->select('gb.RoomNo')
+                        ->from('grpbookingdetails as gb')
+                        ->where('gb.Property_ID', $propertyid)
+                        ->where('gb.ArrDate', '<', $checkoutdate)
+                        ->where('gb.DepDate', '>', $checkoutdate)
+                        ->where('gb.chkoutyn', 'N')
+                        ->where('gb.Cancel', 'N')
+                        ->where('gb.RoomNo', '!=', 0);
+                })
+                ->whereNotIn('rm.rcode', function ($query) use ($propertyid, $checkindate, $checkoutdate) {
+                    $query->select('rb.roomcode')
+                        ->from('roomblockout as rb')
+                        ->where('rb.fromdate', '<', $checkoutdate)
+                        ->where('rb.todate', '>', $checkindate)
+                        ->where('rb.propertyid', $propertyid)
+                        ->where('rb.type', 'O');
+                })
+                ->get();
+        });
 
         $html = '<option value="">Select Room</option>';
         foreach ($rooms as $list) {
@@ -599,6 +603,7 @@ class RoomController extends Controller
                         'msno1' => $rocc->sno1,
                     ]);
             }
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Folio merged successfully']);
         } catch (Exception $e) {
@@ -797,6 +802,7 @@ class RoomController extends Controller
             }
 
             // exit;
+            \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
             return back()->with('success', 'Reverse Folio merged successfully');
         } catch (Exception $e) {

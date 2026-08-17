@@ -138,18 +138,18 @@
 
 ---
 
-## Remaining legacy forms — bulk mapping (MISSING/UNKNOWN — verify before building)
+## Remaining legacy forms — bulk mapping (verified 2026-08-16)
 
 | Legacy form | Purpose | Laravel | Status |
 |-------------|---------|---------|--------|
-| FrmLostFound | Lost & found | ? | ⚠️ VERIFY |
-| FrmDenomination | Cashier denomination | ? | ⚠️ VERIFY |
-| FrmForExRec / FrmForeignExMast | Foreign exchange | ? | ⚠️ VERIFY |
-| FrmMeterReading | Meter reading | ? | ⚠️ VERIFY |
-| FrmGuestWakeUp | Wake-up calls | ? | ⚠️ VERIFY |
-| FrmPaxDetails | Pax details | ? | ⚠️ VERIFY |
-| FrmUnSettledBillsInfo | Unsettled bills | ? | ⚠️ VERIFY |
-| FrmHotKey | POS hotkeys | ? | ⚠️ VERIFY |
+| FrmLostFound | Lost & found | ✅ HouseKeeping lostfound CRUD + register + print (routes lostfoundform/store/list/edit/print/register; `lostfound` table) | ✅ EXISTS |
+| FrmDenomination | Cashier denomination | ❌ no route/view/model/table (`DenominationDetail` absent) | ❌ MISSING (POS Reports) |
+| FrmForExRec / FrmForeignExMast | Foreign exchange | ❌ no currency/`ForEx` table, no routes | ❌ MISSING |
+| FrmMeterReading | Meter reading | ❌ maintenance has location (godown_mast) + assets only; no `FMReading`/`FMReading1` | ❌ MISSING |
+| FrmGuestWakeUp | Wake-up calls | ❌ static dashboard label only (GM-01 in GUEST_MANAGEMENT_GAPS) | ❌ MISSING |
+| FrmPaxDetails | Pax details | ⚠️ embedded sub-form of FrmGuestWakeUp, not standalone; pax fields pervasive | ⚠️ OBSOLETE |
+| FrmUnSettledBillsInfo | Unsettled bills | ⚠️ pos_saledeletereport (del/unsettle), pendingkotreport, dashboard UnsettledRooms | ⚠️ REPLACED (partial) |
+| FrmHotKey | Voucher-entry hotkey helper dialog | ⚠️ VoucherEntry UI supersedes | ⚠️ OBSOLETE |
 | FrmComplaintMast / FrmComplaintClearing | Complaints | ? | ⚠️ VERIFY |
 | FrmNAMessageA/B/C | Night-audit messages | nightauditlog/ | PARTIAL |
 | FrmSMSEnviro / FrmSMSMultiType | SMS config/bulk | whatsapp logs | PARTIAL |

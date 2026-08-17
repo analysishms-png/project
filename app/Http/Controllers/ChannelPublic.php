@@ -88,6 +88,7 @@ class ChannelPublic extends Controller
 
             ChannelPushes::insert($channelpushes);
             DB::commit();
+            \App\Helpers\MasterDataCache::flushAvailability($channelenviro->propertyid);
         } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['IsError' => true, 'message' => "Internal Server Error: " . $e->getMessage() . ' On Line: ' . $e->getLine()], 500);

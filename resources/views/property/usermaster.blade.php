@@ -3,6 +3,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'User Master', 'hmsSubtitle' => 'Manage users, roles and permissions'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

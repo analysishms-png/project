@@ -145,6 +145,26 @@ class Advance extends Controller
                 return redirect('reservationlist')->with('error', 'Booking details not found');
             }
 
+            // FOLIO LINKAGE: if this reservation is already checked in (any room has a
+            // ContraDocId), the advance must land on the guest's folio — not just on the
+            // reservation — otherwise the money never reaches the folio and the
+            // Advance/Folio reconciliation report flags a permanent MISMATCH (staff were
+            // compensating with manual ACCOUNT-TRANSFER RECs, which the report cannot
+            // link either). Mirrors the check-in advance-copy fields in submitwalkin.
+            $folioDocId = (string) DB::table('grpbookingdetails')
+                ->where('Property_ID', $this->propertyid)
+                ->where('BookingDocid', $request->input('docid'))
+                ->whereNotNull('ContraDocId')
+                ->where('ContraDocId', '<>', '')
+                ->value('ContraDocId');
+            $folioNo = '';
+            if ($folioDocId !== '') {
+                $folioNo = (string) DB::table('guestfolio')
+                    ->where('propertyid', $this->propertyid)
+                    ->where('docid', $folioDocId)
+                    ->value('folio_no');
+            }
+
             $vtype = $request->input('prevtype');
             $voucherPrefix = VoucherPrefix::where('propertyid', $this->propertyid)
                 ->where('v_type', $vtype)
@@ -205,7 +225,8 @@ class Advance extends Controller
                 'onamt' => 0,
                 'taxstru' => $request->input('tax_stru') ?? '',
                 'refdocid' => $request->input('docid'),
-                'foliono' => $bookingDetails->BookNo,
+                'folionodocid' => $folioDocId,
+                'foliono' => ($folioNo !== '' ? $folioNo : $bookingDetails->BookNo),
                 'taxcondamt' => 0,
                 'u_entdt' => $this->currenttime,
                 'u_name' => Auth::user()->u_name,
@@ -264,7 +285,8 @@ class Advance extends Controller
                                 'taxstru' => $taxStru,
                                 'onamt' => $amount,
                                 'refdocid' => $request->input('docid'),
-                                'foliono' => $bookingDetails->BookNo,
+                                'folionodocid' => $folioDocId,
+                                'foliono' => ($folioNo !== '' ? $folioNo : $bookingDetails->BookNo),
                                 'taxcondamt' => 0.00,
                                 'u_entdt' => $this->currenttime,
                                 'u_name' => Auth::user()->u_name,

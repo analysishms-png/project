@@ -4,6 +4,8 @@
      <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.2/css/buttons.dataTables.css">
     <div class="content-body">
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Plan Master', 'hmsSubtitle' => 'Manage room plans'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

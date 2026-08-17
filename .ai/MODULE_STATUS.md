@@ -21,7 +21,7 @@
 | 12 | Room Change | ✅ CompanyController | FrmChangeDepart | COMPLETE | |
 | 13 | Housekeeping | ✅ HouseKeeping controller + views | FrmHouseStatus, FrmItemIssuedOnCleaning | COMPLETE | |
 | 14 | Laundry | ✅ present (inventory-ish) | — | PARTIAL | Verify coverage vs legacy |
-| 15 | Lost & Found | ⚠️ | FrmLostFound | MISSING | Legacy form exists; verify Laravel equivalent |
+| 15 | Lost & Found | ✅ HouseKeeping lostfound CRUD + register + print | FrmLostFound | COMPLETE | Verified 2026-08-16: lostfoundform/store/list/edit/print/register routes + `property/housekeeping/lostfound.blade.php` + `lostfound` table |
 | 16 | POS | ✅ Pointofsale controller, KOT, kot/ routes | FrmPOS, FrmPOSBillDeletion, FrmPOSRecycleData | COMPLETE | POSBillModificationDatewise/ItemGroupwise — verify parity |
 | 17 | KOT | ✅ Kot controller | FrmChangeKitch | COMPLETE | |
 | 18 | Restaurant | ✅ POS-based | — | COMPLETE | |
@@ -29,7 +29,7 @@
 | 20 | Inventory | ✅ InventoryController (5.9K), Stock/ItemMast | FrmItemMast, FrmConsumMast, FrmOPStock, FrmStockTransfer | COMPLETE (BUG-039 audit fix 2026-08-16) | INV-01..03: not-delivered-order report, Stocklog on MR-edit, valuation filter parity |
 | 21 | Purchase | ✅ Purch1/Purch2, Porder, Gin, Indent | FrmPurch | COMPLETE | BUG-040/041/042 fixed 2026-08-16 (PO delete guard, Indent/PO linkage release); 6 orphaned POs prop 103 await approval |
 | 22 | Store | ✅ Stock/Indent | — | PARTIAL | Verify stock issue/transfer flows |
-| 23 | Accounts | ✅ Suntran, Ledger, AccountPosting | FrmACC, FrmAdjust, FrmMergeCharge, FrmRevMergeCharge | COMPLETE | Accounting controls need audit (MISSING_LOGIC) |
+| 23 | Accounts | ✅ Suntran, Ledger, AccountPosting | FrmACC, FrmAdjust, FrmMergeCharge, FrmRevMergeCharge | COMPLETE | ✅ audited 2026-08-16; report parity COMPLETE 2026-08-17 (Led/DayBook/CashBook/BankBook/JournalBook); Aging/DueList need bucket decision (P2) |
 | 24 | Finance | ✅ Finance module docs | FrmExpense, FrmClaimEntry | PARTIAL | |
 | 25 | GST | ✅ Gstr1 helper, TaxStru | FrmTaxMast, FrmTaxStruMast | COMPLETE | |
 | 26 | Tax | ✅ calculateTax, taxstru | FrmTaxStruMast | COMPLETE | |
@@ -42,7 +42,7 @@
 | 33 | Smart Card | ⚠️ | — | UNKNOWN | Verify |
 | 34 | Cash Card | ⚠️ | — | UNKNOWN | Verify |
 | 35 | Cashier | ✅ POS cashier flows | FrmUserPaymentCollection | COMPLETE | |
-| 36 | Denomination | ⚠️ | FrmDenomination | MISSING? | Verify Laravel equivalent |
+| 36 | Denomination | ❌ | FrmDenomination (DenominationDetail) | MISSING | Verified 2026-08-16: no route/view/model/table — legacy POS Reports "Denomination Detail" cashier closeout |
 | 37 | Telephone | ⚠️ | — | UNKNOWN | Verify |
 | 38 | EPABX | ⚠️ | — | UNKNOWN | Verify |
 | 39 | SMS | ✅ whatsappparameter, SMS logs (whatsapp_logs) | FrmSMSEnviro, FrmSMSMultiType | COMPLETE | |
@@ -70,17 +70,17 @@
 
 ---
 
-## Legacy-only modules found (not yet located in Laravel)
+## Legacy-only modules — verified 2026-08-16
 
-| Legacy form | Purpose | Laravel? |
-|-------------|---------|----------|
-| FrmLostFound | Lost & Found | ⚠️ VERIFY |
-| FrmDenomination | Cashier denomination | ⚠️ VERIFY |
-| FrmForExRec / FrmForeignExMast | Foreign exchange | ⚠️ VERIFY |
-| FrmMeterReading | Meter reading (maintenance) | ⚠️ VERIFY |
-| FrmGuestWakeUp | Guest wake-up call | ⚠️ VERIFY |
-| FrmPaxDetails | Pax details | ⚠️ VERIFY |
-| FrmUnSettledBillsInfo | Unsettled bills info | ⚠️ VERIFY |
-| FrmHotKey | POS hotkeys | ⚠️ VERIFY |
+| Legacy form | Purpose | Laravel? | Classification |
+|-------------|---------|----------|----------------|
+| FrmLostFound | Lost & Found | ✅ HouseKeeping lostfound (CRUD+register+print), `lostfound` table | EXISTS |
+| FrmDenomination | Cashier denomination | ❌ nothing — `DenominationDetail` table absent | MISSING (POS Reports) |
+| FrmForExRec / FrmForeignExMast | Foreign exchange | ❌ nothing — no currency/`ForEx` table | MISSING |
+| FrmMeterReading | Meter reading (maintenance) | ❌ nothing — maintenance has location (godown_mast) + assets only, no `FMReading` | MISSING |
+| FrmGuestWakeUp | Guest wake-up call | ❌ nothing — static dashboard label only (GM-01, see GUEST_MANAGEMENT_GAPS) | MISSING |
+| FrmPaxDetails | Pax details | ⚠️ embedded sub-form of FrmGuestWakeUp (not standalone); pax fields pervasive (kot.pax, roomocc adult/children, banquet noofpax) | OBSOLETE (not standalone) |
+| FrmUnSettledBillsInfo | Unsettled bills info | ⚠️ pos_saledeletereport (del/unsettle), pendingkotreport, dashboard UnsettledRooms | REPLACED (partial) |
+| FrmHotKey | Voucher-entry hotkey helper dialog | ⚠️ VoucherEntry UI supersedes (helper, not standalone module) | OBSOLETE |
 
-> Each ⚠️ VERIFY item is a concrete next scan task — do NOT implement until the Laravel equivalent is searched.
+> Verified by scanning routes + controllers + views + live DB (SHOW TABLES). Do NOT implement MISSING items without business confirmation.

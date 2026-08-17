@@ -204,17 +204,19 @@
             @forelse ($roomsByFloor as $index => $floorGroup)
                 @php
                     $floorNum = $floorGroup['floor'] ?? $index;
+                    $floorLabel = ($floorNum === '' || $floorNum === null) ? 'Unassigned Floor' : 'Floor ' . $floorNum;
+                    $floorSlug = Str::slug(($floorNum === '' || $floorNum === null) ? 'unassigned' : $floorNum);
                     // UPDATED: Check if this iteration is the very first loop item
                     $isFirstFloor = $loop->first;
                 @endphp
                 <div class="mb-4">
                     <div class="bg-light border border-bottom-0 rounded-top p-2 d-flex justify-content-between align-items-center flex-wrap gap-2 text-dark"
-                        style="cursor: pointer;" onclick="toggleFloor('{{ Str::slug($floorNum) }}', this)">
+                        style="cursor: pointer;" onclick="toggleFloor('{{ $floorSlug }}', this)">
                         <div class="fw-bold rsb-fs-xs">
                             <!-- UPDATED: If it's the first floor, start chevron with 0deg rotation (facing down) -->
                             <i class="fa-solid fa-chevron-down me-1 text-secondary dynamic-arrow"
                                 style="transition: transform 0.2s ease; transform: {{ $isFirstFloor ? 'rotate(0deg)' : 'rotate(-90deg)' }};"></i>
-                            Floor {{ $floorGroup['floor'] }}
+                            {{ $floorLabel }}
                         </div>
                         <div class="d-flex gap-1 align-items-center rsb-fs-xxs" onclick="event.stopPropagation();">
                             <span class="badge bg-white text-dark border py-1 px-2">Total:
@@ -233,7 +235,7 @@
                     </div>
 
                     <!-- UPDATED: Display block set on first iteration so that it's defaultly open -->
-                    <div id="floor-body-{{ Str::slug($floorNum) }}" class="bg-white border rounded-bottom p-2"
+                    <div id="floor-body-{{ $floorSlug }}" class="bg-white border rounded-bottom p-2"
                         style="display: {{ $isFirstFloor ? 'block' : 'none' }};">
                         <div class="rsb-room-grid">
                             @foreach ($floorGroup['rooms'] as $room)
@@ -245,8 +247,7 @@
                                 @endphp
                                 <div class="rsb-room-card-wrapper" data-room-no="{{ $room->roomno }}"
                                     data-room-cat="{{ $room->roomcatname }}" data-room-status="{{ $meta['label'] }}"
-                                    data-room-status-code="{{ $room->status }}" data-bs-toggle="modal"
-                                    data-bs-target="#roomStatusModal">
+                                    data-room-status-code="{{ $room->status }}">
                                     <div
                                         class="card shadow-sm bg-white p-2 border rounded-2 d-flex flex-column justify-content-between rsb-room-box {{ $meta['class'] }}">
                                         <div class="d-flex justify-content-between align-items-center">
@@ -284,16 +285,21 @@
                                     </tr>
                                 </thead>
                                 <tbody class="rsb-fs-xs">
-                                    {{-- Controller se data collection pass ho rhi hogi let's say $housekeeperWorkloads --}}
                                     @forelse ($housekeeperWorkloads->take(5) as $row)
+                                        @php
+                                            $assigned   = (int)($row->total_assigned ?? 0);
+                                            $done       = (int)($row->done_count ?? 0);
+                                            $efficiency = $assigned > 0 ? round(($done / $assigned) * 100) : 0;
+                                        @endphp
                                         <tr>
                                             <td class="fw-semibold text-dark">{{ $row->HouseKeeper ?? 'Unassigned' }}</td>
-                                            <td class="text-center">{{ $row->total_assigned ?? 0 }}</td>
-                                            <td class="text-center text-success">-</td> {{-- Baad me live logs map karne ke liye --}}
+                                            <td class="text-center">{{ $assigned }}</td>
+                                            <td class="text-center text-success">{{ $done }}</td>
                                             <td>
                                                 <div class="progress" style="height:5px; width:50px;">
-                                                    <div class="progress-bar bg-success" style="width: 0%;"></div>
+                                                    <div class="progress-bar bg-success" style="width: {{ $efficiency }}%;"></div>
                                                 </div>
+                                                <span class="rsb-fs-xxs text-muted ms-1">{{ $efficiency }}%</span>
                                             </td>
                                         </tr>
                                     @empty
@@ -304,20 +310,25 @@
                                     @endforelse
                                 </tbody>
 
-                                {{-- Agar total items 5 se zyada hain, toh hum hidden tbody aur extra control switch attach karenge --}}
                                 @if (count($housekeeperWorkloads) > 5)
                                     <tbody id="more-housekeepers" class="rsb-fs-xs"
                                         style="display: none; border-top: 0 !important;">
                                         @foreach ($housekeeperWorkloads->slice(5) as $row)
+                                            @php
+                                                $assigned   = (int)($row->total_assigned ?? 0);
+                                                $done       = (int)($row->done_count ?? 0);
+                                                $efficiency = $assigned > 0 ? round(($done / $assigned) * 100) : 0;
+                                            @endphp
                                             <tr>
                                                 <td class="fw-semibold text-dark">{{ $row->HouseKeeper ?? 'Unassigned' }}
                                                 </td>
-                                                <td class="text-center">{{ $row->total_assigned ?? 0 }}</td>
-                                                <td class="text-center text-success">-</td>
+                                                <td class="text-center">{{ $assigned }}</td>
+                                                <td class="text-center text-success">{{ $done }}</td>
                                                 <td>
                                                     <div class="progress" style="height:5px; width:50px;">
-                                                        <div class="progress-bar bg-success" style="width: 0%;"></div>
+                                                        <div class="progress-bar bg-success" style="width: {{ $efficiency }}%;"></div>
                                                     </div>
+                                                    <span class="rsb-fs-xxs text-muted ms-1">{{ $efficiency }}%</span>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -349,17 +360,29 @@
                                         <th>Priority</th>
                                     </tr>
                                 </thead>
+                                @php
+                                    $pendingInspections = collect();
+                                    foreach ($roomsByFloor as $fg) {
+                                        foreach ($fg['rooms'] as $r) {
+                                            if (($r->status ?? '') === 'INSPECT') {
+                                                $pendingInspections->push($r);
+                                            }
+                                        }
+                                    }
+                                @endphp
                                 <tbody class="rsb-fs-xs">
-                                    <tr>
-                                        <td class="fw-bold text-dark">304</td>
-                                        <td class="text-secondary">Rakesh Kumar</td>
-                                        <td><span class="badge bg-danger rsb-fs-xxs">High</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold text-dark">314</td>
-                                        <td class="text-secondary">Pankaj Sharma</td>
-                                        <td><span class="badge bg-warning text-dark rsb-fs-xxs">Medium</span></td>
-                                    </tr>
+                                    @forelse ($pendingInspections->take(10) as $room)
+                                        <tr>
+                                            <td class="fw-bold text-dark">{{ $room->roomno }}</td>
+                                            <td class="text-secondary">{{ $statusMap[$room->status]['label'] ?? 'Inspection Pending' }}</td>
+                                            <td><span class="badge bg-warning text-dark rsb-fs-xxs">Pending</span></td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted py-2 rsb-fs-xxs">No rooms pending
+                                                inspection</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -412,39 +435,29 @@
             <div class="modal-content">
                 <div class="modal-header bg-light py-2">
                     <h5 class="modal-title fw-bold text-dark fs-5" id="roomStatusModalLabel">Room Details</h5>
-                    <button type="button" class="btn-close" data-bs-close="modal" aria-label="Close"></button>
+                    <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-                <form id="roomStatusForm" method="POST" action="">
-                    @csrf
-                    @method('PATCH')
-                    <div class="modal-body">
-                        <div class="row g-3 mb-3">
-                            <div class="col-6">
-                                <small class="text-secondary d-block">Room Number</small>
-                                <span id="modal-room-no" class="fw-bold text-dark fs-5">-</span>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-secondary d-block">Room Type</small>
-                                <span id="modal-room-cat" class="fw-semibold text-dark">-</span>
-                            </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <small class="text-secondary d-block">Room Number</small>
+                            <span id="modal-room-no" class="fw-bold text-dark fs-5">-</span>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="modal-status-select" class="form-label text-secondary rsb-fs-xs mb-1">Update
-                                Status</label>
-                            <select id="modal-status-select" name="status" class="form-select rsb-fs-xs">
-                                @foreach ($statusMap as $code => $meta)
-                                    <option value="{{ $code }}">{{ $meta['label'] }}</option>
-                                @endforeach
-                            </select>
+                        <div class="col-6">
+                            <small class="text-secondary d-block">Room Type</small>
+                            <span id="modal-room-cat" class="fw-semibold text-dark">-</span>
                         </div>
                     </div>
-                    <div class="modal-footer py-2 bg-light">
-                        <button type="button" class="btn btn-secondary btn-sm px-3"
-                            data-bs-close="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary btn-sm px-3">Save Changes</button>
+                    <div>
+                        <small class="text-secondary d-block">Current Status</small>
+                        <span id="modal-room-status" class="fw-semibold text-dark">-</span>
                     </div>
-                </form>
+                </div>
+                <div class="modal-footer py-2 bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -463,24 +476,14 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const statusModal = document.getElementById('roomStatusModal');
-            if (statusModal) {
-                statusModal.addEventListener('show.bs.modal', function(event) {
-                    const targetCard = event.relatedTarget;
-
-                    const roomNo = targetCard.getAttribute('data-room-no');
-                    const roomCat = targetCard.getAttribute('data-room-cat');
-                    const statusCode = targetCard.getAttribute('data-room-status-code');
-
-                    document.getElementById('modal-room-no').textContent = roomNo;
-                    document.getElementById('modal-room-cat').textContent = roomCat;
-                    document.getElementById('modal-status-select').value = statusCode;
-
-                    const updateForm = document.getElementById('roomStatusForm');
-                    updateForm.action = `/property/rooms/${roomNo}/status`;
-                });
-            }
+        $(document).ready(function() {
+            $(document).on('click', '.rsb-room-card-wrapper', function() {
+                const card = $(this);
+                $('#modal-room-no').text(card.data('room-no'));
+                $('#modal-room-cat').text(card.data('room-cat'));
+                $('#modal-room-status').text(card.data('room-status'));
+                $('#roomStatusModal').modal('show');
+            });
         });
 
         function toggleHousekeepers() {

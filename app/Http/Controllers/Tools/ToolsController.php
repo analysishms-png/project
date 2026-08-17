@@ -11,11 +11,14 @@ use App\Models\EnviroGeneral;
 use App\Models\FomBillDetail;
 use App\Models\Guestfolio;
 use App\Models\Paycharge;
+use App\Models\PaychargeLog;
 use App\Models\Purch1;
 use App\Models\Purch2;
 use App\Models\RoomOcc;
+use App\Models\Suntranlog;
 use App\Models\UserUpdate;
 use App\Models\VoucherPrefix;
+use App\Services\LedgerLogService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -501,6 +504,63 @@ class ToolsController extends Controller
 
         try {
 
+            // ────────────────────────────────────────────────────────────────
+            // FINANCIAL SAFETY (mission §9): never wipe a property silently.
+            // This tool deletes paychargelog/suntranlog/kotlog/sale*log/stocklog
+            // itself, so the ONLY surviving audit trail is `userupdate` (not in
+            // the wipe list). Capture pre-delete row counts and write the audit
+            // row BEFORE the deletes execute — inside the same transaction, so a
+            // failed wipe rolls back the audit too (no false record).
+            // ────────────────────────────────────────────────────────────────
+            $wipeTables = [
+                'booking'            => 'property_id',
+                'fombilldetails'     => 'propertyid',
+                'grpbookingdetails'  => 'property_id',
+                'guestfolio'         => 'propertyid',
+                'guestprof'          => 'propertyid',
+                'roomblockout'       => 'propertyid',
+                'paycharge'          => 'propertyid',
+                'plandetails'        => 'propertyid',
+                'roomocc'            => 'propertyid',
+                'kot'                => 'propertyid',
+                'sale1'              => 'propertyid',
+                'sale2'              => 'propertyid',
+                'suntran'            => 'propertyid',
+                'stock'              => 'propertyid',
+                'gin'                => 'propertyid',
+                'purch1'             => 'propertyid',
+                'purch2'             => 'propertyid',
+                'ledger'             => 'propertyid',
+                'hallbook'           => 'propertyid',
+                'hallsale1'          => 'propertyid',
+                'hallsale2'          => 'propertyid',
+                'hallstock'          => 'propertyid',
+                'paychargeh'         => 'propertyid',
+                'venueocc'           => 'propertyid',
+                'suntranh'           => 'propertyid',
+                'bookinginquiry'     => 'propertyid',
+                'bookingdetail'      => 'propertyid',
+                'bookingplandetails' => 'propertyid',
+                'hallsale1est'       => 'propertyid',
+                'hallsale2est'       => 'propertyid',
+                'hallstockest'       => 'propertyid',
+            ];
+
+            $wipeCounts = [];
+            foreach ($wipeTables as $tbl => $col) {
+                $wipeCounts[$tbl] = DB::table($tbl)->where($col, $propertyid)->count();
+            }
+
+            $userupdate = new UserUpdate;
+            $userupdate->user = $this->username;
+            $userupdate->propertyid = $propertyid;
+            $userupdate->oldvalue = 'Data Empty Tool — property ' . $propertyid . ' pre-wipe row counts: ' . json_encode($wipeCounts);
+            $userupdate->newvalue = 'Data Deletion Type: ' . $deleteType . ' — FULL property data wipe executed by ' . $this->username;
+            $userupdate->form_type = 'Data Deletion Tool';
+            $userupdate->u_entdt = $this->currenttime;
+            $userupdate->u_updatedt = $this->currenttime;
+            $userupdate->save();
+
             if ($deleteType === 'with_cm') {
 
                 // [01] booking
@@ -632,6 +692,9 @@ class ToolsController extends Controller
                     ->update(['start_srl_no' => 0]);
 
                 DB::commit();
+
+                // Purge wiped grpbookingdetails/roomocc/roomblockout — availability changed.
+                \App\Helpers\MasterDataCache::flushAvailability($propertyid);
 
                 return response()->json([
                     'status' => true,
@@ -767,22 +830,14 @@ class ToolsController extends Controller
                     ->update(['start_srl_no' => 0]);
 
                 DB::commit();
+                // Purge wiped grpbookingdetails/roomocc/roomblockout — availability changed.
+                \App\Helpers\MasterDataCache::flushAvailability($propertyid);
 
                 return response()->json([
                     'status' => true,
                     'message' => 'WITHOUT CM data deleted successfully. Total queries executed: 42',
                 ]);
             }
-
-            $userupdate = new UserUpdate;
-            $userupdate->user = $this->username;
-            $userupdate->propertyid = $propertyid;
-            $userupdate->oldvalue = 'Data Deletion Type: ';
-            $userupdate->newvalue = 'Data Deletion Type: ' . $deleteType . ' data deleted successfully';
-            $userupdate->form_type = 'Data Deletion Tool';
-            $userupdate->u_entdt = $this->currenttime;
-            $userupdate->u_updatedt = $this->currenttime;
-            $userupdate->save();
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -2318,6 +2373,14 @@ class ToolsController extends Controller
 
             foreach ($tables as $table) {
                 foreach ($shortNames as $shortName) {
+                    // FINANCIAL SAFETY (mission §9): audit financial rows (paycharge /
+                    // suntran) BEFORE the recycle wipe — mirror BUG-030/037/039 patterns.
+                    $rows = DB::table($table)
+                        ->where('propertyid', $propertyId)
+                        ->where('vtype', 'B' . $shortName)
+                        ->get();
+                    $this->auditFinancialDeletion($table, $rows, 'POS Recycle — outlet data reset (vtype B' . $shortName . ')');
+
                     DB::table($table)
                         ->where('propertyid', $propertyId)
                         ->where('vtype', 'B' . $shortName)
@@ -2356,6 +2419,52 @@ class ToolsController extends Controller
                 'status' => false,
                 'message' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * FINANCIAL SAFETY (mission §9): write audit rows before financial rows are
+     * deleted by the generic Table Management / bulk / recycle tools.
+     *
+     * - paycharge → PaychargeLog::auditDeleted (BUG-030/037 pattern)
+     * - ledger    → LedgerLogService::store    (BUG-039 pattern)
+     * - suntran   → Suntranlog row copies      (BUG-039 pattern)
+     *
+     * Accepts a single row object or an iterable of rows (models or stdClass).
+     */
+    protected function auditFinancialDeletion(string $tableName, $rows, string $reason): void
+    {
+        if ($rows === null) {
+            return;
+        }
+
+        if (! is_iterable($rows)) {
+            $rows = [$rows];
+        }
+
+        $rows = collect($rows);
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        switch ($tableName) {
+            case 'paycharge':
+                PaychargeLog::auditDeleted($rows, $reason, $this->username);
+                break;
+
+            case 'ledger':
+                LedgerLogService::store($rows, $this->username);
+                break;
+
+            case 'suntran':
+                foreach ($rows as $row) {
+                    $log = new Suntranlog();
+                    $log->fill((array) $row);
+                    $log->u_entdt = $this->currenttime;
+                    $log->u_updatedt = $this->currenttime;
+                    $log->save();
+                }
+                break;
         }
     }
 
@@ -2804,6 +2913,11 @@ class ToolsController extends Controller
             $oldRecord = DB::table($tableName)
                 ->where($primaryKey, $primaryKeyValue)
                 ->first();
+
+            // FINANCIAL SAFETY (mission §9): never silently delete financial rows
+            // from the generic Table Management tool — mirror BUG-030/037/039 patterns.
+            $this->auditFinancialDeletion(strtolower($tableName), $oldRecord, 'Table Management — record delete (' . $primaryKey . ' = ' . $primaryKeyValue . ')');
+
             DB::table($tableName)->where($primaryKey, $primaryKeyValue)
                 ->delete();
             // Log the deletion in userupdate table
@@ -2870,6 +2984,10 @@ class ToolsController extends Controller
             $oldRecords = DB::table($tableName)
                 ->whereIn($primaryKey, $primaryKeyValues)
                 ->get();
+
+            // FINANCIAL SAFETY (mission §9): never silently delete financial rows
+            // from the generic Table Management tool — mirror BUG-030/037/039 patterns.
+            $this->auditFinancialDeletion(strtolower($tableName), $oldRecords, 'Table Management — bulk delete (' . $primaryKey . ' IN ...)');
 
             // Delete the records
             $deletedCount = DB::table($tableName)

@@ -37,3 +37,7 @@ Thumbs.db
 /storage
 /public/uploads
 /storage/logs
+# Reference manuals / external scaffolding (not part of the codebase)
+.ai/AnalysisHMS_Manual/
+.ai/agentic-qa-boilerplate-main/
+.ai/*.rar

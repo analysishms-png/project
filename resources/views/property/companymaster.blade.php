@@ -4,6 +4,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Company Master', 'hmsSubtitle' => 'Manage company profile and settings'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

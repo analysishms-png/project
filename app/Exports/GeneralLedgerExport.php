@@ -35,8 +35,15 @@ class GeneralLedgerExport
         $subcodes = $this->subcodes;
 
         $openingQuery = DB::table('ledger as l')
-            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            // LEFT join for legacy VIEWLEDGER parity (BUG-QA-010): postings with an
+            // empty/missing subcode must not be silently dropped from the ledger.
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
             ->where('l.propertyid', $propertyid)
             ->where('l.vdate', '<', $fromdate)
             ->where(function ($q) {
@@ -56,8 +63,14 @@ class GeneralLedgerExport
             ->keyBy('sub_code');
 
         $txnQuery = DB::table('ledger as l')
-            ->join('subgroup as s', 's.sub_code', '=', 'l.subcode')
-            ->leftJoin('acgroup as a', 's.group_code', '=', 'a.group_code')
+            // LEFT join for legacy VIEWLEDGER parity (BUG-QA-010).
+            ->leftJoin('subgroup as s', 's.sub_code', '=', 'l.subcode')
+            ->leftJoin('acgroup as a', function ($join) {
+                // group_code is NOT globally unique (shared across properties) — scope to the
+                // property's own acgroup row or the join multiplies rows (BUG-044).
+                $join->on('s.group_code', '=', 'a.group_code')
+                    ->on('a.propertyid', '=', 'l.propertyid');
+            })
             ->where('l.propertyid', $propertyid)
             ->whereBetween('l.vdate', [$fromdate, $todate])
             ->where(function ($q) {

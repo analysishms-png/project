@@ -212,7 +212,7 @@ class Reporting extends Controller
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       $companysub = SubGroup::where('propertyid', $this->propertyid)->whereIn('comp_type', ['Corporate'])
          ->orderBy('name')->groupBy('sub_code')->get();
-      $travelagents = SubGroup::Where('propertyid', $this->propertyid)->where('comp_type', 'Travel Agency')->orderBy('name', 'ASC')->get();
+      $travelagents = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
       $bussdata = BussSource::where('propertyid', $this->propertyid)->get();
 
       $uniqpay = Paycharge::where('propertyid', $this->propertyid)->groupBy('paytype')->get();
@@ -473,9 +473,9 @@ class Reporting extends Controller
       $settlemode = $request->input('settlemode');
       $settlefor = $request->input('settlefor');
       if ($settlefor == 'Company') {
-         $data = SubGroup::Where('propertyid', $this->propertyid)->where('comp_type', 'Corporate')->orderBy('name', 'ASC')->get();
+         $data = \App\Helpers\MasterDataCache::corporates($this->propertyid);
       } else if ($settlefor == 'Travel Agent') {
-         $data = SubGroup::Where('propertyid', $this->propertyid)->where('comp_type', 'Travel Agency')->orderBy('name', 'ASC')->get();
+         $data = \App\Helpers\MasterDataCache::travelAgents($this->propertyid);
       }
       return json_encode($data);
    }
@@ -3186,21 +3186,29 @@ class Reporting extends Controller
          ->where('kot_yn', 'Y')
          ->get();
 
-      $totalamount = 0.00;
+      // Batch the per-outlet voucher-type + per-voucher sums (was 1 VoucherType
+      // + 1 Paycharge query per voucher, twice — today and yesterday).
+      $outletCodes = $depart->pluck('dcode')->all();
+      $outletVouchers = VoucherType::where('propertyid', $this->propertyid)
+         ->whereIn('restcode', $outletCodes)
+         ->get()
+         ->filter(function ($vt) use ($depart) {
+            $d = $depart->firstWhere('dcode', $vt->restcode);
+            return $d && $vt->description === $d->short_name . ' Memo Entry';
+         });
 
-      foreach ($depart as $row) {
-         $vouchers = VoucherType::where('propertyid', $this->propertyid)
-            ->where('restcode', $row->dcode)
-            ->where('description', $row->short_name . " Memo Entry")
-            ->get();
-
-         foreach ($vouchers as $item) {
-            $totalamount += Paycharge::where('propertyid', $this->propertyid)
-               ->where('vtype', $item->v_type)
-               ->where('vdate', $this->ncurdate)
-               ->sum('amtcr');
-         }
+      $memoVtypes = $outletVouchers->pluck('v_type')->all();
+      $memoSumsToday = collect();
+      if ($memoVtypes) {
+         $memoSumsToday = Paycharge::where('propertyid', $this->propertyid)
+            ->whereIn('vtype', $memoVtypes)
+            ->where('vdate', $this->ncurdate)
+            ->groupBy('vtype')
+            ->selectRaw('vtype, SUM(amtcr) as total')
+            ->pluck('total', 'vtype');
       }
+
+      $totalamount = (float) $memoSumsToday->sum();
 
       $totalamount1 = Paycharge::where('propertyid', $this->propertyid)
          ->where('vtype', 'REC')
@@ -3228,18 +3236,15 @@ class Reporting extends Controller
 
       $totalamountoutletyesterday = 0.00;
 
-      foreach ($depart as $row) {
-         $vouchers = VoucherType::where('propertyid', $this->propertyid)
-            ->where('restcode', $row->dcode)
-            ->where('description', $row->short_name . " Memo Entry")
-            ->get();
+      if ($memoVtypes) {
+         $memoSumsYesterday = Paycharge::where('propertyid', $this->propertyid)
+            ->whereIn('vtype', $memoVtypes)
+            ->where('vdate', $yesterday)
+            ->groupBy('vtype')
+            ->selectRaw('vtype, SUM(amtcr) as total')
+            ->pluck('total', 'vtype');
 
-         foreach ($vouchers as $item) {
-            $totalamountoutletyesterday += Paycharge::where('propertyid', $this->propertyid)
-               ->where('vtype', $item->v_type)
-               ->where('vdate', $yesterday)
-               ->sum('amtcr');
-         }
+         $totalamountoutletyesterday = (float) $memoSumsYesterday->sum();
       }
 
       $yesterdaycombinedTotal = $yesterdayroomchargamount + $totalamountoutletyesterday;
@@ -3634,29 +3639,50 @@ class Reporting extends Controller
          ->where('inclcount', 'y')
          ->sum('norooms');
 
+      // Batch the per-day busy-room lookups (was 2 queries per category x day).
+      // Fetch every booking/occupancy row that could intersect the window once,
+      // then compute the per-day busy count in memory.
+      $grpRows = GrpBookinDetail::where('Property_ID', $this->propertyid)
+         ->where('ContraDocId', '')
+         ->where('Cancel', 'N')
+         ->whereDate('ArrDate', '<=', $todate)
+         ->whereDate('DepDate', '>', $fromdate)
+         ->select('RoomCat', 'ArrDate', 'DepDate', 'RoomDet')
+         ->get();
+
+      $occRows = RoomOcc::where('propertyid', $this->propertyid)
+         ->where('roomtype', 'ro')
+         ->whereNull('type')
+         ->whereDate('chkindate', '<=', $todate)
+         ->whereDate('depdate', '>', $fromdate)
+         ->select('roomcat', 'chkindate', 'depdate')
+         ->get();
+
       $results = [];
 
       foreach ($roomcategories as $category) {
          $dailyBusyCounts = [];
          $currentDate = $fromdate;
 
+         // In-memory busy counts for this category (date-window overlap).
+         $grpForCat = $grpRows->where('RoomCat', $category->cat_code);
+         $occForCat = $occRows->where('roomcat', $category->cat_code);
+
          while (strtotime($currentDate) <= strtotime($todate)) {
             $norooms = $category->norooms;
 
-            $busyrooms_grp = GrpBookinDetail::where('Property_ID', $this->propertyid)
-               ->whereDate('ArrDate', '<=', $currentDate)
-               ->whereDate('DepDate', '>', $currentDate)
-               ->where('RoomCat', $category->cat_code)
-               ->where('ContraDocId', '')
-               ->where('Cancel', 'N')
+            $busyrooms_grp = $grpForCat
+               ->filter(function ($g) use ($currentDate) {
+                  return substr($g->ArrDate, 0, 10) <= $currentDate
+                     && substr($g->DepDate, 0, 10) > $currentDate;
+               })
                ->sum('RoomDet');
 
-            $busyrooms_occ = RoomOcc::where('propertyid', $this->propertyid)
-               ->where('roomcat', $category->cat_code)
-               ->where('roomtype', 'ro')
-               ->whereDate('chkindate', '<=', $currentDate)
-               ->whereDate('depdate', '>', $currentDate)
-               ->whereNull('type')
+            $busyrooms_occ = $occForCat
+               ->filter(function ($o) use ($currentDate) {
+                  return substr($o->chkindate, 0, 10) <= $currentDate
+                     && substr($o->depdate, 0, 10) > $currentDate;
+               })
                ->count();
 
             $dailyBusyCounts[$currentDate] = $norooms - ($busyrooms_grp + $busyrooms_occ);
@@ -5005,11 +5031,24 @@ class Reporting extends Controller
          ->orderBy('FO.billno')
          ->get();
 
+      // One batched fetch of depart names for every non-FOM restcode on the
+      // page (the per-row Depart lookup was an N+1 — 1 query per payment row).
+      $nonFomCodes = $otherpay
+         ->pluck('restcode')
+         ->reject(fn($code) => $code == 'FOM' . $this->propertyid)
+         ->filter()
+         ->unique()
+         ->values();
+
+      $departNames = Depart::where('propertyid', $this->propertyid)
+         ->whereIn('dcode', $nonFomCodes)
+         ->pluck('name', 'dcode');
+
       foreach ($otherpay as $row) {
 
          if ($row->restcode != 'FOM' . $this->propertyid) {
             $row->billno = $row->vtype . ' / ' . $row->vno;
-            $depart = Depart::where('propertyid', $this->propertyid)->where('dcode', $row->restcode)->value('name');
+            $depart = $departNames->get($row->restcode);
             $row->guestname = $depart ? $depart : $row->restcode;
          }
 
@@ -5458,28 +5497,36 @@ class Reporting extends Controller
          ->orderBy('RM.rcode')
          ->get();
 
-      foreach ($occupiedRooms as $key => $row) {
-         $balance = Paycharge::select('sno1', 'folionodocid', DB::raw('SUM(amtdr) - SUM(amtcr) as balanceamt'))
-            ->where([
-               ['folionodocid', '=', $row->docid],
-               ['sno1', '=', $row->sno1]
-            ])
-            ->value('balanceamt');
+      // Batch the per-room balance/advance lookups (was 2 queries per room).
+      // Aggregate once per (folionodocid, sno1) pair, then attach in memory.
+      // NOTE: the original had NO propertyid filter on these lookups — preserved.
+      $folioPairs = collect($occupiedRooms)
+         ->filter(function ($row) {
+            return $row->docid !== null && $row->sno1 !== null;
+         })
+         ->map(fn($row) => $row->docid . '_' . $row->sno1)
+         ->unique();
 
-         $advanceamt = Paycharge::select(DB::raw('SUM(amtcr) as Advance'))
-            ->where([
-               ['folionodocid', '=', $row->docid],
-               ['sno1', '=', $row->sno1]
-            ])
-            ->value('Advance');
+      $folioLookup = collect();
+      if ($folioPairs->isNotEmpty()) {
+         $folioLookup = Paycharge::select(
+            'folionodocid',
+            'sno1',
+            DB::raw('SUM(amtdr) - SUM(amtcr) as balanceamt'),
+            DB::raw('SUM(amtcr) as Advance')
+         )
+            ->whereIn('folionodocid', $occupiedRooms->pluck('docid')->unique()->filter()->values())
+            ->whereIn('sno1', $occupiedRooms->pluck('sno1')->unique()->filter()->values())
+            ->groupBy('folionodocid', 'sno1')
+            ->get()
+            ->keyBy(fn($r) => $r->folionodocid . '_' . $r->sno1);
+      }
 
-         // if ($balance !== null || $advanceamt !== null) {
-         $row->Advance = $advanceamt ?? 0;
-         $row->balanceamt = $balance ?? 0;
-         // } 
-         // else {
-         //     unset($occupiedRooms[$key]);
-         // }
+      foreach ($occupiedRooms as $row) {
+         $pair = $folioLookup->get($row->docid . '_' . $row->sno1);
+
+         $row->Advance = $pair->Advance ?? 0;
+         $row->balanceamt = $pair->balanceamt ?? 0;
       }
 
 

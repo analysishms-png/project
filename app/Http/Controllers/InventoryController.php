@@ -509,6 +509,10 @@ class InventoryController extends Controller
             'vtype' => 'required',
         ]);
 
+        // FINANCIAL SAFETY: Gin + Stock rows + PO consumption marker + voucher serial are written together.
+        try {
+            DB::beginTransaction();
+
         $vtype = $request->input('vtype');
         $chkvpf = VoucherPrefix::where('propertyid', $this->propertyid)
             ->where('v_type', $vtype)
@@ -635,7 +639,13 @@ class InventoryController extends Controller
             ->where('prefix', $vprefix)
             ->increment('start_srl_no');
 
-        return back()->with('success', 'Mr Entry Submitted. Total Amount: ' . number_format($totalAmount, 2));
+            DB::commit();
+            return back()->with('success', 'Mr Entry Submitted. Total Amount: ' . number_format($totalAmount, 2));
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('mrentrysubmit failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
+            return back()->with('error', 'MR Entry failed: ' . $e->getMessage());
+        }
     }
 
     public function updatemrentry(Request $request)
@@ -3520,6 +3530,9 @@ class InventoryController extends Controller
             'department' => 'required',
         ]);
 
+        // FINANCIAL SAFETY: Stock rows + voucher serial are written together.
+        try {
+
         $totalitem = $request->totalitem;
         $totalamount = $request->netamount;
         $vtype = 'STOP';
@@ -3533,6 +3546,8 @@ class InventoryController extends Controller
         if ($chkvpf == null) {
             return back()->with('error', 'Voucher Prefix not found for the selected date: ' . date('d-m-Y', strtotime($request->input('vdate'))));
         }
+
+        DB::beginTransaction();
 
         $vno = $chkvpf->start_srl_no + 1;
         $vprefix = $chkvpf->prefix;
@@ -3583,7 +3598,13 @@ class InventoryController extends Controller
             ->where('prefix', $vprefix)
             ->increment('start_srl_no');
 
-        return back()->with('success', 'Opening Stock Submitted Successfully');
+            DB::commit();
+            return back()->with('success', 'Opening Stock Submitted Successfully');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('openingstocksubmit failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
+            return back()->with('error', 'Opening Stock failed: ' . $e->getMessage());
+        }
     }
 
     public function updateopeningstock(Request $request)
@@ -4397,7 +4418,9 @@ class InventoryController extends Controller
 
         $docid2 = $this->propertyid . $vtype2 . '‎ ‎ ' . $vprefix2 . '‎ ‎ ‎ ‎ ' . $vno2;
 
+        // FINANCIAL SAFETY: two Stock row sets + Indent clear + 2 voucher serials written together.
         try {
+            DB::beginTransaction();
             for ($i = 1; $i <= $totalitem; $i++) {
                 $itemmast = ItemMast::where('Code', $request->input('item' . $i))->where('RestCode', 'PURC' . $this->propertyid)->first();
                 $stockdata1 = [
@@ -4483,8 +4506,11 @@ class InventoryController extends Controller
                 ->where('prefix', $vprefix2)
                 ->increment('start_srl_no');
 
+            DB::commit();
             return back()->with('success', 'Requistion Stock Issue Submitted');
         } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('requisitionstocksubmit failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
             return back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
@@ -4574,7 +4600,9 @@ class InventoryController extends Controller
         $docid1 = null;
         $docid2 = null;
 
+        // FINANCIAL SAFETY: deletes old stock rows + inserts two new sets together.
         try {
+            DB::beginTransaction();
 
             $old1 = Stock::where('propertyid', $this->propertyid)
                 ->where('vtype', $vtype1)
@@ -4676,8 +4704,11 @@ class InventoryController extends Controller
                 ]);
             }
 
+            DB::commit();
             return redirect('stockissuerequisition')->with('success', 'Requisition Updated Successfully');
         } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('requisitionstockupsubmit failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
             return back()->with('error', $e->getMessage());
         }
     }
@@ -4695,6 +4726,8 @@ class InventoryController extends Controller
                 ->where('vprefix', $vprefix)
                 ->first();
 
+            // FINANCIAL SAFETY: Indent marker + stock rows deleted together.
+            DB::beginTransaction();
             Indent::where('propertyid', $this->propertyid)
                 ->where('docid', $stock->contradocid)
                 ->update(['clearyn' => '']);
@@ -4705,8 +4738,11 @@ class InventoryController extends Controller
                 ->where('vprefix', $vprefix)
                 ->delete();
 
+            DB::commit();
             return back()->with('success', 'Requistion Stock Issue Deleted');
         } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('requisitionstockisuedelete failed: ' . $e->getMessage() . ' on line ' . $e->getLine());
             return back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }

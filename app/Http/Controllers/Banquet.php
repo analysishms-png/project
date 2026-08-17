@@ -700,19 +700,21 @@ class Banquet extends Controller
 
         $inquiry = BookingInquiry::where('propertyid', $this->propertyid)->where('contradocid', $docid)->first();
 
-        if (!is_null($inquiry)) {
-            BookingInquiry::where('propertyid', $this->propertyid)->where('contradocid', $docid)->update(['contradocid' => '']);
-        }
-
         if (!is_null($hallsale)) {
             return back()->with('error', 'Bill Submitted can not update');
         }
 
         try {
+            DB::beginTransaction();
+            if (!is_null($inquiry)) {
+                BookingInquiry::where('propertyid', $this->propertyid)->where('contradocid', $docid)->update(['contradocid' => '']);
+            }
             HallBook::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             VenueOcc::where('propertyid', $this->propertyid)->where('fpdocid', $docid)->delete();
+            DB::commit();
             return back()->with('success', 'Booking Deleted Successfully');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', $e->getMessage());
         }
     }
@@ -789,6 +791,9 @@ class Banquet extends Controller
             ]);
         }
 
+        try {
+        DB::beginTransaction();
+
         // FINANCIAL SAFETY: never silently delete financial records.
         // Copy paychargeh + ledger postings to paychargelog BEFORE deletion
         // (user, time, reason, amounts, linkage) so the transaction stays auditable.
@@ -850,10 +855,18 @@ class Banquet extends Controller
         PaychargeH::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
         Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
+        DB::commit();
         return response()->json([
             'status' => 'success',
             'message' => 'Advance Deleted successfully'
         ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unable to delete advance: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function advancebanquetsubmit(Request $request)
@@ -950,6 +963,24 @@ class Banquet extends Controller
                     ->get();
 
                 if (!$taxStructures->isEmpty()) {
+                    // One batched fetch of tax names for all tax codes (no per-row
+                    // lookup). First row wins per rev_code — rev_code is NOT unique
+                    // within a property (verified: MT10310 = 'BA - NOTAX' vs
+                    // 'STR - Hall Rent'), and the original per-row value() query
+                    // returned the FIRST matching row (no ORDER BY — MySQL scans
+                    // the PK (propertyid, rev_code, Desk_code), so order by
+                    // Desk_code reproduces that exactly).
+                    $taxNameMap = [];
+                    foreach (DB::table('revmast')
+                        ->where('propertyid', $this->propertyid)
+                        ->whereIn('rev_code', $taxStructures->pluck('tax_code'))
+                        ->orderBy('Desk_code')
+                        ->get(['rev_code', 'name']) as $revRow) {
+                        if (!array_key_exists($revRow->rev_code, $taxNameMap)) {
+                            $taxNameMap[$revRow->rev_code] = $revRow->name;
+                        }
+                    }
+
                     foreach ($taxStructures as $tax) {
                         $rate = $tax->rate;
                         if ($rate != null) {
@@ -957,10 +988,7 @@ class Banquet extends Controller
                             $amtdrTaxed = ($advtype == 'Refund') ? $taxAmount : 0.00;
                             $amtcrTaxed = ($advtype == 'Refund') ? 0.00 : $taxAmount;
 
-                            $taxName = DB::table('revmast')
-                                ->where('propertyid', $this->propertyid)
-                                ->where('rev_code', $tax->tax_code)
-                                ->value('name');
+                            $taxName = $taxNameMap[$tax->tax_code] ?? null;
 
                             if (!$taxName) {
                                 DB::rollBack();
@@ -1759,7 +1787,7 @@ class Banquet extends Controller
     {
 
         try {
-            // DB::beginTransaction();
+            DB::beginTransaction();
             $totalitem = $request->totalitem;
 
             // return $totalitem;
@@ -1770,6 +1798,7 @@ class Banquet extends Controller
                 ->whereDate('date_to', '>=', $request->booking_date)
                 ->first();
             if ($chkvpf === null || $chkvpf === '0') {
+                DB::rollBack();
                 return back()->with('error', 'You are not eligible to checkin for this date: ' . date('d-m-Y', strtotime($request->booking_date)));
             }
 
@@ -1780,6 +1809,7 @@ class Banquet extends Controller
             $hallbook = HallBook::where('propertyid', $this->propertyid)->where('docid', $request->bookingdocid)->first();
 
             if (!$hallbook) {
+                DB::rollBack();
                 return back()->with('error', 'Hallbook Docid Not Found');
             }
 
@@ -2319,6 +2349,7 @@ class Banquet extends Controller
             // return 'Billing Submitted Successfully';
             return back()->with('success', 'Performa Billing Submitted Successfully');
         } catch (Exception $e) {
+            DB::rollBack();
             // return $e->getMessage() . ' On Line: ' . $e->getLine();
             return back()->with('error', $e->getMessage() . ' On Line: ' . $e->getLine());
         }
@@ -2327,6 +2358,7 @@ class Banquet extends Controller
     public function deletebanquetbill(Request $request)
     {
         try {
+            DB::beginTransaction();
             $docid = $request->input('docid');
             $reason = 'Banquet Bill Deleted' . (!empty($request->input('reason')) ? ': ' . $request->input('reason') : '');
             $currentUser = Auth::user()->u_name ?? Auth::user()->name;
@@ -2408,11 +2440,13 @@ class Banquet extends Controller
             SuntranH::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             Ledger::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Bill Deleted Successfully'
             ]);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'unable to delete bill ' . $e->getMessage()
@@ -2425,6 +2459,7 @@ class Banquet extends Controller
     public function deletePerformaInvoice(Request $request)
     {
         try {
+            DB::beginTransaction();
             $docid = $request->input('docid');
             HallSale1Est::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             HallSale2Est::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
@@ -2432,13 +2467,15 @@ class Banquet extends Controller
             SuntranEst::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
             SuntranhEst::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Bill Deleted Successfully'
             ]);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json([
-                'success' => true,
+                'success' => false,
                 'message' => 'unable to delete bill ' . $e->getMessage()
             ]);
         }
@@ -3952,6 +3989,8 @@ class Banquet extends Controller
 
     public function banquetbillsubmit(Request $request)
     {
+        DB::beginTransaction();
+        try {
 
         $hallsale1docid = $request->input('hallsale1docid');
         $rowcount = $request->input('rowcount') + 1;
@@ -4069,7 +4108,12 @@ class Banquet extends Controller
 
             $ledgerService->banquetposting($hallsale1->docId, $paycodes, $snos++, $amtcr, $gendocid, $paychargeold, $request->input('compcode' . $i));
         }
+        DB::commit();
         return redirect('autorefreshmain');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Unable to submit banquet bill: ' . $e->getMessage());
+        }
     }
 
     public function banqsettlefetch(Request $request)
@@ -4735,6 +4779,21 @@ class Banquet extends Controller
                     ->get();
 
                 if (!$taxStructures->isEmpty()) {
+                    // One batched fetch of tax names for all tax codes (no per-row lookup).
+                    // First row wins per rev_code (rev_code is not unique within a
+                    // property; PK scan order = Desk_code reproduces the original
+                    // un-ordered value() query).
+                    $taxNameMap = [];
+                    foreach (DB::table('revmast')
+                        ->where('propertyid', $this->propertyid)
+                        ->whereIn('rev_code', $taxStructures->pluck('tax_code'))
+                        ->orderBy('Desk_code')
+                        ->get(['rev_code', 'name']) as $revRow) {
+                        if (!array_key_exists($revRow->rev_code, $taxNameMap)) {
+                            $taxNameMap[$revRow->rev_code] = $revRow->name;
+                        }
+                    }
+
                     foreach ($taxStructures as $tax) {
                         $rate = $tax->rate;
                         if ($rate != null) {
@@ -4742,10 +4801,7 @@ class Banquet extends Controller
                             $amtdrTaxed   = ($advtype == 'Refund') ? $taxAmount : 0.00;
                             $amtcrTaxed   = ($advtype == 'Refund') ? 0.00 : $taxAmount;
 
-                            $taxName = DB::table('revmast')
-                                ->where('propertyid', $this->propertyid)
-                                ->where('rev_code', $tax->tax_code)
-                                ->value('name');
+                            $taxName = $taxNameMap[$tax->tax_code] ?? null;
 
                             if (!$taxName) {
                                 DB::rollBack();

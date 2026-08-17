@@ -461,6 +461,7 @@ class Reservation extends Controller
                     ->increment('start_srl_no');
 
                 DB::commit();
+                \App\Helpers\MasterDataCache::flushAvailability($enviro->propertyid);
 
                 return response()->json(['IsError' => false, 'message' => 'Data stored successfully'], 200);
             } else {

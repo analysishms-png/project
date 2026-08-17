@@ -6,6 +6,8 @@
         <!-- row -->
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Item List', 'hmsSubtitle' => 'Inventory items'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">

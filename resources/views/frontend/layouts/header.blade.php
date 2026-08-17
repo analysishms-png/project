@@ -70,7 +70,7 @@
 
 </head>
 
-<body>
+<body class="@yield('body-class')">
 
     <!-- Top Bar (hidden on mobile) -->
     <section id="topbar" class="d-none d-md-flex align-items-center">

@@ -700,6 +700,7 @@ class UpdateReservation extends Controller
 
         DB::table('booking')->where('Property_ID', $this->propertyid)->where('DocId', $docid)->update($bookingdata);
         DB::table('guestprof')->where('propertyid', $this->propertyid)->where('docid', $docid)->update($guestproft);
+        \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
 
         // if (channelparameter()->checkyn == 'Y') {
         //     $paychargeadsum = Paycharge::where('propertyid', $this->propertyid)

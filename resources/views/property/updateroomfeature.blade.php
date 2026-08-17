@@ -3,6 +3,8 @@
     <div class="content-body">
 
         <div class="container-fluid">
+            @include('property.layouts.pageheader', ['hmsTitle' => 'Edit Room Features', 'hmsSubtitle' => 'Update room feature details and save'])
+
             <div class="row justify-content-center">
                 <div class="col-lg-12">
                     <div class="card">
@@ -67,6 +69,9 @@
         var name = document.getElementById('name');
         var namelist = document.getElementById('namelist');
         var currentLiIndex = -1;
+        if (!name || !namelist) {
+            return;
+        }
         name.addEventListener('keydown', function(event) {
             if (event.key === 'ArrowDown') {
                 event.preventDefault();

@@ -1,0 +1,513 @@
+/* =====================================================================
+   Analysis HMS — Design System (hms.css)
+   Bootstrap-5-style presentation layer over the Ekka BS4.1.3 theme.
+   ZERO functional change: overrides only visuals. Load AFTER style.css.
+   Tokens documented in .ai/UI_DESIGN_SYSTEM.md
+   ===================================================================== */
+
+:root {
+  /* Brand */
+  --hms-primary:      #0f2b5b;
+  --hms-primary-2:    #14407e;
+  --hms-primary-3:    #0a1f42;
+  --hms-accent:       #0ea5a4;
+  --hms-accent-2:     #14b8b6;
+  --hms-secondary:    #64748b;
+  --hms-success:      #16a34a;
+  --hms-warning:      #f59e0b;
+  --hms-danger:       #dc2626;
+  --hms-info:         #0ea5e9;
+
+  /* Surfaces */
+  --hms-bg:           #f1f5f9;
+  --hms-card-bg:      #ffffff;
+  --hms-sidebar-bg:   #0f2b5b;
+  --hms-sidebar-bg-2: #0a1f42;
+  --hms-topbar-bg:    #ffffff;
+  --hms-border:       #e2e8f0;
+  --hms-border-soft:  #eef2f7;
+
+  /* Text */
+  --hms-text:         #1e293b;
+  --hms-text-muted:   #64748b;
+  --hms-text-inverse: #f8fafc;
+
+  /* Shape & depth */
+  --hms-radius:       .75rem;
+  --hms-radius-sm:    .5rem;
+  --hms-shadow-sm:    0 1px 2px rgba(15, 43, 91, .06);
+  --hms-shadow:       0 4px 16px rgba(15, 43, 91, .08);
+  --hms-shadow-lg:    0 12px 32px rgba(15, 43, 91, .14);
+
+  /* Type */
+  --hms-font:         "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --hms-font-size:    .875rem;
+}
+
+/* ---------- Base ---------- */
+body {
+  font-family: var(--hms-font);
+  font-size: var(--hms-font-size);
+  color: var(--hms-text);
+  background-color: var(--hms-bg);
+}
+
+#main-wrapper {
+  background-color: var(--hms-bg);
+}
+
+a {
+  color: var(--hms-primary);
+}
+
+/* ---------- Brand / nav header ---------- */
+.nav-header {
+  background: linear-gradient(160deg, var(--hms-sidebar-bg) 0%, var(--hms-sidebar-bg-2) 100%);
+  border-right: 1px solid rgba(255, 255, 255, .06);
+}
+
+.nav-header .brand-logo a b img {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .25);
+}
+
+/* ---------- Topbar ---------- */
+.header {
+  background: var(--hms-topbar-bg);
+  border-bottom: 1px solid var(--hms-border);
+  box-shadow: 0 1px 3px rgba(15, 43, 91, .05);
+}
+
+.header .header-content {
+  align-items: center;
+}
+
+.nav-control .toggle-icon {
+  color: var(--hms-primary);
+}
+
+.header-center .mainhead {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--hms-primary);
+  letter-spacing: .01em;
+}
+
+.header-center .mainhead #showfinyear {
+  font-size: .8rem;
+  font-weight: 500;
+  color: var(--hms-text-muted);
+  margin-left: .5rem;
+}
+
+.top-notification-icon {
+  background: var(--hms-border-soft);
+  border-color: var(--hms-border);
+}
+
+.top-notification-icon:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+/* ---------- Sidebar (deep navy) ---------- */
+.nk-sidebar {
+  background: linear-gradient(180deg, var(--hms-sidebar-bg) 0%, var(--hms-sidebar-bg-2) 100%);
+  border-right: 1px solid rgba(255, 255, 255, .06);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .25) transparent;
+}
+
+.nk-sidebar ul,
+.nk-sidebar .metismenu {
+  background: transparent !important;
+}
+
+.nk-sidebar .nav-label {
+  color: rgba(255, 255, 255, .55) !important;
+  text-transform: uppercase;
+  font-size: .72rem;
+  letter-spacing: .08em;
+  font-weight: 600;
+}
+
+.nk-sidebar .metismenu > li > a {
+  color: rgba(248, 250, 252, .85) !important;
+  border-left: 3px solid transparent;
+}
+
+.nk-sidebar .metismenu > li > a .nav-text i {
+  color: rgba(248, 250, 252, .7) !important;
+  width: 1.6em;
+  text-align: center;
+}
+
+.nk-sidebar .metismenu > li:hover > a,
+.nk-sidebar .metismenu > li.active > a {
+  background: rgba(255, 255, 255, .08) !important;
+  color: #ffffff !important;
+  border-left-color: var(--hms-accent);
+}
+
+.nk-sidebar .metismenu > li:hover i,
+.nk-sidebar .metismenu > li:focus i,
+.nk-sidebar .metismenu > li.active i {
+  color: var(--hms-accent-2) !important;
+}
+
+.nk-sidebar .metismenu > li:hover span,
+.nk-sidebar .metismenu > li:focus span,
+.nk-sidebar .metismenu > li.active span {
+  color: #ffffff !important;
+}
+
+/* has-arrow arrow glyph */
+.nk-sidebar .metismenu > li > a.has-arrow::after {
+  border-color: rgba(248, 250, 252, .6);
+}
+
+/* Submenu (injected by /fetchsubmenu, /fetchlastmenu) */
+.nk-sidebar .metismenu .collapse {
+  background: rgba(0, 0, 0, .18) !important;
+}
+
+.nk-sidebar .metismenu .collapse li a {
+  color: rgba(248, 250, 252, .78) !important;
+  font-size: .82rem;
+}
+
+.nk-sidebar .metismenu .collapse li a:hover,
+.nk-sidebar .metismenu .collapse li.active a {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, .07) !important;
+}
+
+.nk-sidebar .metismenu .collapse li a .nav-text i,
+.nk-sidebar .metismenu .collapse li a i {
+  color: rgba(248, 250, 252, .55) !important;
+}
+
+.nk-sidebar .metismenu .collapse li a.has-arrow::after {
+  border-color: rgba(248, 250, 252, .5);
+}
+
+/* ---------- Content area ---------- */
+.content-body {
+  background-color: var(--hms-bg);
+}
+
+.content-body .container-fluid {
+  padding-top: .25rem;
+  padding-bottom: 1.5rem;
+}
+
+/* ---------- Page titles / breadcrumbs ---------- */
+.page-titles {
+  background: transparent;
+  padding: .75rem 1.875rem .25rem;
+}
+
+.page-titles h4 {
+  color: var(--hms-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.page-titles h4 span {
+  color: var(--hms-text-muted);
+}
+
+.page-titles .breadcrumb li a {
+  color: var(--hms-primary) !important;
+}
+
+.page-titles .breadcrumb li.active {
+  color: var(--hms-text-muted) !important;
+}
+
+.page-titles .breadcrumb-item + .breadcrumb-item::before {
+  color: #94a3b8 !important;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  border: 0;
+  border-radius: var(--hms-radius);
+  box-shadow: var(--hms-shadow-sm);
+}
+
+.card .card-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--hms-border-soft);
+  border-radius: var(--hms-radius) var(--hms-radius) 0 0 !important;
+  font-weight: 600;
+  color: var(--hms-text);
+}
+
+.card .card-body {
+  color: var(--hms-text);
+}
+
+/* ---------- Tables ---------- */
+.table thead th {
+  background: #f8fafc;
+  color: var(--hms-text);
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 2px solid var(--hms-border);
+  white-space: nowrap;
+}
+
+.table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fbfcfe;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+  border-color: var(--hms-border-soft);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  border-radius: var(--hms-radius-sm);
+  font-weight: 500;
+}
+
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary.focus,
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled).active {
+  background-color: var(--hms-primary) !important;
+  border-color: var(--hms-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:not(:disabled):not(.disabled):active:hover {
+  background-color: var(--hms-primary-2) !important;
+  border-color: var(--hms-primary-2) !important;
+}
+
+.btn-outline-primary {
+  color: var(--hms-primary) !important;
+  border-color: var(--hms-primary) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--hms-primary) !important;
+  border-color: var(--hms-primary) !important;
+  color: #fff !important;
+}
+
+.btn-light {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: var(--hms-text) !important;
+}
+
+.btn-info {
+  background-color: var(--hms-info) !important;
+  border-color: var(--hms-info) !important;
+}
+
+.btn-danger {
+  background-color: var(--hms-danger) !important;
+  border-color: var(--hms-danger) !important;
+}
+
+/* ---------- Forms ---------- */
+.form-control,
+.form-select,
+.custom-select {
+  border-radius: var(--hms-radius-sm);
+  border-color: #cbd5e1;
+}
+
+.form-control:focus,
+.form-select:focus,
+.custom-select:focus {
+  border-color: var(--hms-accent);
+  box-shadow: 0 0 0 .2rem rgba(14, 165, 164, .15);
+}
+
+.form-control[readonly] {
+  background-color: #f8fafc;
+}
+
+.form-label,
+.col-form-label {
+  font-weight: 500;
+  color: #334155;
+}
+
+/* ---------- Badges / status chips ---------- */
+.badge {
+  border-radius: 50rem;
+  font-weight: 600;
+}
+
+/* ---------- Modals ---------- */
+.modal-content {
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: var(--hms-shadow-lg);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--hms-border-soft);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--hms-border-soft);
+}
+
+/* ---------- Dropdowns (profile etc.) ---------- */
+.dropdown-menu {
+  border: 1px solid var(--hms-border);
+  border-radius: var(--hms-radius);
+  box-shadow: var(--hms-shadow);
+}
+
+/* ---------- Dashboard (leave the existing custom components intact,
+   only unify typography) ---------- */
+.room-status-card,
+.events-card {
+  font-family: var(--hms-font);
+}
+
+/* ---------- Responsive refinements ---------- */
+@media (max-width: 767.98px) {
+  .header-center .mainhead {
+    font-size: .95rem;
+  }
+
+  .header-right {
+    gap: .25rem;
+  }
+
+  .content-body .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .page-titles {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .header-center {
+    display: none;
+  }
+}
+
+/* ---------- Standard master-screen anatomy (UI Pass 3) ---------- */
+.hms-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.25rem;
+}
+
+.hms-page-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--hms-primary);
+  letter-spacing: .01em;
+}
+
+.hms-page-subtitle {
+  margin: .25rem 0 0;
+  color: var(--hms-text-muted);
+  font-size: .85rem;
+}
+
+.hms-page-actions {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+/* DataTables 2.x toolbar (search / length / export buttons) */
+.dt-search,
+.dt-length {
+  color: var(--hms-text-muted);
+  font-size: .85rem;
+}
+
+.dt-search input {
+  border: 1px solid #cbd5e1;
+  border-radius: var(--hms-radius-sm);
+  padding: .35rem .65rem;
+  font-size: .85rem;
+}
+
+.dt-search input:focus {
+  border-color: var(--hms-accent);
+  box-shadow: 0 0 0 .2rem rgba(14, 165, 164, .15);
+  outline: none;
+}
+
+.dt-length select {
+  border: 1px solid #cbd5e1;
+  border-radius: var(--hms-radius-sm);
+  padding: .25rem .5rem;
+  font-size: .85rem;
+}
+
+.dt-buttons .btn {
+  margin-left: .35rem;
+}
+
+/* Neutralize legacy dark table headers (bg-secondary on thead) */
+.table thead.bg-secondary th {
+  background: #f8fafc !important;
+  color: var(--hms-text) !important;
+  border-bottom: 2px solid var(--hms-border);
+}
+
+.table thead.bg-secondary {
+  background: #f8fafc !important;
+}
+
+/* ---------- Print ---------- */
+@media print {
+  .nk-sidebar,
+  .nav-header,
+  .header,
+  .page-titles .breadcrumb,
+  .no-print {
+    display: none !important;
+  }
+
+  .content-body {
+    margin-left: 0 !important;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #dee2e6;
+  }
+
+  body,
+  #main-wrapper,
+  .content-body {
+    background: #ffffff !important;
+  }
+
+  table {
+    font-size: .8rem;
+  }
+}

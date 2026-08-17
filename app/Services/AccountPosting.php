@@ -28,7 +28,6 @@ class AccountPosting
     public function accountpoststore($fromdate, $todate)
     {
         try {
-            // DB::beginTransaction();
             $propertyid = Auth::user()->propertyid;
             // $permission = revokeopen(191114);
             // if (is_null($permission) || $permission->ins == 0) {
@@ -55,6 +54,10 @@ class AccountPosting
                 return back()->with('error', 'You are not eligible to post charges for this date: ' . date('d-m-Y', strtotime($fromdate)));
             }
 
+            // FINANCIAL SAFETY: this method deletes PPOS/IPOS paycharge + HPOST ledger rows per date and re-posts
+            // them — a mid-run failure without a transaction would leave the day's postings half-deleted.
+            DB::beginTransaction();
+
             $period = CarbonPeriod::create($fromdate, $todate);
 
             foreach ($period as $date) {
@@ -71,6 +74,7 @@ class AccountPosting
                 if (!is_null($permission) && $permission->view != 0) {
                     $roomchrgdueac = EnviroFom::where('propertyid', $propertyid)->first();
                     if ($roomchrgdueac->roomchrgdueac == '') {
+                        DB::rollBack();
                         return ['success' => false, 'message' => 'First Fill Enviro Setting Related to Daily Posting'];
                     }
                 }
@@ -1026,7 +1030,7 @@ class AccountPosting
                         ]);
                 }
             }
-            // DB::commit();
+            DB::commit();
             return ['success' => true, 'message' => 'Account Posting Successfully'];
         } catch (Exception $e) {
             DB::rollBack();

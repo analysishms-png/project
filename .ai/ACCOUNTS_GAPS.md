@@ -17,6 +17,8 @@
 | TDS Report | `Finance/FinanceController.php` | ✅ COMPLETE |
 | Detailed Trial Ledger (summary: opening/trans/closing per account) | `Finance/FinanceController.php` | ✅ COMPLETE |
 | **General Ledger (transaction-level, running balance)** | — | ❌ was MISSING → **ADDED 2026-08-16** |
+| **Day Book (chronological register, vtype filter)** | — | ❌ was MISSING → **ADDED 2026-08-16** |
+| **Cash Book / Bank Book (acgroup nature Cash/Bank)** | — | ❌ was MISSING → **ADDED 2026-08-16** |
 | Ledger master + group accounts (CRUD, deleteledger guarded) | `CompanyController.php` | ✅ COMPLETE |
 
 ## 2. Legacy HMS implementation
@@ -60,6 +62,9 @@ ORDER BY PARTY, V_DATE, CASE WHEN CREDIT>0 THEN 3 WHEN DEBIT>0 THEN 2 ELSE 1 END
 | Ledger master delete guard | — | ✅ deleteledger checks usage + guard | ✅ |
 | Bank recon (clgdate marking) | Yes | Yes | ✅ |
 | General Ledger report | Led | **ADDED** | ✅ now parity |
+| Day Book report | DayBook | **ADDED** | ✅ now parity |
+| Cash Book / Bank Book | CashBook/BankBook | **ADDED** | ✅ now parity |
+| Journal Book report | JournalBook | **ADDED** | ✅ now parity |
 
 ## 5. Deletion audit map (financial safety)
 
@@ -72,9 +77,9 @@ ORDER BY PARTY, V_DATE, CASE WHEN CREDIT>0 THEN 3 WHEN DEBIT>0 THEN 2 ELSE 1 END
 ## 6. Missing logic / screens / reports (PRIORITY ORDER)
 
 - ✅ **DONE 2026-08-16 — General Ledger report** (`generalledger`): per-account transaction listing with opening/running/closing balance, account filter, Excel export, PDF print. Read-only.
-- ⬜ **Day Book** (`DayBook` legacy) — all voucher postings for a date range, vtype-filterable. Read-only candidate.
-- ⬜ **Cash Book** / **Bank Book** (`CashBook`/`BankBook`) — ledger filtered to cash/bank group accounts. Read-only candidate.
-- ⬜ **Journal Book** (`JournalBook`) — journal-voucher entries for a date range. Read-only candidate.
+- ✅ **DONE 2026-08-16 — Day Book report** (`daybook`): chronological register of ALL ledger postings in a date range (vdate/vtype/vno/docid/account/narration/dr/cr), optional vtype filter, PDF print (`printdaybook`), Excel export (`DayBookExport`). Read-only. **BUG-044**: acgroup join now scoped to propertyid (group_code not globally unique) — fixed here + in General Ledger / Detailed Trial Ledger (row inflation ~5% on prop 169).
+- ✅ **DONE 2026-08-16 — Cash Book / Bank Book report** (`cashbankbook`): book-type toggle (Cash/Bank), per-account opening/running/closing balance, optional account filter, PDF print (`printcashbankbook`), Excel export (`CashBankBookExport`). Filters ledger by `acgroup.nature IN ('Cash','Bank')` via BUG-044-scoped join (canonical — the denormalized `ledger.groupnature` is stale for 372 rows on prop 169). Read-only.
+- ✅ **DONE 2026-08-17 — Journal Book report** (`journalbook`): ledger postings for a voucher type in a date range (default `JV` = Journal), vtype dropdown, PDF print (`printjournalbook`), Excel export (`JournalBookExport`). Mirrors legacy `Proc_203_70_14FE4CC` (`VIEWLEDGER ... WHERE V_date BETWEEN ... AND V_TYPE='<type>' ORDER BY V_DATE,V_TYPE,V_NO,V_ADD,V_SNO`). Reuses `dayBookRows()` + Trail Balance permission 111211. Read-only.
 - ⬜ **Aging** (`AgingDr`/`AgingCr`) — receivable/payable aging buckets. Requires business decision on bucket definitions.
 - ⬜ **Due List** (`DUELIST`) — overdue payables. Requires aging bucket decision.
 - ⬜ **AcCheckList** — accounts checklist (verification coverage). Low priority.
@@ -100,9 +105,9 @@ ORDER BY PARTY, V_DATE, CASE WHEN CREDIT>0 THEN 3 WHEN DEBIT>0 THEN 2 ELSE 1 END
 
 ## 10. Implementation plan (remaining)
 
-1. Day Book report (P1, read-only, safe) — mirrors legacy DayBook: all ledger rows in date range with vtype/vno/docid/narration/dr/cr.
-2. Cash Book / Bank Book (P1, read-only) — filter by group nature = cash/bank accounts.
-3. Journal Book (P1, read-only) — filter vtype = JV.
+1. ✅ **DONE 2026-08-16 — Day Book report** — `daybook` + fetch/vtypes/print/export (5 routes), `FinanceController` methods, `DayBookExport`, 2 views.
+2. ✅ **DONE 2026-08-16 — Cash Book / Bank Book report** — `cashbankbook` + fetch/accounts/print/export (5 routes), `FinanceController` methods, `CashBankBookExport`, 2 views. Live-validated prop 169 Apr-2026: Cash 1 acct (CASH IN HAND), Bank 3 accts (CREDIT CARD A/C, HDFC, UPI), 0 identity mismatches.
+3. ✅ **DONE 2026-08-17 — Journal Book report** — `journalbook` + fetch/vtypes/print/export (5 routes), `FinanceController` methods, `JournalBookExport`, 2 views. Live-validated prop 169 Apr-2026: JV = 332 rows Dr=Cr=₹1,015,580.20 exact (matches Day Book JV filter).
 4. Aging / Due List (P2) — needs user confirmation of bucket definitions (never invent business rules).
 5. Menu registration SQL for new report (per-property `menuhelp` insert, code 111219) — **requires approval before touching production menu data**.
 
@@ -114,4 +119,6 @@ ORDER BY PARTY, V_DATE, CASE WHEN CREDIT>0 THEN 3 WHEN DEBIT>0 THEN 2 ELSE 1 END
 - [x] php artisan test — 33 passed
 - [x] Live-DB identity check: opening+trans = closing per account (216 accts)
 - [x] Live-DB running-balance recomputation (67 accts)
+- [x] Day Book live-DB: JV filter Dr=Cr exact (332 rows, ₹1,015,580.20), ALL rows = 2,822 (prop 169, Apr 2026); GL total now matches Day Book total (₹20,851,979.69) post BUG-044
+- [x] Cash/Bank Book live-DB (prop 169, Apr 2026): Cash 1 acct + Bank 3 accts, 0 identity mismatches; controller + export outputs identical; bank accts ledger history starts in-period (opening 0 correct)
 - [ ] Browser smoke test (menu access + Excel download)
