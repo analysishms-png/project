@@ -141,4 +141,62 @@ class HelpersTest extends TestCase
         $result = getMonthYearCode('2026-08-07');
         $this->assertEquals('082026', $result);
     }
+
+    /**
+     * Test taxOperatorMatches — TaxStru slab operator semantics
+     * (mirrors CronController posting loops + legacy Proc_96_6_1335500)
+     */
+    public function test_tax_between_matches_within_bounds()
+    {
+        $this->assertTrue(taxOperatorMatches('Between', 0, 1000, 500));
+        $this->assertTrue(taxOperatorMatches('Between', 0, 1000, 0));
+        $this->assertTrue(taxOperatorMatches('Between', 0, 1000, 1000));
+    }
+
+    public function test_tax_between_rejects_outside_bounds()
+    {
+        $this->assertFalse(taxOperatorMatches('Between', 0, 1000, -1));
+        $this->assertFalse(taxOperatorMatches('Between', 0, 1000, 1001));
+        $this->assertFalse(taxOperatorMatches('Between', 0, null, 500));
+    }
+
+    public function test_tax_less_equal_is_lower_bound_check()
+    {
+        // Legacy: Limit <= amount  →  amount >= Limit
+        $this->assertTrue(taxOperatorMatches('<=', 1000, null, 1000));
+        $this->assertTrue(taxOperatorMatches('<=', 1000, null, 1500));
+        $this->assertFalse(taxOperatorMatches('<=', 1000, null, 999));
+    }
+
+    public function test_tax_greater_equal_is_upper_bound_check()
+    {
+        // Legacy: Limit >= amount  →  amount <= Limit
+        $this->assertTrue(taxOperatorMatches('>=', 1000, null, 1000));
+        $this->assertTrue(taxOperatorMatches('>=', 1000, null, 500));
+        $this->assertFalse(taxOperatorMatches('>=', 1000, null, 1500));
+    }
+
+    public function test_tax_equality_matches_only_exact()
+    {
+        $this->assertTrue(taxOperatorMatches('=', 1000, null, 1000));
+        $this->assertFalse(taxOperatorMatches('=', 1000, null, 1001));
+    }
+
+    public function test_tax_greater_than_matches_above()
+    {
+        $this->assertTrue(taxOperatorMatches('>', 1000, null, 1001));
+        $this->assertFalse(taxOperatorMatches('>', 1000, null, 1000));
+    }
+
+    public function test_tax_less_than_matches_below()
+    {
+        $this->assertTrue(taxOperatorMatches('<', 1000, null, 999));
+        $this->assertFalse(taxOperatorMatches('<', 1000, null, 1000));
+    }
+
+    public function test_tax_unknown_operator_never_matches()
+    {
+        $this->assertFalse(taxOperatorMatches('Unknown', 0, null, 500));
+        $this->assertFalse(taxOperatorMatches('', 0, null, 500));
+    }
 }

@@ -695,6 +695,39 @@ function limitText($text, $maxLength = 100)
 //     return (float)$cgst + (float)$sgst;
 // }
 
+if (!function_exists('taxOperatorMatches')) {
+    /**
+     * Pure slab-operator matcher — single source of truth for TaxStru operator semantics.
+     * Mirrors the posting loops in CronController::submitnightaudit and Fetch
+     * (and the legacy Proc_96_6_1335500 comparisons):
+     *   Between: Limit <= amount <= Limit1
+     *   <=     : Limit <= amount
+     *   >=     : Limit >= amount
+     *   =      : Limit = amount
+     *   >      : amount > Limit
+     *   <      : amount < Limit
+     */
+    function taxOperatorMatches($op, $lower, $upper, $amount)
+    {
+        switch ($op) {
+            case 'Between':
+                return !is_null($upper) && $amount >= $lower && $amount <= $upper;
+            case '<=':
+                return $lower <= $amount;
+            case '>=':
+                return $lower >= $amount;
+            case '=':
+                return $lower == $amount;
+            case '>':
+                return $amount > $lower;
+            case '<':
+                return $amount < $lower;
+            default:
+                return false;
+        }
+    }
+}
+
 function getGstRate($taxCode, $amount)
 {
     $propertyId = Auth::user()->propertyid;
@@ -705,44 +738,34 @@ function getGstRate($taxCode, $amount)
         ->orderBy('sno')
         ->get();
 
-    $matchedSlab = null;
+    $totalRate = 0.0;
+    $hasOperator = false;
 
+    // Per-row evaluation — mirrors the posting loops in CronController::submitnightaudit
+    // and Fetch (legacy Proc_96_6_1335500 semantics): each taxstru row carries its own
+    // operator/limits and rate; every matching GST-component row contributes its rate.
     foreach ($rows as $row) {
-        if (!is_null($row->comp_operator) && !is_null($row->limit1)) {
-            $limit = (float)$row->limit1;
+        if (is_null($row->comp_operator)) {
+            continue;
+        }
 
-            if ($row->comp_operator === 'Between' && $amount <= $limit) {
-                $matchedSlab = $limit;
-                break;
-            }
+        $hasOperator = true;
 
-            if ($row->comp_operator === '<=' && $amount >= $limit) {
-                $matchedSlab = $limit;
-                break;
-            }
+        $lower = (float)$row->limits;
+        $upper = (!is_null($row->limit1)) ? (float)$row->limit1 : null;
+
+        if (taxOperatorMatches($row->comp_operator, $lower, $upper, $amount)
+            && preg_match('/^(CGSS|SGSS|IGST)/', $row->tax_code ?? '')) {
+            $totalRate += (float)$row->rate;
         }
     }
 
-    // ✅ CASE 1: Slab-based (unchanged logic)
-    if (!is_null($matchedSlab)) {
-        $cgst = DB::table('taxstru')
-            ->where('propertyid', $propertyId)
-            ->where('str_code', $taxCode)
-            ->where('limit1', $matchedSlab)
-            ->where('tax_code', 'LIKE', 'CGSS%')
-            ->value('rate') ?? 0;
-
-        $sgst = DB::table('taxstru')
-            ->where('propertyid', $propertyId)
-            ->where('str_code', $taxCode)
-            ->where('limit1', $matchedSlab)
-            ->where('tax_code', 'LIKE', 'SGSS%')
-            ->value('rate') ?? 0;
-
-        return (float)$cgst + (float)$sgst;
+    // Slab/operator rows exist — return the sum of matching GST tax rows
+    if ($hasOperator) {
+        return $totalRate;
     }
 
-    // ✅ CASE 2: No slab → just return total rate directly
+    // No operator rows: flat-rate structure — return CGST + SGST total
     $cgst = DB::table('taxstru')
         ->where('propertyid', $propertyId)
         ->where('str_code', $taxCode)

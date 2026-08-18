@@ -973,16 +973,16 @@ class Fetch extends Controller
             'plan_mast.*',
             DB::raw('SUM(
                 CASE 
-                    WHEN plan_mast.room_rate < taxstru.limit1 AND taxstru.comp_operator = "Between" THEN taxstru.rate
-                    WHEN plan_mast.room_rate <= taxstru.limit1 AND taxstru.comp_operator = "<=" THEN taxstru.rate
+                    WHEN plan_mast.room_rate >= taxstru.limits AND plan_mast.room_rate <= taxstru.limit1 AND taxstru.comp_operator = "Between" THEN taxstru.rate
+                    WHEN plan_mast.room_rate >= taxstru.limits AND taxstru.comp_operator = "<=" THEN taxstru.rate
                     ELSE 0
                 END
             ) AS total_rate'),
             DB::raw('plan_mast.room_rate / (1 + (
                 SUM(
                     CASE 
-                        WHEN plan_mast.room_rate < taxstru.limit1 AND taxstru.comp_operator = "Between" THEN taxstru.rate
-                        WHEN plan_mast.room_rate <= taxstru.limit1 AND taxstru.comp_operator = "<=" THEN taxstru.rate
+                        WHEN plan_mast.room_rate >= taxstru.limits AND plan_mast.room_rate <= taxstru.limit1 AND taxstru.comp_operator = "Between" THEN taxstru.rate
+                        WHEN plan_mast.room_rate >= taxstru.limits AND taxstru.comp_operator = "<=" THEN taxstru.rate
                         ELSE 0
                     END
                 ) / 100

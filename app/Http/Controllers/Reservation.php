@@ -925,6 +925,20 @@ class Reservation extends Controller
 
         $roomTaxCodes = $taxRates->pluck('tax_code')->filter()->unique()->implode(',');
 
+        // Slab boundary + rates computed in PHP with null guards (Between lower/upper, else <= row)
+        $betweenRow = $taxRates->where('comp_operator', 'Between')->first();
+        $cgstBetween = $taxRates->where('tax_code', "CGSS{$this->propertyid}")->where('comp_operator', 'Between')->first();
+        $sgstBetween = $taxRates->where('tax_code', "SGSS{$this->propertyid}")->where('comp_operator', 'Between')->first();
+        $cgstElse = $taxRates->where('tax_code', "CGSS{$this->propertyid}")->where('comp_operator', '<=')->first();
+        $sgstElse = $taxRates->where('tax_code', "SGSS{$this->propertyid}")->where('comp_operator', '<=')->first();
+
+        $betweenUpper = $betweenRow ? (float)$betweenRow->limit1 : 0;
+        $betweenLower = $betweenRow ? (float)$betweenRow->limits : 0;
+        $cgstBetweenRate = $cgstBetween ? (float)$cgstBetween->rate : ($cgstElse ? (float)$cgstElse->rate : 0);
+        $sgstBetweenRate = $sgstBetween ? (float)$sgstBetween->rate : ($sgstElse ? (float)$sgstElse->rate : 0);
+        $cgstElseRate = $cgstElse ? (float)$cgstElse->rate : $cgstBetweenRate;
+        $sgstElseRate = $sgstElse ? (float)$sgstElse->rate : $sgstBetweenRate;
+
         $rooms = GrpBookinDetail::select(
             'grpbookingdetails.Tarrif',
             'grpbookingdetails.RoomCat',
@@ -935,14 +949,14 @@ class Reservation extends Controller
             'grpbookingdetails.IncTax',
             'room_cat.name as roomcatname',
             DB::raw("CASE 
-                WHEN grpbookingdetails.Tarrif <= {$taxRates->where('comp_operator', 'Between')->first()->limit1}
-                    THEN {$taxRates->where('tax_code', "CGSS{$this->propertyid}")->where('comp_operator', 'Between')->first()->rate}
-                ELSE {$taxRates->where('tax_code', "CGSS{$this->propertyid}")->where('comp_operator', '<=')->first()->rate}
+                WHEN grpbookingdetails.Tarrif >= {$betweenLower} AND grpbookingdetails.Tarrif <= {$betweenUpper}
+                    THEN {$cgstBetweenRate}
+                ELSE {$cgstElseRate}
             END as cgst_rate"),
             DB::raw("CASE 
-                WHEN grpbookingdetails.Tarrif <= {$taxRates->where('comp_operator', 'Between')->first()->limit1}
-                    THEN {$taxRates->where('tax_code', "SGSS{$this->propertyid}")->where('comp_operator', 'Between')->first()->rate}
-                ELSE {$taxRates->where('tax_code', "SGSS{$this->propertyid}")->where('comp_operator', '<=')->first()->rate}
+                WHEN grpbookingdetails.Tarrif >= {$betweenLower} AND grpbookingdetails.Tarrif <= {$betweenUpper}
+                    THEN {$sgstBetweenRate}
+                ELSE {$sgstElseRate}
             END as sgst_rate")
         )
             ->leftJoin('room_cat', function ($join) {
