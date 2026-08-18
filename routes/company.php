@@ -883,6 +883,10 @@ Route::get('ncurfetch', [CompanyController::class, 'ncurfetch'])->name('ncurfetc
 Route::get('changeprofile', [HouseModelOperations::class, 'openchangeprofile'])->name('changeprofile.route');
 // Open Guest Add Profile
 Route::get('guestaddprofile', [HouseModelOperations::class, 'openguestaddprofile'])->name('guestaddprofile.route');
+// GM-07: Guest Master (read-only browse)
+Route::get('guestmaster', [HouseModelOperations::class, 'guestmaster'])->name('guestmaster');
+Route::post('fetchguestmaster', [HouseModelOperations::class, 'fetchguestmaster'])->name('fetchguestmaster');
+Route::post('guestmastervisits', [HouseModelOperations::class, 'guestmastervisits'])->name('guestmastervisits');
 // Load Total mprof
 Route::post('loadtotalmprof', [HouseModelOperations::class, 'loadtotalmprof'])->name('loadtotalmprof');
 // Update Mprof

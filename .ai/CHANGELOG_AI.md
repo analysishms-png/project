@@ -401,3 +401,12 @@
 - **TEST**: php -l clean on all 6 files; view:cache compiles; 12 routes registered; MySQL offline so suite skipped (no failures).
 - **RISK**: LOW — purely additive, new tables + CRUD, no existing functionality touched.
 - **ROLLBACK**: remove the 2 models + 2 migrations + 2 controller method groups + 12 routes + 4 views.
+
+### feat: Guest Master browse page (GM-07, read-only)
+- **MODULE**: Front Office / Guest Management
+- **FILES**: `app/Http/Controllers/FrontOffice/Operations/HouseModelOperations.php` (+3 methods: guestmaster, fetchguestmaster, guestmastervisits), `resources/views/property/frontoffice/guestmaster.blade.php` (new), `routes/company.php` (+3 routes)
+- **CHANGE**: Added read-only Guest Master page: search by name/mobile/email/guest-code, browse profiles (guest code, name, mobile, email, city, country, type, VIP, total stays, last check-in/out), stay-history modal (roomocc join with room category + in-house/checked-out status), link to existing profile edit screen (`guestaddprofile`). Read-only — no writes.
+- **WHY**: Legacy `frmGuestInfo` was a searchable guest master list; Laravel only had the walkin lookup, no dedicated browse page.
+- **TEST**: php -l clean; view:cache compiles; 3 routes registered; MySQL offline so suite skipped (no failures).
+- **RISK**: LOW — read-only, reuses existing tables (guestprof + roomocc), no schema change.
+- **ROLLBACK**: remove 3 methods + 3 routes + 1 view.

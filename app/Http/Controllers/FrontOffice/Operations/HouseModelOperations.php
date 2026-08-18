@@ -652,4 +652,78 @@ class HouseModelOperations extends Controller
             ]);
         }
     }
+
+    // ─── GM-07: Guest Master (read-only browse) ────────────────────────
+
+    public function guestmaster(Request $request)
+    {
+        return view('property.frontoffice.guestmaster');
+    }
+
+    public function fetchguestmaster(Request $request)
+    {
+        $search = trim($request->input('search', ''));
+
+        $query = DB::table('guestprof')
+            ->select(
+                'guestprof.guestcode',
+                'guestprof.name',
+                'guestprof.mobile_no',
+                'guestprof.email_id',
+                'guestprof.city_name',
+                'guestprof.country_name',
+                'guestprof.type',
+                'guestprof.vipStatus',
+                'guestprof.u_name',
+                'guestprof.u_entdt',
+                DB::raw('MAX(roomocc.checkin) AS last_checkin'),
+                DB::raw('MAX(roomocc.checkout) AS last_checkout'),
+                DB::raw('COUNT(roomocc.docid) AS total_stays')
+            )
+            ->leftJoin('roomocc', 'roomocc.guestprof', '=', 'guestprof.guestcode')
+            ->where('guestprof.propertyid', $this->propertyid);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('guestprof.name', 'like', "%{$search}%")
+                    ->orWhere('guestprof.mobile_no', 'like', "%{$search}%")
+                    ->orWhere('guestprof.email_id', 'like', "%{$search}%")
+                    ->orWhere('guestprof.guestcode', 'like', "%{$search}%");
+            });
+        }
+
+        $data = $query->groupBy(
+            'guestprof.guestcode',
+            'guestprof.name',
+            'guestprof.mobile_no',
+            'guestprof.email_id',
+            'guestprof.city_name',
+            'guestprof.country_name',
+            'guestprof.type',
+            'guestprof.vipStatus',
+            'guestprof.u_name',
+            'guestprof.u_entdt'
+        )->orderBy('guestprof.name')->limit(500)->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function guestmastervisits(Request $request)
+    {
+        $guestcode = $request->input('guestcode');
+        if (!$guestcode) {
+            return response()->json(['data' => []], 400);
+        }
+
+        $visits = DB::table('roomocc')
+            ->select('roomocc.*', 'room_cat.name AS roomcatname')
+            ->leftJoin('room_cat', 'room_cat.cat_code', '=', 'roomocc.roomcat')
+            ->where('roomocc.propertyid', $this->propertyid)
+            ->where('roomocc.guestprof', $guestcode)
+            ->orderBy('roomocc.checkin', 'DESC')
+            ->limit(50)
+            ->get();
+
+        return response()->json(['data' => $visits]);
+    }
 }
