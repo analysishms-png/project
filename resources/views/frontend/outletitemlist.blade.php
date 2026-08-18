@@ -17,8 +17,8 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#e91e63',
-                        secondary: '#f06292',
+                        primary: '#0d6efd',
+                        secondary: '#6ea8fe',
                     }
                 }
             }
@@ -727,11 +727,11 @@
             let $tempContainer = $("<div></div>");
             $tempContainer.append(`
         <div style="text-align:center;padding:10px 0 0 0;">
-            <h1 style="font-size:28px;color:#e91e63;margin-bottom:5px;font-family:sans-serif;">${companyName}</h1>
+            <h1 style="font-size:28px;color:#0d6efd;margin-bottom:5px;font-family:sans-serif;">${companyName}</h1>
             <h2 style="font-size:20px;color:#333;margin-bottom:2px;font-family:sans-serif;">${departName}</h2>
             <div style="font-size:14px;color:#666;margin-bottom:10px;">${dateString}</div>
-            <hr style="border:0;border-top:2px solid #e91e63;margin-bottom:15px;">
-            <h2 style='text-align:center;font-size:22px;margin-bottom:15px;color:#e91e63;'>${groupName}</h2>
+            <hr style="border:0;border-top:2px solid #0d6efd;margin-bottom:15px;">
+            <h2 style='text-align:center;font-size:22px;margin-bottom:15px;color:#0d6efd;'>${groupName}</h2>
             <p style="font-size:16px;color:#444;margin-bottom:30px;">
                 Welcome to our restaurant! Please find the delicious menu items in the following pages. Taxes as applicable extra.
             </p>
@@ -777,8 +777,8 @@
             // Footer
             $tempContainer.append(`
         <div style="text-align:center;margin-top:30px;padding:10px 0 0 0;">
-            <hr style="border:0;border-top:2px solid #e91e63;margin-bottom:8px;">
-            <span style="font-size:15px;color:#e91e63;font-family:sans-serif;font-weight:bold;">
+            <hr style="border:0;border-top:2px solid #0d6efd;margin-bottom:8px;">
+            <span style="font-size:15px;color:#0d6efd;font-family:sans-serif;font-weight:bold;">
                 AnalysisHMS Software Solution
             </span>
         </div>

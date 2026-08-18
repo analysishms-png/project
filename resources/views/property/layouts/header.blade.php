@@ -21,6 +21,7 @@
     <link href="{{ asset('admin/css/style.css') }}" rel="stylesheet">
     <!-- HMS Design System (Bootstrap 5-style layer, UI-only) -->
     <link href="{{ asset('admin/css/hms.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/plugins/select2/css/select2.min.css') }}" rel="stylesheet">
     <!-- DataTables 2.x (core + Buttons + Responsive, BS4 theme) -->
     <link href="{{ asset('admin/plugins/datatables2/css/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
     <link href="{{ asset('admin/plugins/datatables2/css/buttons.bootstrap4.min.css') }}" rel="stylesheet">
@@ -443,6 +444,7 @@
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         {{-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> --}}
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="{{ asset('admin/plugins/select2/js/select2.full.min.js') }}"></script>
 
         {{-- DataTables 2.x core + extensions (loaded after jQuery, before page scripts) --}}
         <script src="{{ asset('admin/plugins/datatables2/js/dataTables.min.js') }}"></script>

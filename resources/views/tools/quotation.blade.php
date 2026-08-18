@@ -480,13 +480,13 @@
                             <table style="margin-top: 40px;">
                                 <tr>
                                     <td class="text-center" style="width: 48%;">
-                                        <div class="bold" style="color: #1e3a5f; font-size: 13.5px;">Analysis Software Services</div>
+                                        <div class="bold" style="color: #0a58ca; font-size: 13.5px;">Analysis Software Services</div>
                                         <div style="border-top: 1.5px dashed #333; margin: 45px auto 6px auto; width: 80%;"></div>
                                         <div style="color: #555; font-size: 11px;">Authorized Signatory</div>
                                     </td>
                                     <td style="width: 4%;"></td>
                                     <td class="text-center" style="width: 48%;">
-                                        <div class="bold" style="text-transform: uppercase; color: #1e3a5f; font-size: 13.5px;">{{ $data->hotel_name }}</div>
+                                        <div class="bold" style="text-transform: uppercase; color: #0a58ca; font-size: 13.5px;">{{ $data->hotel_name }}</div>
                                         <div style="border-top: 1.5px dashed #333; margin: 45px auto 6px auto; width: 80%;"></div>
                                         <div style="color: #555; font-size: 11px;">Accepted By (Signature &amp; Stamp)</div>
                                     </td>
@@ -548,13 +548,13 @@
                         }
 
                         .header-bar {
-                            border-bottom: 2px solid #1e3a5f;
+                            border-bottom: 2px solid #0a58ca;
                             padding-bottom: 8px;
                             margin-bottom: 18px;
                         }
 
                         .brand {
-                            color: #1e3a5f;
+                            color: #0a58ca;
                             font-size: 18px;
                             font-weight: bold;
                             text-transform: uppercase;
@@ -577,14 +577,14 @@
 
                         .recipient-box {
                             background: #f4f6f9;
-                            border-left: 4px solid #1e3a5f;
+                            border-left: 4px solid #0a58ca;
                             padding: 10px 14px;
                             margin-bottom: 18px;
                         }
 
                         .recipient-name {
                             font-size: 14px;
-                            color: #1e3a5f;
+                            color: #0a58ca;
                         }
 
                         .recipient-hotel {
@@ -601,7 +601,7 @@
                             background: #eef2f7;
                             padding: 10px 14px;
                             font-weight: bold;
-                            color: #1e3a5f;
+                            color: #0a58ca;
                             margin-bottom: 20px;
                             font-size: 13px;
                             border-radius: 3px;
@@ -641,7 +641,7 @@
                         }
 
                         .bordered-table th {
-                            background: #1e3a5f;
+                            background: #0a58ca;
                             color: #fff;
                             text-transform: uppercase;
                             font-size: 11px;
@@ -657,13 +657,13 @@
                         .text-center { text-align: center; }
                         .bold { font-weight: bold; }
                         .text-danger { color: #c0392b; }
-                        .text-primary { color: #1e3a5f; }
+                        .text-primary { color: #0a58ca; }
 
                         /* Terms & Conditions */
                         .terms-title {
                             font-weight: bold;
                             font-size: 14px;
-                            color: #1e3a5f;
+                            color: #0a58ca;
                             margin-top: 18px;
                             margin-bottom: 6px;
                             border-bottom: 1px solid #e0e0e0;

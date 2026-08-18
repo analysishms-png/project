@@ -28,17 +28,17 @@
 
     /* Banner gradient same as other HK pages */
     .cr-banner {
-        background: linear-gradient(135deg, #1e3a5f, #2d6a9f) !important;
+        background: linear-gradient(135deg, #0a58ca, #0d6efd) !important;
     }
 
     /* Filter card top border accent */
     .cr-filter-card {
-        border-top: 3px solid #2d6a9f;
+        border-top: 3px solid #0d6efd;
     }
 
     /* Table header */
     #cr-table thead th {
-        background: #1e3a5f;
+        background: #0a58ca;
         color: #fff;
         white-space: nowrap;
         font-size: 12px;
@@ -147,7 +147,7 @@
     {{-- ── RESULTS CARD ── --}}
     <div class="card shadow-sm mb-4">
         <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
-             style="background: linear-gradient(135deg, #1e3a5f, #2d6a9f);">
+             style="background: linear-gradient(135deg, #0a58ca, #0d6efd);">
             <span class="fw-bold text-white small text-uppercase">
                 <i class="fa-solid fa-table-list me-2"></i>Cleaning Records
             </span>

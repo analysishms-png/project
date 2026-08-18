@@ -16,7 +16,7 @@
 
 {{-- HEADER BANNER --}}
 <div class="d-flex align-items-center justify-content-between text-white rounded p-3 mb-3 shadow-sm"
-     style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+     style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
     <div>
         <h5 class="mb-0 font-weight-bold text-white">
             <i class="fa-solid fa-clipboard-check mr-2"></i>Room Inspection Entry
@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
         wrap.style.position = 'relative';
         var badge = document.createElement('span');
         badge.innerHTML = '<i class="fa-solid fa-clipboard-check"></i>';
-        badge.style.cssText = 'position:absolute;top:4px;right:4px;background:#1e3a5f;color:#fff;'
+        badge.style.cssText = 'position:absolute;top:4px;right:4px;background:#0a58ca;color:#fff;'
             + 'border-radius:50%;width:22px;height:22px;font-size:11px;'
             + 'display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.3);';
         wrap.appendChild(badge);

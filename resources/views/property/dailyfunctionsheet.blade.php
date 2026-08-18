@@ -3,6 +3,8 @@
     <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" />
     <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="{{ asset('admin/plugins/select2/js/select2.full.min.js') }}"></script>
+    <link href="{{ asset('admin/plugins/select2/css/select2.min.css') }}" rel="stylesheet" />
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -64,7 +66,7 @@
         #usernames::-webkit-scrollbar {
             width: 3px;
             height: 3px;
-            background-color: #fa65b1;
+            background-color: #0d6efd;
         }
 
         #usernames::-webkit-scrollbar-thumb:hover {
@@ -72,7 +74,7 @@
         }
 
         .cashierreport #usernames::-webkit-scrollbar-thumb {
-            background-color: #fa65b1;
+            background-color: #0d6efd;
         }
 
         #usernames::-webkit-scrollbar-track {

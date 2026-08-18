@@ -8,12 +8,12 @@
     .text-right   { text-align: right; }
     .bold         { font-weight: 700; }
     .text-muted   { color: #666; }
-    .text-blue    { color: #1e3a5f; }
+    .text-blue    { color: #0a58ca; }
     .text-green   { color: #0d9488; }
     .text-rose    { color: #9f1239; }
     .text-orange  { color: #b45309; }
     .text-slate   { color: #475569; }
-    .section-title { background: #1e3a5f; color: #fff; padding: 4px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; margin-top: 12px; }
+    .section-title { background: #0a58ca; color: #fff; padding: 4px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; margin-top: 12px; }
     .section-title:first-of-type { margin-top: 0; }
     .section-green  { background: #0d9488; }
     .section-orange { background: #b45309; }
@@ -37,7 +37,7 @@
 <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
     <tr>
         <td style="width:50%; vertical-align:top;">
-            <div style="font-size:18px; font-weight:800; color:#1e3a5f; letter-spacing:1px;">{{ $tagNo }}</div>
+            <div style="font-size:18px; font-weight:800; color:#0a58ca; letter-spacing:1px;">{{ $tagNo }}</div>
             <div style="font-size:10px; color:#666;">Tag No.</div>
         </td>
         <td style="width:50%; vertical-align:top; text-align:right;">
@@ -110,7 +110,7 @@
 
         {{-- Remarks --}}
         @if($item->remarks)
-        <div class="section-title" style="background:#5b21b6;">&#128196; Remarks</div>
+        <div class="section-title" style="background:#0a58ca;">&#128196; Remarks</div>
         <p style="margin:4px 6px; font-size:11px; color:#555;">{{ $item->remarks }}</p>
         @endif
 

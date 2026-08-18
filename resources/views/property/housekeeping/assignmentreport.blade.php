@@ -16,21 +16,21 @@
 
     /* ── Banner ─────────────────────────────────────── */
     .ar-banner {
-        background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+        background: linear-gradient(135deg, #0a58ca 0%, #0d6efd 100%);
         border-radius: .6rem;
     }
 
     /* ── Filter card accent ──────────────────────────── */
-    .ar-filter-card { border-top: 3px solid #2d6a9f; border-radius: .6rem; }
+    .ar-filter-card { border-top: 3px solid #0d6efd; border-radius: .6rem; }
 
     /* ── Table header ────────────────────────────────── */
     #ar-table thead th {
-        background: #1e3a5f;
+        background: #0a58ca;
         color: #fff;
         font-size: 12px;
         text-align: center;
         white-space: nowrap;
-        border: 1px solid #2d6a9f;
+        border: 1px solid #0d6efd;
     }
     #ar-table tbody td {
         font-size: 13px;
@@ -146,7 +146,7 @@
     {{-- ── RESULTS CARD ── --}}
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex justify-content-between align-items-center py-2 px-3"
-             style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+             style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
             <span class="fw-bold text-white small text-uppercase">
                 <i class="fa-solid fa-table-list me-2"></i>Amenities Usage — Item Wise
             </span>

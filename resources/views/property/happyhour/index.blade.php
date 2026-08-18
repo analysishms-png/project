@@ -66,7 +66,7 @@
         #usernames::-webkit-scrollbar {
             width: 3px;
             height: 3px;
-            background-color: #fa65b1;
+            background-color: #0d6efd;
         }
 
         #usernames::-webkit-scrollbar-thumb:hover {
@@ -74,7 +74,7 @@
         }
 
         .cashierreport #usernames::-webkit-scrollbar-thumb {
-            background-color: #fa65b1;
+            background-color: #0d6efd;
         }
 
         #usernames::-webkit-scrollbar-track {

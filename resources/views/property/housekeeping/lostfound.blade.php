@@ -40,7 +40,7 @@
 
     {{-- BANNER --}}
     <div class="d-flex align-items-center justify-content-between bg-primary text-white rounded p-3 mb-3 shadow-sm"
-         style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f) !important;">
+         style="background:linear-gradient(135deg,#0a58ca,#0d6efd) !important;">
         <div>
             <h3 class="mb-0 fw-bold text-white">
                 <i class="fa-solid fa-magnifying-glass me-2"></i>Lost &amp; Found
@@ -296,7 +296,7 @@
     {{-- ALL RECORDS TABLE --}}
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-header d-flex justify-content-between align-items-center py-2"
-             style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+             style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
             <span class="fw-bold text-white small text-uppercase">
                 <i class="fa-solid fa-list me-1"></i>All Lost &amp; Found Entries
             </span>
@@ -393,7 +393,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header py-2 px-3"
-                 style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);color:#fff;">
+                 style="background:linear-gradient(135deg,#0a58ca,#0d6efd);color:#fff;">
                 <h6 class="modal-title fw-bold mb-0" style="color:#fff !important;">
                     <i class="fa-solid fa-hand-holding-heart me-2"></i>Claim Record
                 </h6>
@@ -504,7 +504,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header py-2 px-3"
-                 style="background:linear-gradient(135deg,#5b21b6,#7c3aed);color:#fff;">
+                 style="background:linear-gradient(135deg,#0d6efd,#084298);color:#fff;">
                 <h6 class="modal-title fw-bold mb-0">
                     <i class="fa-solid fa-camera me-2"></i>Capture Photo
                 </h6>

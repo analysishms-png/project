@@ -16,7 +16,7 @@
     .hka .form-control, .hka .form-select { border-radius:.5rem; font-size:.98rem; }
     .hka .form-select { min-height: calc(1.5em + 0.85rem + 2px); }
     .hka .field-label { font-size: .95rem; font-weight: 700; color: #2c3e50; }
-    .hka .heading-assignment-name { font-size: 1.35rem; font-weight: 800; margin-bottom: 1rem; color: #1f2937; }    .bg-purple { background-color:#6f42c1 !important; color:#fff !important; }
+    .hka .heading-assignment-name { font-size: 1.35rem; font-weight: 800; margin-bottom: 1rem; color: #1f2937; }    .bg-purple { background-color:#0a58ca !important; color:#fff !important; }
     .hk-block { border:1px solid #e9ecef; border-radius:.75rem; overflow:hidden; margin-bottom:.6rem; }
     .hk-block .hk-header { background:#f8f9fa; padding:.6rem 1rem; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
     .hk-block .hk-header:hover { background:#f1f5ff; }

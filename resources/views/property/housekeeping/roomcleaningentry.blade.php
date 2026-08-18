@@ -34,7 +34,7 @@
 
     {{-- Room Selector --}}
     <div class="card shadow-sm mb-3">
-        <div class="card-header border-0 py-3 px-4" style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+        <div class="card-header border-0 py-3 px-4" style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
             <div class="row align-items-center g-2">
                 <div class="col-auto">
                     <span class="fw-bold text-white fs-6"><i class="fa-solid fa-door-open me-2"></i>Select Room</span>
@@ -391,7 +391,7 @@
     ══════════════════════════════════════════════════════ --}}
     <div class="card shadow-sm mb-4">
         <div class="card-header border-0 py-3 px-4 d-flex justify-content-between align-items-center"
-             style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+             style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
             <span class="fw-bold text-white fs-6">
                 <i class="fa-solid fa-table-list me-2"></i>Cleaning Records
             </span>
@@ -403,7 +403,7 @@
             <div class="table-responsive">
                 <table class="table table-hover table-striped table-bordered align-middle mb-0"
                        style="font-size:13px; width:100%;">
-                    <thead style="background:#1e3a5f; color:#fff;" class="text-center">
+                    <thead style="background:#0a58ca; color:#fff;" class="text-center">
                         <tr>
                             <th style="width:60px;">SN</th>
                             <th>Cleaning No</th>
@@ -819,7 +819,7 @@ function rceSubmit(action) {
             if (btn) btn.disabled = false;
 
             if (d.success) {
-                Swal.fire({ icon:'success', title:'Done!', text: d.message, confirmButtonColor:'#1e3a5f', timer:2000 })
+                Swal.fire({ icon:'success', title:'Done!', text: d.message, confirmButtonColor:'#0a58ca', timer:2000 })
                 .then(function() {
                     // Page reload — completed room dropdown se automatically hata jayega
                     window.location.href = '{{ route("roomcleaningentry") }}';

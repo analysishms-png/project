@@ -33,9 +33,9 @@
             --red-soft: #fbe9e7;
             --green: #1a7f5a;
             --green-soft: #e5f6ee;
-            --blue: #2360a5;
+            --blue: #0d6efd;
             --blue-soft: #e8f1fb;
-            --violet: #6a3fb5;
+            --violet: #0d6efd;
             --violet-soft: #f0eafa;
             --radius: 7px;
             --radius-sm: 5px;
@@ -1010,11 +1010,11 @@
                     </div>
                     <div class="dc-card-body">
                         <div class="d-flex flex-wrap gap-3 mb-2" style="font-size:9.5px;">
-                            <span><span class="legend-dot" style="background:#2360a5"></span>Occupied 212</span>
+                            <span><span class="legend-dot" style="background:#0d6efd"></span>Occupied 212</span>
                             <span><span class="legend-dot" style="background:#1a7f5a"></span>Vacant 31</span>
                             <span><span class="legend-dot" style="background:#b3760a"></span>Dirty 18</span>
                             <span><span class="legend-dot" style="background:#2f8a54"></span>Clean 9</span>
-                            <span><span class="legend-dot" style="background:#6a3fb5"></span>Inspected 6</span>
+                            <span><span class="legend-dot" style="background:#0d6efd"></span>Inspected 6</span>
                             <span><span class="legend-dot" style="background:#c0392b"></span>OOO 3</span>
                             <span><span class="legend-dot" style="background:#5b6472"></span>Blocked 4</span>
                             <span><span class="legend-dot" style="background:#c0396b"></span>Checkout Due 12</span>
@@ -1089,7 +1089,7 @@
                     <div class="dc-card-body tight">
                         <div class="mini-stat-row"><span class="lbl">Enquiries</span><span class="val">640</span></div>
                         <div class="progress mb-1" style="height:5px;">
-                            <div class="progress-bar" style="width:100%;background:#2360a5"></div>
+                            <div class="progress-bar" style="width:100%;background:#0d6efd"></div>
                         </div>
                         <div class="mini-stat-row"><span class="lbl">Quotes Sent</span><span class="val">410</span></div>
                         <div class="progress mb-1" style="height:5px;">
@@ -1472,8 +1472,8 @@
                             <tbody id="miniCalBody"></tbody>
                         </table>
                         <div class="d-flex flex-wrap gap-2 mt-1" style="font-size:8.5px;">
-                            <span><span class="legend-dot" style="background:#2360a5"></span>Check-in/out</span>
-                            <span><span class="legend-dot" style="background:#6a3fb5"></span>Banquet</span>
+                            <span><span class="legend-dot" style="background:#0d6efd"></span>Check-in/out</span>
+                            <span><span class="legend-dot" style="background:#0d6efd"></span>Banquet</span>
                             <span><span class="legend-dot" style="background:#c0392b"></span>Holiday</span>
                         </div>
                     </div>
@@ -1637,7 +1637,7 @@
                     val: '81.5',
                     suf: '%',
                     icon: 'fa-percent',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     trend: '+4.2%',
                     up: true,
@@ -1657,7 +1657,7 @@
                     title: 'Occupied Rooms',
                     val: '212',
                     icon: 'fa-bed',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     trend: '+9',
                     up: true,
@@ -1697,7 +1697,7 @@
                     title: 'Expected Check-ins',
                     val: '42',
                     icon: 'fa-right-to-bracket',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     trend: '+6',
                     up: true,
@@ -1717,7 +1717,7 @@
                     title: 'Walk-ins',
                     val: '9',
                     icon: 'fa-person-walking',
-                    color: '#6a3fb5',
+                    color: '#0d6efd',
                     bg: 'var(--violet-soft)',
                     trend: '+2',
                     up: true,
@@ -1808,7 +1808,7 @@
                     val: '6,240',
                     pre: '₹',
                     icon: 'fa-tag',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     trend: '+3.4%',
                     up: true,
@@ -1819,7 +1819,7 @@
                     val: '5,085',
                     pre: '₹',
                     icon: 'fa-chart-simple',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     trend: '+6.1%',
                     up: true,
@@ -1830,7 +1830,7 @@
                     val: '6,110',
                     pre: '₹',
                     icon: 'fa-coins',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     trend: '+1.8%',
                     up: true,
@@ -1870,7 +1870,7 @@
                     title: 'Open Kitchen Orders',
                     val: '14',
                     icon: 'fa-kitchen-set',
-                    color: '#6a3fb5',
+                    color: '#0d6efd',
                     bg: 'var(--violet-soft)',
                     trend: '+3',
                     up: false,
@@ -2045,7 +2045,7 @@
                 },
                 {
                     icon: 'fa-person-walking-arrow-right',
-                    color: '#2360a5',
+                    color: '#0d6efd',
                     bg: 'var(--blue-soft)',
                     text: '<b>12 guests</b> arriving in the next 2 hours.'
                 },
@@ -2057,7 +2057,7 @@
                 },
                 {
                     icon: 'fa-kitchen-set',
-                    color: '#6a3fb5',
+                    color: '#0d6efd',
                     bg: 'var(--violet-soft)',
                     text: 'Kitchen has <b>14 pending KOTs</b> — avg wait 9 min.'
                 },
@@ -2087,7 +2087,7 @@
                 },
                 {
                     icon: 'fa-champagne-glasses',
-                    color: '#6a3fb5',
+                    color: '#0d6efd',
                     bg: 'var(--violet-soft)',
                     text: 'Large banquet (450 pax) scheduled <b>tomorrow, Grand Hall</b>.'
                 },
@@ -2104,7 +2104,7 @@
                     time: '2 min ago'
                 },
                 {
-                    c: '#2360a5',
+                    c: '#0d6efd',
                     icon: 'fa-calendar-plus',
                     t: 'New OTA booking received — Booking.com, 3N',
                     time: '6 min ago'
@@ -2134,13 +2134,13 @@
                     time: '31 min ago'
                 },
                 {
-                    c: '#6a3fb5',
+                    c: '#0d6efd',
                     icon: 'fa-plane-arrival',
                     t: 'OTA alert — Rate parity mismatch on Agoda',
                     time: '40 min ago'
                 },
                 {
-                    c: '#2360a5',
+                    c: '#0d6efd',
                     icon: 'fa-credit-card',
                     t: 'Finance alert — Card settlement batch completed',
                     time: '55 min ago'
@@ -2155,11 +2155,11 @@
             /* ============ Live Activity Timeline ============ */
             const timeline = [{
                     av: 'RK',
-                    c: '#2360a5',
+                    c: '#0d6efd',
                     t: 'Reservation created for Verma family, 2 Aug — 3N',
                     dept: 'Reservations',
                     dc: 'var(--blue-soft)',
-                    dtc: '#2360a5',
+                    dtc: '#0d6efd',
                     time: '10:42 AM'
                 },
                 {
@@ -2182,11 +2182,11 @@
                 },
                 {
                     av: 'HK',
-                    c: '#6a3fb5',
+                    c: '#0d6efd',
                     t: 'Room 118 marked cleaned & inspected',
                     dept: 'Housekeeping',
                     dc: 'var(--violet-soft)',
-                    dtc: '#6a3fb5',
+                    dtc: '#0d6efd',
                     time: '10:24 AM'
                 },
                 {
@@ -2200,11 +2200,11 @@
                 },
                 {
                     av: 'KT',
-                    c: '#2360a5',
+                    c: '#0d6efd',
                     t: 'Kitchen order #4471 fired — Table 12',
                     dept: 'F&B',
                     dc: 'var(--blue-soft)',
-                    dtc: '#2360a5',
+                    dtc: '#0d6efd',
                     time: '10:09 AM'
                 },
                 {
@@ -2246,8 +2246,8 @@
                     26: 'blue'
                 };
                 const colorMap = {
-                    blue: '#2360a5',
-                    violet: '#6a3fb5',
+                    blue: '#0d6efd',
+                    violet: '#0d6efd',
                     red: '#c0392b'
                 };
                 let html = '';
@@ -2386,7 +2386,7 @@
                     datasets: [{
                         label: 'Occupancy %',
                         data: randSeries(75, 10, 14).map(v => Math.min(98, v)),
-                        borderColor: '#2360a5',
+                        borderColor: '#0d6efd',
                         backgroundColor: 'rgba(35,96,165,0.08)',
                         fill: true,
                         tension: .35,
@@ -2502,7 +2502,7 @@
                     labels: ['Direct', 'OTA', 'Corporate', 'Travel Agent'],
                     datasets: [{
                         data: [38, 41, 15, 6],
-                        backgroundColor: ['#2360a5', '#0b7c85', '#b3760a', '#6a3fb5']
+                        backgroundColor: ['#0d6efd', '#0b7c85', '#b3760a', '#0d6efd']
                     }]
                 },
                 options: {
@@ -2522,7 +2522,7 @@
                     labels: ['Rooms', 'F&B', 'Banquet', 'Spa', 'Laundry', 'Other'],
                     datasets: [{
                         data: [18.6, 2.85, 6.2, 1.1, 0.4, 0.6],
-                        backgroundColor: '#2360a5',
+                        backgroundColor: '#0d6efd',
                         borderRadius: 3
                     }]
                 },
@@ -2555,7 +2555,7 @@
                     labels: ['Cash', 'Card', 'UPI', 'Bank Transfer'],
                     datasets: [{
                         data: [18.6, 42.1, 26.3, 11.4],
-                        backgroundColor: ['#1a7f5a', '#2360a5', '#b3760a', '#6a3fb5']
+                        backgroundColor: ['#1a7f5a', '#0d6efd', '#b3760a', '#0d6efd']
                     }]
                 },
                 options: {
@@ -2574,7 +2574,7 @@
                     labels: ['Sunita', 'Ramesh', 'Geeta', 'Manoj', 'Kavita'],
                     datasets: [{
                         data: [28, 24, 31, 19, 26],
-                        backgroundColor: '#6a3fb5',
+                        backgroundColor: '#0d6efd',
                         borderRadius: 3
                     }]
                 },
@@ -2606,7 +2606,7 @@
                     labels: ['India', 'USA', 'UK', 'UAE', 'Others'],
                     datasets: [{
                         data: [58, 12, 10, 8, 12],
-                        backgroundColor: ['#2360a5', '#0b7c85', '#b3760a', '#6a3fb5', '#5b6472']
+                        backgroundColor: ['#0d6efd', '#0b7c85', '#b3760a', '#0d6efd', '#5b6472']
                     }]
                 },
                 options: {
@@ -2722,7 +2722,7 @@
                     labels: ['Rooms', 'F&B', 'Banquet', 'Other'],
                     datasets: [{
                         data: [62, 15, 20, 3],
-                        backgroundColor: ['#2360a5', '#0b7c85', '#6a3fb5', '#b3760a']
+                        backgroundColor: ['#0d6efd', '#0b7c85', '#0d6efd', '#b3760a']
                     }]
                 },
                 options: {

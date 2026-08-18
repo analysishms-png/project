@@ -21,7 +21,7 @@
     {{-- ── Room Selector Card ── --}}
     <div class="card shadow-sm mb-3">
         <div class="card-header border-0 py-3 px-4"
-             style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+             style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
             <div class="row align-items-center g-2">
                 <div class="col-auto">
                     <span class="fw-bold text-white fs-6">
@@ -543,7 +543,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header text-white py-2 px-4"
-                 style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+                 style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
                 <h5 class="modal-title font-weight-bold mb-0">
                     <i class="fa-solid fa-list mr-2"></i>Damage Report Records
                 </h5>

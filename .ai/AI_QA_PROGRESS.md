@@ -73,3 +73,19 @@
 - **Advance-delete chain verified SOUND** (deleteadvancedeposit → paychargelog → report DelAmount): deleted ₹2000 → log row with refdocid → DelAmount=2000, Recon=0, no double counting.
 - **Found & FIXED BUG-QA-012 (P2)**: legacy `deleteguestledger` wrote audit rows without refdocid/amtcr → 466 live ADRES deletions invisible to the report. Fixed (full linkage + vtype-scoped fetch + transaction).
 - New `tests/Feature/AdvanceDeleteAuditTest.php` — 8 tests / 19 assertions (7 pass, 1 live-DB skip). Full suite: **68 passed (165 assertions)**.
+
+## 2026-08-17 — Project verification against .ai docs (per user request)
+Verified key .ai claims against actual code + suite:
+- ✅ Report parity COMPLETE: 24 daybook/journalbook/cashbankbook/generalledger/detailedtrialledger routes; 5 export classes present
+- ✅ HK join fix: 10 leftJoin('hkfloors', 0 inner joins (was dropping all rooms on props w/o floors)
+- ✅ DataTables 2.x vendored + wired (css/js in plugins/datatables2)
+- ✅ PayChargeLogService (rule 10.6): present + used (Banquet 6, Company 3, Reporting 2 refs)
+- ✅ Blue theme: --hms-primary #0d6efd, sidebar #0b5ed7, login 10x blue refs
+- ✅ Page headers: pageheader partial + 38 blades
+- ✅ MasterDataCache: 6 Cache::remember keys
+- ✅ BUG-045: 4x revokeopen(151112) ?? revokeopen(121512); BUG-040: 2x revokeopen(161114); BUG-033: start_srl_no+1; BUG-034: leaderyn == 'Y'; XSS raw output 0
+- ✅ Transactions: AccountPosting begin/commit/rollback active; Banquet 3+ tx blocks; HolidayController auth guard present
+- ✅ HK Command Center real data: housekeeperWorkloads from hkroomassigns (total_assigned/done_count), Unassigned Floor fallback
+- ✅ BUG-043: deletedate writes userupdate audit
+- ✅ flushAvailability wired: Company 9, HouseKeeping 3, RoomController 2, ChannelPublic/Pointofsale/Frontend 1 each
+- ✅ Suite: 68 passed (165 assertions) — matches COMPLETED_TASKS claim

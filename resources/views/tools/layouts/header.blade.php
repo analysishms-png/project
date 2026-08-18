@@ -19,6 +19,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Custom Stylesheet -->
     <link href="{{ asset('admin/css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/plugins/select2/css/select2.min.css') }}" rel="stylesheet">
     <link href="{{ asset('admin/plugins/bootstrap-material-datetimepicker/css/bootstrap-material-datetimepicker.css') }}"
         rel="stylesheet">
     <!-- Color picker plugins css -->
@@ -33,6 +34,7 @@
     <link href="{{ asset('admin/plugins/datatables2/css/responsive.dataTables.min.css') }}" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.3.2/spin.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="{{ asset('admin/plugins/select2/js/select2.full.min.js') }}"></script>
     <script src="{{ asset('admin/plugins/datatables2/js/dataTables.min.js') }}"></script>
     <script src="{{ asset('admin/plugins/datatables2/js/dataTables.bootstrap4.min.js') }}"></script>
     <script src="{{ asset('admin/plugins/datatables2/js/dataTables.buttons.min.js') }}"></script>

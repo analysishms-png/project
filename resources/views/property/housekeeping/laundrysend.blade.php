@@ -27,7 +27,7 @@
 
     {{-- BANNER --}}
     <div class="d-flex align-items-center justify-content-between rounded p-3 mb-3 shadow-sm text-white"
-         style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f) !important;">
+         style="background:linear-gradient(135deg,#0a58ca,#0d6efd) !important;">
         <div>
             <h3 class="mb-0 fw-bold text-white">
                 <i class="fa-solid fa-shirt me-2"></i>Laundry Send
@@ -136,7 +136,7 @@
     {{-- ALL RECORDS TABLE --}}
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-header d-flex justify-content-between align-items-center py-2"
-             style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+             style="background:linear-gradient(135deg,#0a58ca,#0d6efd);">
             <span class="fw-bold text-white small text-uppercase">
                 <i class="fa-solid fa-list me-1"></i>Laundry Send Entries
             </span>

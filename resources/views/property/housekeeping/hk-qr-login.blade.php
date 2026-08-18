@@ -16,7 +16,7 @@
     <style>
         /* Sirf woh jo Bootstrap 5 cover nahi karta */
         .hk-card   { border-radius: 18px; overflow: hidden; }
-        .hk-header { background: linear-gradient(135deg, #1e3a5f, #2d6a9f); }
+        .hk-header { background: linear-gradient(135deg, #0a58ca, #0d6efd); }
 
         .hk-icon {
             width: 64px; height: 64px;
@@ -39,7 +39,7 @@
         }
 
         .btn-hk-login {
-            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            background: linear-gradient(135deg, #0a58ca, #0d6efd);
             border: none; font-weight: 700; letter-spacing: .3px;
             transition: opacity .2s;
         }
@@ -55,8 +55,8 @@
             display: flex; align-items: center; color: #6c757d;
         }
         .ig-input              { border-left: none; }
-        .ig-input:focus        { box-shadow: none; border-color: #2d6a9f; }
-        .ig-wrap:focus-within .ig-icon { border-color: #2d6a9f; }
+        .ig-input:focus        { box-shadow: none; border-color: #0d6efd; }
+        .ig-wrap:focus-within .ig-icon { border-color: #0d6efd; }
 
         .ig-toggle {
             background: #f0f4f8;
@@ -69,7 +69,7 @@
     </style>
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 py-3 px-3"
-      style="background: linear-gradient(145deg, #0f2744 0%, #1a4a7a 60%, #2d6a9f 100%);">
+      style="background: linear-gradient(145deg, #0f2744 0%, #1a4a7a 60%, #0d6efd 100%);">
 
 <div class="hk-card bg-white shadow" style="width:100%; max-width:400px;">
 
