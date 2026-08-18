@@ -392,3 +392,12 @@
 - **TEST**: php -l clean on all 3 files; view:cache compiles; MySQL offline so full suite skipped (no failures).
 - **RISK**: LOW — added guards to previously unguarded methods (fail-closed); date-range fix is read-only view default; upsert fix is more correct behavior (update existing + insert new).
 - **ROLLBACK**: revert the 3 files.
+
+### feat: Guest Management modules — Wake-up Call (GM-01) + Guest Messages (GM-02)
+- **MODULE**: Housekeeping / Guest Management
+- **FILES**: `app/Http/Controllers/HouseKeeping.php` (+14 methods), `app/Models/Guestwakeup.php` (new), `app/Models/Guestmessage.php` (new), `database/migrations/2026_08_18_000001_create_guestwakeup_table.php` (new), `database/migrations/2026_08_18_000002_create_guestmessage_table.php` (new), `resources/views/property/housekeeping/wakeuplist.blade.php` (new), `resources/views/property/housekeeping/printwakeuplist.blade.php` (new), `resources/views/property/housekeeping/guestmessagelist.blade.php` (new), `resources/views/property/housekeeping/printguestmessagelist.blade.php` (new), `routes/company.php` (+12 routes)
+- **CHANGE**: Implemented GM-01 (Wake-up Call Booking): desk screen to book/manage guest wake-up calls linked to in-house rooms (room/guest auto-fill from roomocc, vno sequence, reminder/food-order/other-request flags, date-range list, print). GM-02 (House Guest Messages): desk screen to record/call/deliver messages for in-house guests (caller/telephone/message, status tracking, mark-delivered audit, date-range filter, print). Both follow legacy GuestWakeUp/GuestMessage schema. Read-only before migration.
+- **WHY**: Legacy parity — both modules existed in legacy HMS (FrmGuestWakeUp, FrmHouGuestMsg) and were documented as MISSING in MODULE_STATUS.
+- **TEST**: php -l clean on all 6 files; view:cache compiles; 12 routes registered; MySQL offline so suite skipped (no failures).
+- **RISK**: LOW — purely additive, new tables + CRUD, no existing functionality touched.
+- **ROLLBACK**: remove the 2 models + 2 migrations + 2 controller method groups + 12 routes + 4 views.

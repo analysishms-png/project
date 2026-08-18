@@ -2040,3 +2040,20 @@ Route::get('loadservicefacilities', [HouseKeeping::class, 'servicefacilitiesload
     Route::get('Inspection',          [HouseKeeping::class, 'inspection'])->name('inspection');
     Route::post('fetchinspection',    [HouseKeeping::class, 'fetchinspection'])->name('fetchinspection');
     Route::post('submitinspection',   [HouseKeeping::class, 'submitinspection'])->name('submitinspection');
+
+    // GM-01: Wake-up Call Booking
+    Route::get('wakeuplist', [HouseKeeping::class, 'wakeuplist'])->name('wakeuplist');
+    Route::post('fetchwakeupdata', [HouseKeeping::class, 'fetchwakeupdata'])->name('fetchwakeupdata');
+    Route::get('openwakeupentry', [HouseKeeping::class, 'openwakeupentry'])->name('openwakeupentry');
+    Route::post('submitwakeup', [HouseKeeping::class, 'submitwakeup'])->name('submitwakeup');
+    Route::post('deletewakeup', [HouseKeeping::class, 'deletewakeup'])->name('deletewakeup');
+    Route::get('printwakeuplist', [HouseKeeping::class, 'printwakeuplist'])->name('printwakeuplist');
+
+    // GM-02: House Guest Messages
+    Route::get('guestmessagelist', [HouseKeeping::class, 'guestmessagelist'])->name('guestmessagelist');
+    Route::post('fetchguestmessagedata', [HouseKeeping::class, 'fetchguestmessagedata'])->name('fetchguestmessagedata');
+    Route::get('openguestmessageentry', [HouseKeeping::class, 'openguestmessageentry'])->name('openguestmessageentry');
+    Route::post('submitguestmessage', [HouseKeeping::class, 'submitguestmessage'])->name('submitguestmessage');
+    Route::post('markmessagedelivered', [HouseKeeping::class, 'markmessagedelivered'])->name('markmessagedelivered');
+    Route::post('deleteguestmessage', [HouseKeeping::class, 'deleteguestmessage'])->name('deleteguestmessage');
+    Route::get('printguestmessagelist', [HouseKeeping::class, 'printguestmessagelist'])->name('printguestmessagelist');

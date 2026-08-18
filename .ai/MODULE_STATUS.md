@@ -19,7 +19,7 @@
 | 10 | Room Management | ✅ RoomMast/RoomCat | FrmRoomMast, FrmRoomCatMast | COMPLETE | |
 | 11 | Room Status | ✅ HouseKeeping, property/housekeeping.blade | FrmHouseStatus | COMPLETE | COLLATE workaround perf issue (PERF-06) |
 | 12 | Room Change | ✅ CompanyController | FrmChangeDepart | COMPLETE | |
-| 13 | Housekeeping | ✅ HouseKeeping controller + views | FrmHouseStatus, FrmItemIssuedOnCleaning | COMPLETE | |
+| 13 | Housekeeping | ✅ HouseKeeping controller + views | FrmHouseStatus, FrmItemIssuedOnCleaning, **FrmGuestWakeUp (NEW)**, **FrmHouGuestMsg (NEW)** | COMPLETE | GM-01/02 added 2026-08-18 |
 | 14 | Laundry | ✅ present (inventory-ish) | — | PARTIAL | Verify coverage vs legacy |
 | 15 | Lost & Found | ✅ HouseKeeping lostfound CRUD + register + print | FrmLostFound | COMPLETE | Verified 2026-08-16: lostfoundform/store/list/edit/print/register routes + `property/housekeeping/lostfound.blade.php` + `lostfound` table |
 | 16 | POS | ✅ Pointofsale controller, KOT, kot/ routes | FrmPOS, FrmPOSBillDeletion, FrmPOSRecycleData | COMPLETE | POSBillModificationDatewise/ItemGroupwise — verify parity |

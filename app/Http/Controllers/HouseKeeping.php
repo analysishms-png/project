@@ -11,6 +11,9 @@ use App\Models\RoomMast;
 use App\Models\UpdateLog;
 use App\Models\Companyreg;
 use App\Models\States;
+use App\Models\Guestwakeup;
+use App\Models\Guestmessage;
+use App\Models\RoomOcc;
 // created by ananya
 // created by ananya
 use Exception;
@@ -4625,5 +4628,256 @@ class HouseKeeping extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
+    }
+
+    // ─── GM-01: Wake-up Call Booking ───────────────────────────────────
+
+    public function wakeuplist(Request $request)
+    {
+        $fromdate = $this->ncurdate;
+        return view('property.housekeeping.wakeuplist', [
+            'fromdate' => $fromdate,
+        ]);
+    }
+
+    public function fetchwakeupdata(Request $request)
+    {
+        $fromdate = $request->input('fromdate', $this->ncurdate);
+        $todate = $request->input('todate', $fromdate);
+
+        $data = Guestwakeup::where('propertyid', $this->propertyid)
+            ->whereBetween('wdate', [$fromdate, $todate])
+            ->orderBy('wdate', 'DESC')
+            ->orderBy('vno', 'DESC')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function openwakeupentry(Request $request)
+    {
+        $rooms = DB::table('roomocc')
+            ->where('propertyid', $this->propertyid)
+            ->where('type', 'I')
+            ->leftJoin('room_mast', 'room_mast.code', '=', 'roomocc.roomno')
+            ->leftJoin('roomcat', 'roomcat.code', '=', 'room_mast.roomcat')
+            ->select('roomocc.roomno', 'roomocc.guestprof', 'roomocc.folionodocid', 'roomcat.name as roomcatname')
+            ->orderBy('roomocc.roomno')
+            ->get();
+
+        $nextVno = Guestwakeup::where('propertyid', $this->propertyid)->max('vno') + 1;
+
+        return response()->json([
+            'rooms' => $rooms,
+            'vno' => $nextVno,
+            'wdate' => $this->ncurdate,
+            'wtime' => date('H:i'),
+        ]);
+    }
+
+    public function submitwakeup(Request $request)
+    {
+        $validate = $request->validate([
+            'roomno' => 'required',
+            'wdate' => 'required',
+            'wtime' => 'required',
+        ]);
+
+        try {
+            $vno = Guestwakeup::where('propertyid', $this->propertyid)->max('vno') + 1;
+            $docid = 'WU' . $vno . '|' . date('Y', strtotime($this->ncurdate)) . '|' . $this->propertyid;
+
+            Guestwakeup::create([
+                'propertyid' => $this->propertyid,
+                'docid' => $docid,
+                'vno' => $vno,
+                'roomno' => $request->input('roomno'),
+                'roomcat' => $request->input('roomcat', ''),
+                'extension' => $request->input('extension', ''),
+                'remreqd' => $request->input('remreqd', 'N'),
+                'foodord' => $request->input('foodord', 'N'),
+                'otherreq' => $request->input('otherreq', ''),
+                'wdate' => $request->input('wdate'),
+                'wtime' => $request->input('wtime'),
+                'guestprof' => $request->input('guestprof', ''),
+                'folionodocid' => $request->input('folionodocid', ''),
+                'u_name' => $this->username,
+                'u_entdt' => $this->currenttime,
+                'u_ae' => 'A',
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Wake-up call booked successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function deletewakeup(Request $request)
+    {
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'ID required'], 400);
+        }
+        try {
+            Guestwakeup::where('id', $id)->where('propertyid', $this->propertyid)->delete();
+            return response()->json(['success' => true, 'message' => 'Wake-up call deleted']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function printwakeuplist(Request $request)
+    {
+        $fromdate = $request->input('fromdate', $this->ncurdate);
+        $todate = $request->input('todate', $fromdate);
+
+        $data = Guestwakeup::where('propertyid', $this->propertyid)
+            ->whereBetween('wdate', [$fromdate, $todate])
+            ->orderBy('wdate', 'DESC')
+            ->orderBy('vno', 'DESC')
+            ->get();
+
+        $company = Companyreg::where('propertyid', $this->propertyid)->first();
+
+        return view('property.housekeeping.printwakeuplist', [
+            'data' => $data,
+            'fromdate' => $fromdate,
+            'todate' => $todate,
+            'company' => $company,
+        ]);
+    }
+
+    // ─── GM-02: House Guest Messages ───────────────────────────────────
+
+    public function guestmessagelist(Request $request)
+    {
+        $fromdate = $this->ncurdate;
+        return view('property.housekeeping.guestmessagelist', [
+            'fromdate' => $fromdate,
+        ]);
+    }
+
+    public function fetchguestmessagedata(Request $request)
+    {
+        $fromdate = $request->input('fromdate', $this->ncurdate);
+        $todate = $request->input('todate', $fromdate);
+        $status = $request->input('status', '');
+
+        $query = Guestmessage::where('propertyid', $this->propertyid)
+            ->whereBetween('recddate', [$fromdate, $todate]);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        $data = $query->orderBy('recddate', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function openguestmessageentry(Request $request)
+    {
+        $rooms = DB::table('roomocc')
+            ->where('propertyid', $this->propertyid)
+            ->where('type', 'I')
+            ->leftJoin('room_mast', 'room_mast.code', '=', 'roomocc.roomno')
+            ->leftJoin('roomcat', 'roomcat.code', '=', 'room_mast.roomcat')
+            ->select('roomocc.roomno', 'roomocc.guestprof', 'roomocc.folionodocid', 'roomcat.name as roomcatname')
+            ->orderBy('roomocc.roomno')
+            ->get();
+
+        return response()->json([
+            'rooms' => $rooms,
+            'recddate' => $this->ncurdate,
+            'recdtime' => date('H:i'),
+        ]);
+    }
+
+    public function submitguestmessage(Request $request)
+    {
+        $validate = $request->validate([
+            'roomno' => 'required',
+            'caller' => 'required',
+            'message' => 'required',
+            'recddate' => 'required',
+        ]);
+
+        try {
+            Guestmessage::create([
+                'propertyid' => $this->propertyid,
+                'roomno' => $request->input('roomno'),
+                'roomcat' => $request->input('roomcat', ''),
+                'caller' => $request->input('caller'),
+                'telephone' => $request->input('telephone', ''),
+                'message' => $request->input('message'),
+                'recddate' => $request->input('recddate'),
+                'recdtime' => $request->input('recdtime', date('H:i')),
+                'guestprof' => $request->input('guestprof', ''),
+                'folionodocid' => $request->input('folionodocid', ''),
+                'status' => 'Pending',
+                'u_name' => $this->username,
+                'u_entdt' => $this->currenttime,
+                'u_ae' => 'A',
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Message recorded successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function markmessagedelivered(Request $request)
+    {
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'ID required'], 400);
+        }
+        try {
+            Guestmessage::where('id', $id)
+                ->where('propertyid', $this->propertyid)
+                ->update([
+                    'status' => 'Delivered',
+                    'deliveredby' => $this->username,
+                ]);
+            return response()->json(['success' => true, 'message' => 'Message marked as delivered']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function deleteguestmessage(Request $request)
+    {
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'ID required'], 400);
+        }
+        try {
+            Guestmessage::where('id', $id)->where('propertyid', $this->propertyid)->delete();
+            return response()->json(['success' => true, 'message' => 'Message deleted']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function printguestmessagelist(Request $request)
+    {
+        $fromdate = $request->input('fromdate', $this->ncurdate);
+        $todate = $request->input('todate', $fromdate);
+
+        $data = Guestmessage::where('propertyid', $this->propertyid)
+            ->whereBetween('recddate', [$fromdate, $todate])
+            ->orderBy('recddate', 'DESC')
+            ->get();
+
+        $company = Companyreg::where('propertyid', $this->propertyid)->first();
+
+        return view('property.housekeeping.printguestmessagelist', [
+            'data' => $data,
+            'fromdate' => $fromdate,
+            'todate' => $todate,
+            'company' => $company,
+        ]);
     }
 }
