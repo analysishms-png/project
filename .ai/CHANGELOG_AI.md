@@ -419,3 +419,8 @@
 - **TEST**: 9 new TaxMatcherTest pass; lint + view:cache clean; existing suite 37+9=46 pass.
 - **RISK**: LOW — getGstRate is display-only (e-invoice rate column); posting paths untouched.
 - **ROLLBACK**: revert the 4 files.
+
+### verify: Advance-delete audit end-to-end + stray file cleanup
+- **MODULE**: 7 Reservation / 22 Reporting / 99 Cleanup
+- **CHANGE**: Read-only verification of deleteadvancedeposit → paychargelog → advreconreport chain: audit captures full linkage (refdocid, folionodocid, foliono, amtcr/amtdr, paytype, etc.); reconciliation report correctly reads paychargelog for DelAmount. Deleted 0-byte stray file `resources/views/e = statename();.blade.php` (unreferenced).
+- **TEST**: All existing audit tests pass; lint + view:cache clean.

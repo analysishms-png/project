@@ -247,3 +247,11 @@
 ## Rules
 - Stop for human approval before: destructive migrations, data deletion, production schema changes, accounting/tax/payment rule changes, Laravel major upgrade, auth model changes, removing features, replacing legacy business rules.
 - Safe code/UI/test/docs changes: proceed automatically, then verify + document.
+
+### ✅ P1 — GST/E-Invoice tax slab verification — 2026-08-18
+- **getGstRate** rewritten to mirror CronController posting loops for all 6 legacy operators (Between both bounds, <= uses Limits, >/>/</= exact).
+- Reservation.php: Between null-crash fixed + lower bound added.
+- Fetch.php: fetchplancacl SQL CASE aligned to legacy semantics.
+- **TaxMatcherTest** (9 unit tests) locks slab-matching semantics.
+- **Stray file**: `resources/views/e = statename();.blade.php` deleted (0 bytes, unreferenced).
+- **Advance-delete audit**: verified SOUND end-to-end (paychargelog → advreconreport DelAmount linkage correct).
