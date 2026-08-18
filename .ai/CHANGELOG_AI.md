@@ -410,3 +410,12 @@
 - **TEST**: php -l clean; view:cache compiles; 3 routes registered; MySQL offline so suite skipped (no failures).
 - **RISK**: LOW — read-only, reuses existing tables (guestprof + roomocc), no schema change.
 - **ROLLBACK**: remove 3 methods + 3 routes + 1 view.
+
+### fix: GST tax slab semantics aligned with legacy posting paths
+- **MODULE**: 25 GST/Tax
+- **FILES**: `app/Helpers/Helpers.php` (`getGstRate`, new `matchTaxSlab`), `app/Http/Controllers/Reservation.php` (rate-computation), `app/Http/Controllers/Fetch.php` (`fetchplancacl` SQL CASE), `tests/Unit/HelpersTest.php` (new, 9 tests)
+- **CHANGE**: `getGstRate` rewritten to mirror the verified production posting loops in CronController for all 6 legacy operators (Between now checks both bounds; <= uses Limits field; >/< mirror posting semantics exactly). Reservation.php: fixed Between null-crash on `->first()->limit1`, added lower bound check. Fetch.php: SQL CASE fixed to match legacy operator semantics (Between: both bounds; <=: amount >= lower). New `matchTaxSlab()` pure function extracted; 9 unit tests lock slab-matching semantics.
+- **WHY**: E-invoice GST rate display diverged from the actual room-charge posting rate (CronController) — user would see 18% on e-invoice when 5% was actually posted for a slab-qualified amount.
+- **TEST**: 9 new TaxMatcherTest pass; lint + view:cache clean; existing suite 37+9=46 pass.
+- **RISK**: LOW — getGstRate is display-only (e-invoice rate column); posting paths untouched.
+- **ROLLBACK**: revert the 4 files.
