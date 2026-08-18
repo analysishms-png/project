@@ -383,3 +383,12 @@
 - **COLOR SWEEP**: converted ALL remaining legacy brand colors to the blue family — 9 report blades (#fa65b1 pink scrollbars), index2 legend (violet Inspected, old-blue Occupied), 8 HK screens (#1e3a5f/#2d6a9f → brand), tools quotation (2), HR/extra (7, pink), print/lostfound (#5b21b6), frontend QR outlet page (#e91e63 pink → blue), assignment report print. Semantic colors (green/amber/red status) preserved.
 - **SELECT2 BUG (same class as the DataTables fix)**: 51 views call select2 but the shared layouts never loaded it → `$(...).select2 is not a function` on report pages. Vendored asset already existed (`admin/plugins/select2/`); wired into property/tools/admin layout headers (JS after jQuery, CSS in head) + 3 pages that reload their own jQuery (dailyfunctionsheet, bookinginquirydetail, rewardpointreport).
 - **TEST**: Playwright — all 16 swept pages + 5 select2 pages render with 0 errors; suite 68 passed (165 assertions).
+
+### fix: Report-module permission guards + upsert + date-range fixes (RPT-01..05)
+- **MODULE**: Reporting / Finance
+- **FILES**: `app/Http/Controllers/Reporting.php` (+4 methods guarded, upsert fixed, date range corrected), `app/Http/Controllers/Finance/FinanceController.php` (tdsreport guard uncommented), `resources/views/property/report_bulkcharge.blade.php` (todate variable)
+- **CHANGE**: Fixed RPT-02 (P1): `billreprintsubmit` financial write now guarded with `revokeopen(141115)`. RPT-03: `updatemenuitems`/`updateitemrates` guarded with `revokeopen(141215)`, upsert logic restored (updates existing rates instead of always inserting duplicates). RPT-05: `tdsreport` permission check uncommented. RPT-01: bulk-charge report date range corrected (fromdate = month-ago, todate = today); `$todate` now passed to view. RPT-07: duplicate `revokeopen(141212)` call removed.
+- **WHY**: P1 financial write without permission guard; P2 upsert bug creating duplicate rows; P2 commented-out permission checks.
+- **TEST**: php -l clean on all 3 files; view:cache compiles; MySQL offline so full suite skipped (no failures).
+- **RISK**: LOW — added guards to previously unguarded methods (fail-closed); date-range fix is read-only view default; upsert fix is more correct behavior (update existing + insert new).
+- **ROLLBACK**: revert the 3 files.

@@ -1984,10 +1984,10 @@ class FinanceController extends Controller
 
     public function tdsreport(Request $request)
     {
-        // $permission = revokeopen(111214);
-        // if (is_null($permission) || $permission->view == 0) {
-        //     return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
-        // }
+        $permission = revokeopen(111214);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
 
         $company = $this->company;
 

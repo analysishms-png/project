@@ -96,7 +96,7 @@
                                         <div class="form-group">
                                             <label for="todate" class="col-form-label">To Date <i
                                                     class="fa-regular fa-calendar mb-1"></i></label>
-                                            <input type="date" value="{{ $fromdate }}" class="form-control" name="todate" id="todate">
+                                            <input type="date" value="{{ $todate }}" class="form-control" name="todate" id="todate">
                                         </div>
                                     </div>
 

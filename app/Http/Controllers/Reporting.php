@@ -200,15 +200,12 @@ class Reporting extends Controller
       if (is_null($permission) || $permission->view == 0) {
          return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
       }
-      if ($this->revokeopen(141212)->view == 0) {
-         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
-      }
 
-      $fromdate = $this->ncurdate;
+      $todate = $this->ncurdate;
+      $fromdate = date('Y-m-d', strtotime('-1 month', strtotime($this->ncurdate)));
       $bsource = DB::table('busssource')
          ->where('propertyid', $this->propertyid)
          ->orderBy('name', 'ASC')->get();
-      $todate = date('Y-m-d', strtotime('-1 month', strtotime($this->ncurdate)));
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       $companysub = SubGroup::where('propertyid', $this->propertyid)->whereIn('comp_type', ['Corporate'])
@@ -231,6 +228,7 @@ class Reporting extends Controller
 
       return view('property.report_bulkcharge', [
          'fromdate' => $fromdate,
+         'todate' => $todate,
          'statename' => $statename,
          'company' => $company,
          'bsource' => $bsource,
@@ -1079,6 +1077,10 @@ class Reporting extends Controller
 
    public function billreprintsubmit(Request $request)
    {
+      $permission = revokeopen(141115);
+      if (empty($permission)) {
+         return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+      }
       $validate = $request->validate([
          'billno' => 'required',
          'docid' => 'required',
@@ -5869,6 +5871,10 @@ class Reporting extends Controller
    // Menu Item Rate Report - Load Page
    public function menuitemratereport(Request $request)
    {
+      $permission = revokeopen(141215);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
 
       // Fetch outlets (depart) where nature is 'outlet' or 'room services'
       $outlets = DB::table('depart')
@@ -5981,6 +5987,10 @@ class Reporting extends Controller
 
    public function updatemenuitems(Request $request)
    {
+      $permission = revokeopen(141215);
+      if (is_null($permission) || $permission->view == 0) {
+         return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+      }
       try {
          $items = $request->input('items');
          $outlet = $request->input('outlet');
@@ -6024,6 +6034,10 @@ class Reporting extends Controller
 
    public function updateitemrates(Request $request)
    {
+      $permission = revokeopen(141215);
+      if (is_null($permission) || $permission->view == 0) {
+         return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+      }
       try {
          $items = $request->input('items');
          $outlet = $request->input('outlet');
@@ -6052,47 +6066,47 @@ class Reporting extends Controller
          $insertedCount = 0;
 
          foreach ($items as $item) {
-            // Check if rate exists
-            // $existingRate = DB::table('itemrate')
-            //    ->where('RestCode', $restCode)
-            //    ->where('ItemCode', $item['itemcode'])
-            //    ->first();
-
-            // if ($existingRate) {
-            // Update existing rate
-            // $updated = DB::table('itemrate')
-            //    ->where('RestCode', $restCode)
-            //    ->where('ItemCode', $item['itemcode'])
-            //    ->update([
-            //       'Rate' => $item['rate'],
-            //       'AppDate' => $item['app_date']
-            //    ]);
-
-            // if ($updated) {
-            //    $updatedCount++;
-            // }
-            //} else {
-            // Insert new rate
-            $inserted = DB::table('itemrate')->insert([
-               'RestCode' => $restCode,
-               'ItemCode' => $item['itemcode'],
-               'Rate' => $item['rate'],
-               'AppDate' => $item['app_date'],
-               'Property_ID' => $this->propertyid
-            ]);
-
-            if ($inserted) {
-               $insertedCount++;
+            if (empty($item['itemcode']) || !isset($item['rate']) || !isset($item['app_date'])) {
+               continue;
             }
-            // }
+            $existingRate = DB::table('itemrate')
+               ->where('RestCode', $restCode)
+               ->where('ItemCode', $item['itemcode'])
+               ->where('Property_ID', $this->propertyid)
+               ->first();
+
+            if ($existingRate) {
+               $updated = DB::table('itemrate')
+                  ->where('RestCode', $restCode)
+                  ->where('ItemCode', $item['itemcode'])
+                  ->where('Property_ID', $this->propertyid)
+                  ->update([
+                     'Rate' => $item['rate'],
+                     'AppDate' => $item['app_date']
+                  ]);
+               if ($updated) {
+                  $updatedCount++;
+               }
+            } else {
+               $inserted = DB::table('itemrate')->insert([
+                  'RestCode' => $restCode,
+                  'ItemCode' => $item['itemcode'],
+                  'Rate' => $item['rate'],
+                  'AppDate' => $item['app_date'],
+                  'Property_ID' => $this->propertyid
+               ]);
+               if ($inserted) {
+                  $insertedCount++;
+               }
+            }
          }
 
          $message = '';
-         // if ($updatedCount > 0) {
-         //    $message .= $updatedCount . ' rate(s) updated';
-         // }
+         if ($updatedCount > 0) {
+            $message .= $updatedCount . ' rate(s) updated';
+         }
          if ($insertedCount > 0) {
-            $message .= ($updatedCount > 0 ? ' and ' : '') . $insertedCount . ' rate(s) inserted';
+            $message .= ($message ? ' and ' : '') . $insertedCount . ' rate(s) inserted';
          }
 
          return response()->json([

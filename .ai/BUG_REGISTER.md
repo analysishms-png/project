@@ -202,3 +202,35 @@
 ## Composer Audit (as recorded in .ai, re-verify before acting)
 
 5 of 6 vulnerable packages patched on L10 (dompdf 3.1.6, guzzle 7.15.3, psr7 2.13.0, commonmark 2.9.0, phpspreadsheet 5.9.0). Remaining: **laravel/framework 10.50.2 (EOL)** → requires L12 upgrade (see `.ai/UPGRADE_PLAN.md`). ⚠️ Re-run `composer audit` to confirm current state.
+
+## RPT-02 FIXED — billreprintsubmit financial write without permission guard (2026-08-17)
+- **Severity**: P1
+- **File**: `app/Http/Controllers/Reporting.php:1080`
+- **Fix**: Added `revokeopen(141115)` guard (same permission as the view page) — returns 403 for unauthorized users.
+- **Impact**: Previously any authenticated user could POST to `/billreprintsubmit` and alter `paycharge.amtdr/onamt/billamount`.
+
+## RPT-03 FIXED — updatemenuitems/updateitemrates unguarded + duplicate inserts (2026-08-17)
+- **Severity**: P2
+- **File**: `app/Http/Controllers/Reporting.php:5997,6037`
+- **Fix**: Added `revokeopen(141215)` guard to both methods + menuitemratereport page. Fixed `updateitemrates` upsert: uncommented the update path, added existence check, per-item validation — now updates existing rates instead of always inserting duplicates.
+- **Impact**: Previously every save created duplicate itemrate rows; any authenticated user could modify prices.
+
+## RPT-05 FIXED — tdsreport permission check commented out (2026-08-17)
+- **Severity**: P2
+- **File**: `app/Http/Controllers/Finance/FinanceController.php:1985`
+- **Fix**: Uncommented the `revokeopen(111214)` permission check on the tdsreport page.
+- **Impact**: Previously any authenticated user could open the TDS report page without permission.
+
+## RPT-01 FIXED — bulk-charge report default date range inverted + dead variable + duplicate guard (2026-08-17)
+- **Severity**: P2
+- **File**: `app/Http/Controllers/Reporting.php:197-220`, `resources/views/property/report_bulkcharge.blade.php:99`
+- **Fix**: Swapped fromdate/todate assignments (fromdate = month-ago, todate = today); passed `$todate` to view; view now uses `$todate` for To Date input. Removed duplicate `revokeopen(141212)` call (RPT-07).
+- **Impact**: Default report now shows last 30 days instead of today→today (empty).
+
+## RPT-06 — No fromdate ≤ todate validation (documented, not fixed)
+- **Severity**: P3
+- **Status**: DOCUMENTED — requires adding validation to each report's AJAX handler (shared utility function change). Low priority.
+
+## RPT-08 — Raw CMS content output (documented, not fixed)
+- **Severity**: P3
+- **Status**: DOCUMENTED — stored-XSS review pending for frontend/page.blade.php CMS output.
