@@ -9,27 +9,29 @@
 
             <div class="row justify-content-center">
                 <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-body">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-white font-weight-bold"><i class="fas fa-file-invoice-dollar mr-2"></i>Add Charge Master</h5>
+                        </div>
+                        <div class="card-body p-4">
                             <form class="form" name="chargemasterstoreform" id="chargemasterstoreform"
                                 action="{{ route('chargemasterstore') }}" method="POST">
                                 @csrf
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <label class="col-form-label" for="name">Charge Name</label>
-                                        <input type="text" name="name" id="name" class="form-control" required>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small" for="name">Charge Name</label>
+                                        <input type="text" name="name" id="name" class="form-control form-control-sm" required>
                                         <div id="namelist"></div>
-                                        <span id="name_error" class="text-danger"></span>
+                                        <span id="name_error" class="text-danger small"></span>
                                         @error('name')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-
-                                        <label class="col-form-label" for="nature">Nature Of Charge</label>
-                                        <select id="nature" name="nature" class="form-control">
-                                            <option value="">Select</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small" for="nature">Nature Of Charge</label>
+                                        <select id="nature" name="nature" class="form-control form-control-sm">
+                                            <option value="">Select Nature</option>
                                             <option value="Room Charge">Room Charge</option>
                                             <option value="Meal Charge">Meal Charge</option>
                                             <option value="Laundry Charge">Laundry Charge</option>
@@ -38,36 +40,35 @@
                                             <option value="Vehicle Charge">Vehicle Charge</option>
                                         </select>
                                         @error('nature')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
-
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="col-form-label" for="hsn_code">HSN Code</label>
-                                        <input type="text" name="hsn_code" id="hsn_code" class="form-control">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small" for="hsn_code">HSN Code</label>
+                                        <input type="text" name="hsn_code" id="hsn_code" class="form-control form-control-sm">
                                         @error('hsn_code')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="col-form-label" for="ac_code">Account Name</label>
-                                        <select id="ac_code" name="ac_code" class="form-control" required>
-                                            <option value="">Select</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small" for="ac_code">Account Name</label>
+                                        <select id="ac_code" name="ac_code" class="form-control form-control-sm" required>
+                                            <option value="">Select Account</option>
                                             @foreach ($ledgerdata as $list)
                                                 <option value="{{ $list->sub_code }}">{{ $list->name }}</option>
                                             @endforeach
                                         </select>
                                         @error('ac_code')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-">
-                                        <label class="col-form-label" for="tax_stru">Tax Structure</label>
-                                        <select id="tax_stru" name="tax_stru" class="form-control" required>
-                                            <option value="">Select</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small" for="tax_stru">Tax Structure</label>
+                                        <select id="tax_stru" name="tax_stru" class="form-control form-control-sm" required>
+                                            <option value="">Select Tax Structure</option>
                                             <?php
                                             $uniqueOptions = [];
                                             ?>
@@ -83,196 +84,161 @@
                                             @endforeach
                                         </select>
                                         @error('tax_stru')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-
-                                    <div class="col-md-6">
-                                        <label class="col-form-label" for="seq_no">Seq No</label>
-                                        <input type="text" name="seq_no" id="seq_no" class="form-control">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small" for="seq_no">Seq No</label>
+                                        <input type="text" name="seq_no" id="seq_no" class="form-control form-control-sm">
                                         @error('seq_no')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label for="tax_inc" class="col-form-label">Tax Inclusive</label>
-                                        <select id="tax_inc" name="tax_inc" class="form-control">
-                                            <option value="Y">Yes</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="tax_inc" class="font-weight-bold text-secondary small">Tax Inclusive</label>
+                                        <select id="tax_inc" name="tax_inc" class="form-control form-control-sm">
                                             <option value="Y">Yes</option>
                                             <option value="N">No</option>
                                         </select>
                                         @error('tax_inc')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label for="ac_posting" class="col-form-label">Posting Type</label>
-                                        <select id="ac_posting" name="ac_posting" class="form-control">
-                                            <option value="">Select</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="ac_posting" class="font-weight-bold text-secondary small">Posting Type</label>
+                                        <select id="ac_posting" name="ac_posting" class="form-control form-control-sm">
+                                            <option value="">Select Type</option>
                                             <option value="Detailed">Detailed</option>
                                             <option value="Summarize">Summarize</option>
                                         </select>
                                         @error('ac_posting')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label for="sales_rate" class="col-form-label">Sale Rate</label>
-                                        <input name="sales_rate" class="form-control" class="decimal-input form-visible"
+                                    <div class="col-md-6 mb-3">
+                                        <label for="sales_rate" class="font-weight-bold text-secondary small">Sale Rate</label>
+                                        <input name="sales_rate" class="form-control form-control-sm decimal-input form-visible"
                                             step="0.01" min="0.00" max="9999.99" placeholder="0.00"
                                             oninput="checkNumMax(this, 7);handleDecimalInput(event);" type="text">
                                         @error('sales_rate')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label for="type" class="col-form-label">Type</label>
-                                        <select id="type" name="type" class="form-control">
-                                            <option value="CR">CR</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="type" class="font-weight-bold text-secondary small">Type</label>
+                                        <select id="type" name="type" class="form-control form-control-sm">
                                             <option value="CR">CR</option>
                                             <option value="DR">DR</option>
                                         </select>
                                         @error('type')
-                                            <span class="text-danger"> {{ $message }} </span>
+                                            <span class="text-danger small"> {{ $message }} </span>
                                         @enderror
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="col-form-label" for="active">Active Or Not</label>
-                                        <div class="form-check custom-radio">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="font-weight-bold text-secondary small d-block" for="active">Active Status</label>
+                                        <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" value="Y" name="active"
                                                 id="activeyes" checked>
-                                            <label class="form-check-label" for="activeyes">Active</label>
+                                            <label class="form-check-label small" for="activeyes">Active</label>
                                         </div>
 
-                                        <div class="form-check mt-2 custom-radio">
+                                        <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" value="N" name="active"
                                                 id="activeno">
-                                            <label class="form-check-label" for="activeno">In Active</label>
+                                            <label class="form-check-label small" for="activeno">Inactive</label>
                                         </div>
                                     </div>
-
-                                    {{-- <div class="col-md-6">
-                                        <label for="openingbalance" class="col-form-label">Opening Balance</label>
-                                        <input type="text" class="form-control" name="openingbalance" id="openingbalance">
-                                        <span id="balancebadge" class="font-weight-bold h4 text-center mt-1 balancebadge"></span>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        @include('property.include.subledger')
-                                    </div> --}}
 
                                 </div>
 
-                                <div class="col-7 mt-4 ml-auto">
-                                    <button type="submit" class="btn btn-primary">Submit <i
-                                            class="fa-solid fa-file-export"></i></button>
+                                <div class="text-right mt-3">
+                                    <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm">Submit <i
+                                            class="fa-solid fa-file-export ml-1"></i></button>
                                 </div>
                             </form>
                         </div>
-                        <div class="d-flex gap-2 px-1 pb-2 pt-1">
-                            <button type="button"
-                                onclick="window.location.href='{{ route('chargemaster.export') }}'"
-                                class="btn btn-success btn-sm">Excel</button>
-                            <button type="button"
-                                onclick="window.open('{{ route('printchargemaster') }}','_blank')"
-                                class="btn btn-info btn-sm text-white">Print</button>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 font-weight-bold text-dark"><i class="fas fa-list mr-2"></i>Charge Master List</h5>
+                            <div class="d-flex gap-2">
+                                <button type="button"
+                                    onclick="window.location.href='{{ route('chargemaster.export') }}'"
+                                    class="btn btn-success btn-sm shadow-sm mr-2"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                                <button type="button"
+                                    onclick="window.open('{{ route('printchargemaster') }}','_blank')"
+                                    class="btn btn-info btn-sm text-white shadow-sm"><i class="fas fa-print mr-1"></i> Print</button>
+                            </div>
                         </div>
 
-                        <div class="table-responsive">
-                            <table id="chargemaster"
-                                class="table table-hover table-striped">
-                                <thead class="bg-secondary">
-                                    <tr>
-                                        <th>Sn.</th>
-                                        <th>Name</th>
-                                        <th>Account Name</th>
-                                        <th>Tax Structure Name</th>
-                                        <th>Seq No</th>
-                                        <th>Defined</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php $sn = 1; @endphp
-                                    @foreach ($data as $row)
+                        <div class="card-body p-3">
+                            <div class="table-responsive">
+                                <table id="chargemaster"
+                                    class="table table-hover table-striped table-bordered table-sm" style="font-size:12px; width:100%;">
+                                    <thead class="thead-dark">
                                         <tr>
-                                            <td>{{ $sn }}</td>
-                                            <td>{{ $row->name }}</td>
-                                            <td>{{ $row->subname }}</td>
-                                            <td>{{ $row->taxstruname }}</td>
-                                            <td>{{ $row->seq_no }}</td>
-                                            <td>{{ $row->SysYN == 'Y' ? 'System' : 'User' }}</td>
-                                            <td class="ins">
-                                                <a
-                                                    href="updatechargemaster?sn={{ base64_encode($row->sn) }}&ac_code={{ base64_encode($row->ac_code) }}&rev_code={{ base64_encode($row->rev_code) }}&name={{ base64_encode($row->name) }}">
-                                                    <button
-                                                        class="btn
-                                                    btn-success btn-sm"><i
-                                                            class="fa-regular fa-pen-to-square"></i>Edit
-                                                    </button>
-                                                </a>
-                                                <a
-                                                    href="deletechargemaster?sn={{ base64_encode($row->sn) }}&ac_code={{ base64_encode($row->ac_code) }}&rev_code={{ base64_encode($row->rev_code) }}&name={{ base64_encode($row->name) }}">
-                                                    <button class="btn btn-danger btn-sm"><i
-                                                            class="fa-solid fa-trash"></i>
-                                                        Delete
-                                                    </button>
-                                                </a>
-                                            </td>
+                                            <th>Sn.</th>
+                                            <th>Name</th>
+                                            <th>Account Name</th>
+                                            <th>Tax Structure Name</th>
+                                            <th>Seq No</th>
+                                            <th>Defined</th>
+                                            <th class="text-center">Action</th>
                                         </tr>
-                                        @php $sn++; @endphp
-                                    @endforeach
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        @php $sn = 1; @endphp
+                                        @foreach ($data as $row)
+                                            <tr>
+                                                <td>{{ $sn }}</td>
+                                                <td><b>{{ $row->name }}</b></td>
+                                                <td>{{ $row->subname }}</td>
+                                                <td>{{ $row->taxstruname }}</td>
+                                                <td>{{ $row->seq_no }}</td>
+                                                <td>
+                                                    <span class="badge {{ $row->SysYN == 'Y' ? 'badge-primary' : 'badge-secondary' }}">
+                                                        {{ $row->SysYN == 'Y' ? 'System' : 'User' }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-center ins">
+                                                    <a
+                                                        href="updatechargemaster?sn={{ base64_encode($row->sn) }}&ac_code={{ base64_encode($row->ac_code) }}&rev_code={{ base64_encode($row->rev_code) }}&name={{ base64_encode($row->name) }}" class="btn btn-success btn-sm py-0 px-2 mr-1">
+                                                        <i class="fa-regular fa-pen-to-square"></i> Edit
+                                                    </a>
+                                                    <a
+                                                        href="deletechargemaster?sn={{ base64_encode($row->sn) }}&ac_code={{ base64_encode($row->ac_code) }}&rev_code={{ base64_encode($row->rev_code) }}&name={{ base64_encode($row->name) }}" class="btn btn-danger btn-sm py-0 px-2">
+                                                        <i class="fa-solid fa-trash"></i> Delete
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            @php $sn++; @endphp
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- #/ container -->
     </div>
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
-    {{-- <script src="https://cdn.datatables.net/buttons/3.2.2/js/dataTables.buttons.js"></script>
-    <script src="https://cdn.datatables.net/buttons/3.2.2/js/buttons.html5.js"></script>
-    <script src="https://cdn.datatables.net/buttons/3.2.2/js/buttons.print.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-    <script>
-        $(document).ready(function() {
-    // Destroy if already initialized
-    if ($.fn.DataTable.isDataTable('#chargemaster')) {
-        $('#chargemaster').DataTable().destroy();
-    }
-
-    new DataTable('#chargemaster', {
-        dom: 'Bfrtip',
-        ordering: true,
-        order: [],
-        buttons: [
-            { extend: 'excelHtml5', text: 'Excel' },
-            { extend: 'pdfHtml5',   text: 'PDF'   },
-            { extend: 'print',      text: 'Print' }
-        ]
-    }); --}}
-    </script>
-
 @endsection
 <script>
-    // Business Source Name
-
     document.addEventListener('DOMContentLoaded', function() {
         var name = document.getElementById('name');
         var namelist = document.getElementById('namelist');
         var currentLiIndex = -1;
+        if (!name || !namelist) return;
         name.addEventListener('keydown', function(event) {
             if (event.key === 'ArrowDown') {
                 event.preventDefault();

@@ -47,10 +47,10 @@ use App\Http\Controllers\PythonAuth;
 use App\Http\Controllers\Reservation;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\FrontOffice\RoomStatus;
-use App\Http\Controllers\SmartCard\CardInitializationController;
-use App\Http\Controllers\SmartCard\CardRechargeController;
-use App\Http\Controllers\SmartCard\CardReFundController;
-use App\Http\Controllers\SmartCard\CardRegistrationController;
+// use App\Http\Controllers\SmartCard\CardInitializationController; // REMOVED — stub controller, no implementation
+// use App\Http\Controllers\SmartCard\CardRechargeController; // REMOVED — stub controller, no implementation
+// use App\Http\Controllers\SmartCard\CardReFundController; // REMOVED — stub controller, no implementation
+// use App\Http\Controllers\SmartCard\CardRegistrationController; // REMOVED — stub controller, no implementation
 use App\Http\Controllers\UserController; //created by ananya
 use App\Http\Controllers\WPParameter;
 use Carbon\Cli\Invoker;
@@ -926,9 +926,9 @@ route::post('fetchbilldataledger', [CompanyController::class, 'fetchbilldataledg
 route::get('billprintview', function () {
     return view('property.billprintpdf');
 });
-route::get('testprint', function () {
-    return view('property.testprint');
-});
+// route::get('testprint', function () {
+//     return view('property.testprint');
+// }); // Removed — view was empty placeholder
 // Bill Print Receipt Open 2
 route::get('billreprintview2', function () {
     return view('property.prints.fom.billprintpdf2');
@@ -1685,21 +1685,15 @@ Route::put('/member/facilitymast/updatestore/{code}', [MemberFacilityMasterContr
 // Delete MemberFacility Master
 Route::get('/member/memberfacility/delete/{code}', [MemberFacilityMasterController::class, 'delete'])->name('member.memberfacility.delete');
 // Open Card Initilization
-Route::get('smartcard/cardinitialization', [CardInitializationController::class, 'index'])->name('smartcard.cardinitialization');
-// Submit Smart Card Initilization
-Route::post('smartcard/cardinitialization/store', [CardInitializationController::class, 'store'])->name('smartcard.cardinitialization.store');
-// Open Card Registration
-Route::get('smartcard/cardregistration', [CardRegistrationController::class, 'index'])->name('smartcard.cardregistration');
-// Submit Smart Card Registration
-Route::post('smartcard/cardregistration/store', [CardRegistrationController::class, 'store'])->name('smartcard.cardregistration.store');
-// Open Card Recharge
-Route::get('smartcard/cardrecharge', [CardRechargeController::class, 'index'])->name('smartcard.cardrecharge');
-// Submit Smart Card Recharge
-Route::post('smartcard/cardrecharge/store', [CardRechargeController::class, 'store'])->name('smartcard.cardrecharge.store');
-// Open Card Refund
-Route::get('smartcard/cardrefund', [CardReFundController::class, 'index'])->name('smartcard.cardrefund');
-// // Submit Smart Card Refund
-Route::post('smartcard/cardrefund/store', [CardReFundController::class, 'store'])->name('smartcard.cardrefund.store');
+// REMOVED — Smart Card stubs (no implementation, no model, no DB table)
+// Route::get('smartcard/cardinitialization', ...);
+// Route::post('smartcard/cardinitialization/store', ...);
+// Route::get('smartcard/cardregistration', ...);
+// Route::post('smartcard/cardregistration/store', ...);
+// Route::get('smartcard/cardrecharge', ...);
+// Route::post('smartcard/cardrecharge/store', ...);
+// Route::get('smartcard/cardrefund', ...);
+// Route::post('smartcard/cardrefund/store', ...);
 // Open Public Property Page
 Route::get('hotels/{propertyid}', [HotelsController::class, 'index'])->name('hotels.list');
 // Open Hotel Booking Page

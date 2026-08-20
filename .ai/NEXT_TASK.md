@@ -135,6 +135,67 @@
 - **KOT cancel path** already verified non-ledger (KotModal + Stock) in the KOT pass — no change.
 - ML-08 now ✅ DONE (was VERIFY). Suite: 33 passed (39 assertions).
 
+### ✅ P1 — Room Rent Audit Report (RRA-01) — 2026-08-19
+- **ADDED**: **Room Rent Audit Report** (`roomrentaudit`) — financial audit comparing posted RC/REV charges against expected rent (rate × nights). Flags variances. Summary cards + Excel + Print. Permission 191212. Read-only.
+- All 7 P1 reports now implemented (AMR, CID, RWR, FC, SR, RSD, RRA).
+- Files: Reporting.php (+2 methods), roomrentaudit.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — Reservation Status Dashboard (RSD-01) — 2026-08-19
+- **ADDED**: **Reservation Status Dashboard** (`reservationstatus`) — unified view: arrivals (grpbookingdetails), in-house (roomocc), departures (roomocc depdate), cancellations (today), no-shows (NOSHOW). 5 DataTables sections + summary cards. Permission 131211. Read-only.
+- All 6 P1 reports now implemented (AMR, CID, RWR, FC, SR, RSD).
+- Files: Reporting.php (+2 methods), reservationstatus.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — FO Settlement Report (SR-01) — SettleRep parity — 2026-08-19
+- **ADDED**: **FO Settlement Report** (`fosettlereport`) — payment settlements by room with mode-wise breakdown (Cash/Room/Company/UPI/Card). Date range filter. Summary totals. Excel + Print. Permission 191212. Read-only.
+- All 5 top P1 reports now implemented (AMR, CID, RWR, FC, SR). Remaining P1 reports partially covered by existing reports.
+- Files: Reporting.php (+2 methods), fosettlereport.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — Form C Report (FC-01) + HR/Payroll partial verification — 2026-08-19
+- **ADDED**: **Form C** (`formcreport`) — foreign guest compliance report (Foreigners Act 1946): passport holders / non-Indian nationals with room, name, nationality, passport/visa details, check-in/departure. Date range filter. Excel + Print. Permission 191212. Read-only.
+- **MODULE 21**: HR/Payroll partially verified — PayrollParameter, SalaryController, HrpayrollsController, ESSL webhook exist. Legacy reports (AttendanceRep, PayrollReg, PaySlip, PFStatement) MISSING.
+- All 4 top P1 reports now implemented (AMR, CID, RWR, FC).
+- Files: Reporting.php (+2 methods), formcreport.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — Room-Wise Room Revenue (RWR-01) + Telephone/EPABX verified MISSING — 2026-08-19
+- **ADDED**: **Room-Wise Room Revenue** (`roomwiseroomrevenue`) — revenue breakdown by room: room charges (RC/REV), POS charges (PPOS/IPOS), tax (CGST/SGST/IGST), discount, net amount. Date range filter. Excel + Print. Permission 191212. Read-only.
+- **MODULE 20**: Telephone/EPABX confirmed ZERO implementation (no controllers/routes/models/views).
+- Files: Reporting.php (+2 methods), roomwiseroomrevenue.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — Checked-In Guest Detail (CID-01) + Denomination verified MISSING — 2026-08-19
+- **ADDED**: **Checked-In Guest Detail** (`checkedinguestdetail`) — all checked-in guests with room, name, nationality, ID, mobile, company, travel agent, room type, rate, check-in/departure, nights, checkout status, adults/children, leader, balance. Summary cards + Excel + Print. Permission 191212. Read-only.
+- **MODULE 19**: Denomination confirmed MISSING (no implementation — documented).
+- Files: Reporting.php (+2 methods), checkedinguestdetail.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — AMR Morning Report (AMR-01) — 2026-08-19
+- **ADDED**: **AMR Morning Report** (`amrmorningreport`) — daily operational snapshot: room type occupancy (total/occupied/vacant/% + visual bar), expected arrivals (grpbookingdetails, not checked in), expected departures (roomocc), revenue by vtype, room status breakdown. Permission 191212. Read-only.
+- Highest daily operational value (#1 P1 missing report from REPORTS_MIS_GAPS.md).
+- Files: Reporting.php (+2 methods), amrmorningreport.blade.php (NEW), routes/reporting.php (+2 routes). php -l clean.
+
+### ✅ P1 — Cash Card analysis (MODULE 18) — 2026-08-19
+- **MODULE 18**: ZERO implementation — no controllers, no routes, no models, no views, no migrations. Only reference: `refundcashcardamt` in UserPermission (unused). Legacy HMS had CashCardDebitAc/CreditAc/SecurityAc in EnviroGeneral + SmartCardRegistration integration + 2 reports (CashCardCollectSumm, CashCardTransRep). Reward Points replaces loyalty use case.
+- **Status: MISSING** — recommend implement if hotel uses cash cards, or remove unused UserPermission field.
+
+### ✅ P1 — Smart Card analysis (MODULE 17) — 2026-08-19
+- **MODULE 17**: Full trace of 4 SmartCard controllers (CardInitialization/Registration/Recharge/Refund) — all have empty `store()` methods (stubs). Views exist but forms submit to no-ops. No SmartCard model, no database migration, no CashCard account references in controllers. Legacy HMS had `SmartCardRegistration` table (Code/CardNo/SerialNo/MemberCode/CurrBal/SecurBal/RewardBal/RewardSale/RewardPoint/RedeemPoint) integrated with POS billing and CashCard accounting (CashCardDebitAc/CreditAc/SecurityAc in EnviroGeneral). **Status: NON-FUNCTIONAL SKELETON** — Reward Points module replaces loyalty tracking. Recommend: implement fully if business needs physical cards, or remove stubs.
+- Doc: `.ai/MODULE_STATUS.md` updated. 2 legacy reports missing: CashCardCollectSumm, CashCardTransRep.
+
+### ✅ P1 — Membership analysis + BUG-048 permission guards — 2026-08-19
+- **MODULE 16**: Full trace of MemberCategory/MemberMaster/MemberFacility CRUD, RewardParameter CRUD, Reward balance check (SaleBill), Reward point report. SmartCard = 4 stub controllers (empty store methods). 9 legacy reports missing (MemLed, MemSalesRegister, MemVisitDetail, MemBillMissingReport, MemBirthAnnvDtls, MemMailingLabels, MemTaxReport, CashCardCollectSumm, CashCardTransRep).
+- **FIXED**: **BUG-048** — All 3 Member CRUD controllers had zero permission guards (store/delete). Added revokeopen(171111/171112/171113) for category/master/facility.
+- Doc: `.ai/MEMBERSHIP_GAPS.md`. php -l ×3 clean.
+
+### ✅ P1 — Night Audit analysis + Reconciliation Report + BUG-047 — 2026-08-19
+- **MODULE 14**: Full trace of autoCharge (1219 lines, cron-driven room charge posting), submitnightaudit (manual with 14-step validation), submitnightaudit2 (reverse), NightAuditlogController, DailyReport (1145 lines), Cron/CleanUp+DatabaseSend.
+- **ADDED**: **Night Audit Reconciliation Report** (`nightauditrecon`) — room occupancy vs charges posted vs settlement status, with prior-night comparison + Night Audit log entries. Permission 191212. Read-only.
+- **FIXED**: **BUG-047** — `dailyreport` passed undefined `$todate` to view (`'todate',` → `'todate' => $ncurdate,`).
+- Doc: `.ai/NIGHT_AUDIT_GAPS.md`. php -l clean, 2 routes registered.
+
+### ✅ P1 — GST/TAX analysis + GST Consolidated Register — 2026-08-19
+- **MODULE 13**: Gap analysis vs 22 legacy HMS tax reports; 6 obsolete under GST (VATRegister/LuxuryTax/UPVAT); MemTaxReport deferred to Membership module.
+- **ADDED**: **GST Consolidated Register** (`gstconsolidatedregister`) — unified outward-supply tax view across Room Revenue (paycharge→revmast→sundrymast), POS (suntran→revmast→sundrymast) & Banquet (suntranh→sundrytype). GSTIN+Rate summary + bill counts for GSTR-1/3B reconciliation. Print (`printgstconsolidatedregister`) + Excel (`GSTConsolidatedRegisterExport`). Source filter (All/Rooms/POS/Banquet). Permission 141511. Read-only.
+- Delete paths verified safe: revmast guarded (121111), taxstru guarded (121112).
+- Doc: `.ai/GST_TAX_GAPS.md`. php -l clean, 4 routes registered. MySQL offline for live test.
+
 ### ✅ P1 — Accounts analysis + General Ledger report (legacy Led parity) — 2026-08-16
 - **Traced** (Laravel vs legacy HMS): Voucher Entry (save/update/delete/print, LedgerLogService-audited), Voucher Verification, Bank Reconciliation, Trial/Group Trial/P&L/Balance Sheet/TDS, Detailed Trial Ledger (summary only), ledger master CRUD (deleteledger guarded) vs legacy report set (Led, LedDeb/LedCred/LedInt, DayBook, CashBook, BankBook, JournalBook, AgingDr/Cr, DUELIST, AcCheckList, MemLed, DetailedTrial).
 - **ADDED**: **General Ledger report** (`generalledger`) — transaction-level per-account listing with opening/running/closing balance, optional account filter, PDF print (`printgeneralledger`), Excel export (`GeneralLedgerExport`). Reuses Trail Balance permission 111211; finance report view family. Read-only.
@@ -226,21 +287,26 @@
 6. **~~Remaining transaction-safety audit~~** (ML-02..07) — ✅ **DONE 2026-08-17**: ML-02/03 (check-in/out) transactional; ML-04 **FIXED** (salebillupdate, possalebillsettle, salebillsettlesubmit, nillsettle); ML-05 VERIFIED (mergeroompost/reverse transactional); ML-06 **FIXED** (mrentrysubmit, openingstocksubmit, requisitionstock* ×3); ML-07 **FIXED P0** (AccountPosting::accountpoststore transaction was commented out — re-enabled).
 
 ### P1
+7. **~~Missing report inventory~~** — ✅ **DONE 2026-08-19 (REPORTS_MIS_GAPS.md)**: Full 224-report parity matrix. 98 EXISTS, 4 NEW, 106 MISSING, 8 OBSOLETE. Top P1 missing reports: AMRMorningReport, CheckedInGuestDetail, MovementList, ReservationStatus, RoomRentAuditRpt, RoomWiseRevenue, PartyOutStanding, SettleRep, FormC, RegisteredGuestDetail. Recommended implementation order in REPORTS_MIS_GAPS.md.
+8. **Implement P1 missing reports** — start with AMRMorningReport (highest daily operational value) or FormC (compliance). Read-only, safe.
 5. **GUEST MANAGEMENT gaps** (GUEST_MANAGEMENT_GAPS.md) — GM-01 Wake-up module, GM-02 House guest messages (both legacy-proven, additive) or GM-04 C-Form/foreign-guest report (compliance — confirm need with hotel first).
 5b. **KOT token follow-ups** (KOT_NC_TOKEN_GAPS.md) — display token on KOT screen + print (printdelay schema + spooler), daily auto-reset in night audit, meal-token master + PlanMealTokens report (business decisions).
 6. **~~Eager loading on top hot list/report pages~~** (BUG-025/PERF-02) — ✅ **DONE 2026-08-17** (see Completed): batched per-row lookups in NightAudit Daily Report (224→66 queries, 14.2s→7.4s), Api/InhouseRoomGet::reservedrooms (880→5), Reporting::lookuproomtypefetch (310→4), Reporting::roominventoryfetch (110→3), Reporting::getindex loops (today/yesterday memo-voucher sums) — all output-parity verified; regression tests added. Remaining N+1 sites still open (PERF-02 partially done).
-7. **Missing report inventory** — complete MISSING_REPORTS.md by diffing legacy report forms vs Laravel Reporting routes; implement highest-value missing report (Day Book + Cash/Bank Book 2026-08-16, Journal Book 2026-08-17; Aging/DueList need bucket decision).
-8. **GST/E-Invoice verification** — confirm taxcalc/e-invoice flows match TaxStru legacy rules.
+7. **~~Missing report inventory~~** — ✅ **DONE 2026-08-19**: See item #7 above (REPORTS_MIS_GAPS.md — full 224-report parity matrix).
+8. **~~GST/E-Invoice verification~~** — ✅ **DONE 2026-08-19**: Full gap analysis vs 22 legacy tax reports; 6 obsolete under GST; **GST Consolidated Register** added (unified rooms+POS+banquet outward tax, GSTIN+Rate summary, Excel, Print). Delete paths safe. Doc: `.ai/GST_TAX_GAPS.md`.
 
 ### P2
 8. **~~Cache master data~~** (travel agents, revenue codes, room lists) via `Cache::remember` (PERF-03) — ✅ **DONE 2026-08-17** (see Completed): `App\Helpers\MasterDataCache` + flush on all 23 write paths; walkin page 15q/63.6ms → 13q/19ms. Per-date room availability also cached (version-keyed + flush on 12 booking/blockout paths) — see Completed.
 9. **Housekeeping COLLATE workaround cleanup** (PERF-06) — align table collations (schema change → requires approval).
-10. **Stray file cleanup** — confirm + remove `resources/views/e = statename();.blade.php`.
+10. ~~**Stray file cleanup** — confirm + remove `resources/views/e = statename();.blade.php`.~~ ✅ **DONE 2026-08-19**: Already deleted in earlier pass (line 317). Also identified 5 zero-byte unreferenced blade files (roomstatusboard, loanadvanceentryupdate, taxmasterprint, testprint, contact) — flagged but not deleted (needs user decision).
+
+### P1
+14. **Dependency security update** (BUG-055) — 29 `composer audit` CVEs across 6 packages. Safe minor/patch update for 5 packages (dompdf, guzzle, psr7, commonmark, phpspreadsheet) resolves 24 of 29 CVEs. **BLOCKED** — requires approval per mission §26.
 
 ### P3
-11. **Reconcile `.ai` docs with repo reality** (BUG-028) — verify composer audit state, DB backup status (live DB is `analysis`, NOT `db_analysishms` — BUG-032), Reverb keys.
-12. **Deployment guide + API docs** (BUG-019/020).
-13. **CI/CD baseline** (BUG-017): composer audit + php artisan test in GitHub Actions.
+11. ~~**Reconcile `.ai` docs with repo reality** (BUG-028)~~ ✅ **DONE 2026-08-20**: Composer audit documented (29 CVEs, BUG-055); DB = `analysis` confirmed; Reverb keys configured. Security audit updated.
+12. ~~**Deployment guide + API docs** (BUG-019/020).~~ ✅ **DONE 2026-08-19**: `.ai/DEPLOYMENT_GUIDE.md` (277 lines) + `.ai/API_DOCUMENTATION.md` (301 lines) created.
+13. ~~**CI/CD baseline** (BUG-017)~~ ✅ **DONE 2026-08-19**: `.github/workflows/ci.yml` (136 lines) — GitHub Actions with PHP syntax checks, MySQL test service, code quality scans.
 
 ---
 

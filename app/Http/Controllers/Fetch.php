@@ -1051,6 +1051,10 @@ class Fetch extends Controller
 
     public function channelupdate(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $updatecode = $request->input('updatecode');
         if ($updatecode) {
             $propertyid = 'TqN7Ngtm8X4pAJGSljRI';
@@ -1076,6 +1080,10 @@ class Fetch extends Controller
 
     public function channelupdatederived(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $updatecode = $request->input('updatecode');
         if ($updatecode) {
             $propertyid = 'TqN7Ngtm8X4pAJGSljRI';

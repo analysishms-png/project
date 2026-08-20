@@ -89,6 +89,10 @@ class ChannelPush extends Controller
 
     public function updateinventory(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $validatedData = $request->validate([
             'datefrom' => 'required|date',
             'datetill' => 'required|date',
@@ -172,6 +176,10 @@ class ChannelPush extends Controller
 
     public function channelratesubmit(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $validatedata = $request->validate([
             'datefrom' => 'required|date',
             'datetill' => 'required|date',
@@ -259,6 +267,10 @@ class ChannelPush extends Controller
 
     public function channelderivedsubmit(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $validatedata = $request->validate([
             'datefrom' => 'required|date',
             'datetill' => 'required|date',

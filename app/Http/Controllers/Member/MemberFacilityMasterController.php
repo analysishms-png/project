@@ -186,6 +186,11 @@ class MemberFacilityMasterController extends Controller
 
     public function delete(Request $request, $code)
     {
+        $permission = revokeopen(171113);
+        if (is_null($permission) || $permission->del == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
         try {
             MemberFacilityMast::where('propertyid', $this->propertyid)->where('code', $code)->delete();
 

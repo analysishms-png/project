@@ -1005,6 +1005,10 @@ class CompanyController extends Controller
 
     public function deleteguestledger(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $dataid = $request->input('dataid');
         $datavalue = $request->input('datavalue');
         $reason = $request->input('reason');
@@ -3825,6 +3829,10 @@ class CompanyController extends Controller
 
     public function savegroupaccountentry(Request $request)
     {
+        $permission = revokeopen(122014);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         try {
             $request->validate([
                 'groupname' => 'required',
@@ -3875,6 +3883,10 @@ class CompanyController extends Controller
 
     public function updategroupaccountentry(Request $request)
     {
+        $permission = revokeopen(122014);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         try {
             $request->validate([
                 'groupname' => 'required',
@@ -10994,6 +11006,10 @@ class CompanyController extends Controller
 
     public function submitroomchange(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
         $docid = $request->input('docid');
         $sno = $request->input('sno');
         $sno1 = $request->input('sno1');
@@ -14236,6 +14252,10 @@ class CompanyController extends Controller
 
     public function submitadvcahrge(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validate = $request->validate([
             'charge' => 'required',
             'amount' => 'required',
@@ -17359,6 +17379,10 @@ class CompanyController extends Controller
 
     public function updateGuestLedgerAdvanceEntry(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validated = $request->validate([
             'docid' => 'required|string',
             'sno' => 'required|integer',
@@ -19647,6 +19671,10 @@ class CompanyController extends Controller
 
     public function deleteadvancedeposit($docid, $vno)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
         $rows = Paycharge::where('docid', $docid)->where('vno', $vno)->get();
 
         if ($rows->isEmpty()) {

@@ -1,0 +1,139 @@
+{
+  "RoomStays": [
+    {
+      "RoomTypes": [
+        {
+          "RoomDescription": {
+            "Name": "Cottage with Garden view"
+          },
+          "NumberOfUnits": 1,
+          "RoomTypeCode": "42916"
+        }
+      ],
+      "RatePlans": [
+        {
+          "RatePlanCode": "21201",
+          "RatePlanName": "EP(SG)"
+        }
+      ],
+      "GuestCounts": [
+        {
+          "AgeQualifyingCode": "10",
+          "Count": 1
+        },
+        {
+          "AgeQualifyingCode": "8",
+          "Count": 0
+        }
+      ],
+      "TimeSpan": {
+        "Start": "2025-12-01",
+        "End": "2025-12-02"
+      },
+      "RoomRates": [
+        {
+          "Base": {
+            "AmountBeforeTax": "1500.00",
+            "AmountAfterTax": "180.00"
+          },
+          "EffectiveDate": "2025-12-01"
+        }
+      ],
+      "Total": {
+        "AmountBeforeTax": "1500.00",
+        "AmountAfterTax": "180.00"
+      }
+    }
+  ],
+  "ResGuests": [
+    {
+      "Customer": {
+        "PersonName": {
+          "NamePrefix": "Mr.",
+          "GivenName": "demo",
+          "Surname": ""
+        },
+        "Telephone": {
+          "PhoneNumber": "9648479977"
+        },
+        "Email": null,
+        "Address": {
+          "AddressLine": [
+            "",
+            ""
+          ],
+          "CityName": "ALWAR",
+          "PostalCode": "0",
+          "StateProv": "RAJASTHAN",
+          "CountryName": "INDIA"
+        }
+      },
+      "PrimaryIndicator": "1"
+    }
+  ],
+  "ResGlobalInfo": {
+    "UniqueID": {
+      "ID": "13510015"
+    },
+    "BasicPropertyInfo": {
+      "HotelCode": 30405,
+      "HotelName": "The Corbett Sappire Resort"
+    },
+    "Source": {
+      "RequestorID": {
+        "ID": "EXT_PMS_CODE",
+        "Type": "ChannelManager"
+      },
+      "BookingChannel": {
+        "Type": "OTA",
+        "CompanyName": "EXT PMS NAME",
+        "CompanyCode": ""
+      }
+    },
+    "CreateDateTime": "2025-11-29T15:49:59",
+    "ResStatus": "Commit",
+    "TimeSpan": {
+      "Start": "2025-12-01",
+      "End": "2025-12-02"
+    },
+    "GuestCounts": [
+      {
+        "AgeQualifyingCode": "10",
+        "Count": 1
+      },
+      {
+        "AgeQualifyingCode": "8",
+        "Count": 0
+      }
+    ],
+    "Total": {
+      "OtherCharges": [
+        {
+          "ChargeDesc": "Airport Pickup",
+          "AmountBeforeTax": 0,
+          "AmountAfterTax": 0
+        },
+        {
+          "ChargeDesc": "Airport Drop",
+          "AmountBeforeTax": 0,
+          "AmountAfterTax": 0
+        }
+      ],
+      "Taxes": {
+        "Tax": {
+          "Amount": "-1320.00"
+        }
+      },
+      "AmountBeforeTax": "1500.00",
+      "AmountAfterTax": "180.00",
+      "CurrencyCode": "INR"
+    },
+    "PaymentTypeInfo": {
+      "PaymentType": "PayAtHotel",
+      "PartialPaymentAmount": 0
+    },
+    "SpecialRequests": [
+      ""
+    ]
+  }
+}

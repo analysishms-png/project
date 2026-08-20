@@ -82,6 +82,10 @@ class FinanceEnviro extends Controller
 
     public function voucherentryupdate(Request $request)
     {
+        $permission = revokeopen(111111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $vouchertype = $request->input('vouchertype');
         $data = VoucherType::where('propertyid', $this->propertyid)
             ->where('v_type', $vouchertype)

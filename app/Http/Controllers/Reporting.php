@@ -3604,7 +3604,7 @@ class Reporting extends Controller
          'departs' => $departs,
          'items' => $items,
          'taxes' => $taxes,
-         'todate',
+         'todate' => $ncurdate,
          'statename' => $statename
       ]);
    }
@@ -6408,5 +6408,2929 @@ class Reporting extends Controller
          return 'From Date cannot be greater than To Date.';
       }
       return null;
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // GST Consolidated Register — unified outward-supply tax view
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function gstconsolidatedregister(Request $request)
+   {
+      $permission = revokeopen(141511);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+
+      $fromdate = $this->ncurdate;
+      $company  = Companyreg::where('propertyid', $this->propertyid)->first();
+
+      return view('property.gstconsolidatedregister', [
+         'fromdate'  => $fromdate,
+         'company'   => $company,
+      ]);
+   }
+
+   public function gstconsolidatedregisterfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fromdate   = $request->input('fromdate');
+      $todate     = $request->input('todate');
+      $source     = $request->input('source', 'all'); // all|rooms|pos|banquet
+
+      if (!$fromdate || !$todate) {
+         return response()->json(['message' => 'From and To dates required.'], 422);
+      }
+
+      $cgstCode = 'CGSS' . $propertyid;
+      $sgstCode = 'SGSS' . $propertyid;
+      $igstCode = 'IGSS' . $propertyid;
+
+      $results = [];
+
+      // ── 1. ROOM REVENUE (paycharge + revmast → sundrymast) ──────────────
+      if (in_array($source, ['all', 'rooms'])) {
+         $roomRows = DB::table('paycharge AS P')
+            ->leftJoin('revmast AS R', 'P.paycode', '=', 'R.rev_code')
+            ->leftJoin('sundrymast AS SM', 'R.sundry', '=', 'SM.sundry_code')
+            ->leftJoin('guestfolio AS GF', 'P.folionodocid', '=', 'GF.DocId')
+            ->leftJoin('subgroup AS SG', 'GF.Company', '=', 'SG.sub_code')
+            ->select(
+               DB::raw("'Room Revenue' AS Source"),
+               'P.foliono AS BillNo',
+               'P.settledate AS VDate',
+               DB::raw("TRIM(IFNULL(SG.GSTIN,'')) AS GSTIN"),
+               DB::raw("TRIM(IFNULL(SG.Name,'')) AS PartyName"),
+               DB::raw('P.foliono AS VNo'),
+               'P.onamt AS BaseValue',
+               'P.taxper AS TaxPer',
+               DB::raw(
+                  "SUM(CASE WHEN SM.nature='CGST' THEN P.amtdr-P.amtcr ELSE 0 END) AS CGSTAmt"
+               ),
+               DB::raw(
+                  "SUM(CASE WHEN SM.nature='SGST' THEN P.amtdr-P.amtcr ELSE 0 END) AS SGSTAmt"
+               ),
+               DB::raw(
+                  "SUM(CASE WHEN SM.nature='IGST' THEN P.amtdr-P.amtcr ELSE 0 END) AS IGSTAmt"
+               ),
+               DB::raw('SUM(P.amtdr-P.amtcr) AS NetAmt')
+            )
+            ->where('P.propertyid', $propertyid)
+            ->where('P.roomtype', 'RO')
+            ->whereNotIn('P.vtype', ['ARRES', 'ADRES'])
+            ->whereBetween('P.settledate', [$fromdate, $todate])
+            ->whereRaw('(P.amtdr - P.amtcr) <> 0')
+            ->where('P.foliono', '<>', 0)
+            ->where(function ($q) {
+               $q->where('P.billno', '<>', 0)->orWhereNull('P.modeset');
+            })
+            ->where(function ($q) use ($cgstCode, $sgstCode, $igstCode) {
+               $q->whereIn('P.paycode', [
+                  DB::raw("'{$cgstCode}'"),
+                  DB::raw("'{$sgstCode}'"),
+                  DB::raw("'{$igstCode}'")
+               ]);
+            })
+            ->groupBy('P.foliono', 'P.settledate', 'P.folionodocid', 'P.onamt', 'P.taxper')
+            ->havingRaw('ABS(CGSTAmt + SGSTAmt + IGSTAmt) > 0')
+            ->get();
+
+         foreach ($roomRows as $r) {
+            $results[] = [
+               'Source'    => 'Room',
+               'BillNo'    => $r->BillNo,
+               'VDate'     => $r->VDate,
+               'GSTIN'     => $r->GSTIN,
+               'PartyName' => $r->PartyName,
+               'BaseValue' => (float) $r->BaseValue,
+               'TaxPer'    => (float) $r->TaxPer,
+               'CGSTAmt'   => (float) $r->CGSTAmt,
+               'SGSTAmt'   => (float) $r->SGSTAmt,
+               'IGSTAmt'   => (float) $r->IGSTAmt,
+               'TotalTax'  => (float) ($r->CGSTAmt + $r->SGSTAmt + $r->IGSTAmt),
+               'NetAmt'    => (float) $r->NetAmt,
+            ];
+         }
+      }
+
+      // ── 2. POS — SUNTRAN (tax lines per docid) ─────────────────────────
+      if (in_array($source, ['all', 'pos'])) {
+         $posTax = DB::table('suntran AS ST')
+            ->join('revmast AS R', 'ST.revcode', '=', 'R.rev_code')
+            ->join('sundrymast AS SM', 'R.sundry', '=', 'SM.sundry_code')
+            ->join('sale1 AS S1', 'ST.docid', '=', 'S1.DocId')
+            ->leftJoin('subgroup AS SG', 'S1.party', '=', 'SG.sub_code')
+            ->select(
+               DB::raw("'POS' AS Source"),
+               'S1.VNo AS BillNo',
+               'ST.vdate AS VDate',
+               DB::raw("TRIM(IFNULL(SG.GSTIN,'')) AS GSTIN"),
+               DB::raw("TRIM(IFNULL(SG.Name,'')) AS PartyName"),
+               'ST.baseamount AS BaseValue',
+               'ST.svalue AS TaxPer',
+               DB::raw(
+                  "SUM(CASE WHEN SM.nature='CGST' THEN ST.amount ELSE 0 END) AS CGSTAmt"
+               ),
+               DB::raw(
+                  "SUM(CASE WHEN SM.nature='SGST' THEN ST.amount ELSE 0 END) AS SGSTAmt"
+               ),
+               DB::raw(
+                  "SUM(CASE WHEN SM.nature='IGST' THEN ST.amount ELSE 0 END) AS IGSTAmt"
+               ),
+               'S1.NetAmt AS NetAmt'
+            )
+            ->where('ST.propertyid', $propertyid)
+            ->where('ST.delflag', 'N')
+            ->whereBetween('ST.vdate', [$fromdate, $todate])
+            ->where('R.field_type', 'T')
+            ->where(function ($q) use ($cgstCode, $sgstCode, $igstCode) {
+               $q->whereIn('R.rev_code', [
+                  DB::raw("'{$cgstCode}'"),
+                  DB::raw("'{$sgstCode}'"),
+                  DB::raw("'{$igstCode}'")
+               ]);
+            })
+            ->groupBy('ST.docid', 'ST.baseamount', 'ST.svalue', 'S1.VNo', 'S1.VDate', 'S1.NetAmt', 'SG.GSTIN', 'SG.Name')
+            ->havingRaw('ABS(CGSTAmt + SGSTAmt + IGSTAmt) > 0')
+            ->get();
+
+         foreach ($posTax as $r) {
+            $results[] = [
+               'Source'    => 'POS',
+               'BillNo'    => $r->BillNo,
+               'VDate'     => $r->VDate,
+               'GSTIN'     => $r->GSTIN,
+               'PartyName' => $r->PartyName,
+               'BaseValue' => (float) $r->BaseValue,
+               'TaxPer'    => (float) $r->TaxPer,
+               'CGSTAmt'   => (float) $r->CGSTAmt,
+               'SGSTAmt'   => (float) $r->SGSTAmt,
+               'IGSTAmt'   => (float) $r->IGSTAmt,
+               'TotalTax'  => (float) ($r->CGSTAmt + $r->SGSTAmt + $r->IGSTAmt),
+               'NetAmt'    => (float) $r->NetAmt,
+            ];
+         }
+      }
+
+      // ── 3. BANQUET — SUNTRANH (tax lines via sundrytype) ───────────────
+      if (in_array($source, ['all', 'banquet'])) {
+         $banqTax = DB::table('suntranh AS SH')
+            ->join('sundrytype AS ST', function ($j) use ($propertyid) {
+               $j->on('SH.revcode', '=', 'ST.rev_code')
+                  ->where('ST.vtype', "BANQ{$propertyid}")
+                  ->where('ST.propertyid', $propertyid);
+            })
+            ->leftJoin('hallbook AS HB', 'SH.docid', '=', 'HB.DocId')
+            ->leftJoin('subgroup AS SG', 'HB.PartyCode', '=', 'SG.sub_code')
+            ->select(
+               DB::raw("'Banquet' AS Source"),
+               'HB.VNo AS BillNo',
+               'SH.vdate AS VDate',
+               DB::raw("TRIM(IFNULL(SG.GSTIN,'')) AS GSTIN"),
+               DB::raw("TRIM(IFNULL(SG.Name,'')) AS PartyName"),
+               'SH.baseamount AS BaseValue',
+               'SH.svalue AS TaxPer',
+               DB::raw(
+                  "SUM(CASE WHEN ST.nature='CGST' THEN SH.amount ELSE 0 END) AS CGSTAmt"
+               ),
+               DB::raw(
+                  "SUM(CASE WHEN ST.nature='SGST' THEN SH.amount ELSE 0 END) AS SGSTAmt"
+               ),
+               DB::raw(
+                  "SUM(CASE WHEN ST.nature='IGST' THEN SH.amount ELSE 0 END) AS IGSTAmt"
+               ),
+               'HB.NetAmt AS NetAmt'
+            )
+            ->where('SH.propertyid', $propertyid)
+            ->where('SH.delflag', 'N')
+            ->whereBetween('SH.vdate', [$fromdate, $todate])
+            ->where(function ($q) {
+               $q->where('SH.svalue', '>', 0)
+                  ->where('SH.amount', '>', 0);
+            })
+            ->groupBy('SH.docid', 'SH.baseamount', 'SH.svalue', 'HB.VNo', 'HB.VDate', 'HB.NetAmt', 'SG.GSTIN', 'SG.Name')
+            ->havingRaw('ABS(CGSTAmt + SGSTAmt + IGSTAmt) > 0')
+            ->get();
+
+         foreach ($banqTax as $r) {
+            $results[] = [
+               'Source'    => 'Banquet',
+               'BillNo'    => $r->BillNo,
+               'VDate'     => $r->VDate,
+               'GSTIN'     => $r->GSTIN,
+               'PartyName' => $r->PartyName,
+               'BaseValue' => (float) $r->BaseValue,
+               'TaxPer'    => (float) $r->TaxPer,
+               'CGSTAmt'   => (float) $r->CGSTAmt,
+               'SGSTAmt'   => (float) $r->SGSTAmt,
+               'IGSTAmt'   => (float) $r->IGSTAmt,
+               'TotalTax'  => (float) ($r->CGSTAmt + $r->SGSTAmt + $r->IGSTAmt),
+               'NetAmt'    => (float) $r->NetAmt,
+            ];
+         }
+      }
+
+      // ── SUMMARY ────────────────────────────────────────────────────────
+      $summary = [];
+      foreach ($results as $row) {
+         $key = ($row['GSTIN'] ?: 'UNREGISTERED') . '|' . $row['TaxPer'];
+         if (!isset($summary[$key])) {
+            $summary[$key] = [
+               'GSTIN'     => $row['GSTIN'] ?: 'UNREGISTERED',
+               'TaxPer'    => $row['TaxPer'],
+               'BaseValue' => 0,
+               'CGSTAmt'   => 0,
+               'SGSTAmt'   => 0,
+               'IGSTAmt'   => 0,
+               'TotalTax'  => 0,
+               'BillCount' => 0,
+            ];
+         }
+         $summary[$key]['BaseValue'] += $row['BaseValue'];
+         $summary[$key]['CGSTAmt']   += $row['CGSTAmt'];
+         $summary[$key]['SGSTAmt']   += $row['SGSTAmt'];
+         $summary[$key]['IGSTAmt']   += $row['IGSTAmt'];
+         $summary[$key]['TotalTax']  += $row['TotalTax'];
+         $summary[$key]['BillCount']++;
+      }
+      usort($summary, fn($a, $b) => strcmp($a['GSTIN'], $b['GSTIN']) ?: $a['TaxPer'] <=> $b['TaxPer']);
+
+      // grand total
+      $grand = ['BaseValue' => 0, 'CGSTAmt' => 0, 'SGSTAmt' => 0, 'IGSTAmt' => 0, 'TotalTax' => 0];
+      foreach ($summary as $s) {
+         $grand['BaseValue'] += $s['BaseValue'];
+         $grand['CGSTAmt']   += $s['CGSTAmt'];
+         $grand['SGSTAmt']   += $s['SGSTAmt'];
+         $grand['IGSTAmt']   += $s['IGSTAmt'];
+         $grand['TotalTax']  += $s['TotalTax'];
+      }
+
+      return response()->json([
+         'data'    => $results,
+         'summary' => $summary,
+         'grand'   => $grand,
+      ]);
+   }
+
+   public function printgstconsolidatedregister(Request $request)
+   {
+      $data = $this->gstconsolidatedregisterfetch($request);
+      if ($data instanceof \Illuminate\Http\JsonResponse) {
+         $payload = $data->getData(true);
+      } else {
+         return $data; // redirect/error
+      }
+
+      $company  = Companyreg::where('propertyid', $this->propertyid)->first();
+      $statename = '';
+      if ($company) {
+         $statename = DB::table('states')
+            ->where('propertyid', $this->propertyid)
+            ->where('state_code', $company->state_code)
+            ->value('name') ?? '';
+      }
+
+      return view('property.print.printgstconsolidatedregister', [
+         'data'      => $payload['data'] ?? [],
+         'summary'   => $payload['summary'] ?? [],
+         'grand'     => $payload['grand'] ?? [],
+         'company'   => $company,
+         'statename' => $statename,
+         'fromdate'  => $request->input('fromdate'),
+         'todate'    => $request->input('todate'),
+         'source'    => $request->input('source', 'all'),
+      ]);
+   }
+
+   public function exportgstconsolidatedregister(Request $request)
+   {
+      $data = $this->gstconsolidatedregisterfetch($request);
+      if ($data instanceof \Illuminate\Http\JsonResponse) {
+         $payload = $data->getData(true);
+      } else {
+         return $data;
+      }
+
+      $companyName = Companyreg::where('propertyid', $this->propertyid)->value('comp_name') ?? '';
+      $export = new \App\Exports\GSTConsolidatedRegisterExport(
+         $this->propertyid,
+         $companyName,
+         $request->input('fromdate'),
+         $request->input('todate'),
+         $payload['data'] ?? [],
+         $payload['summary'] ?? [],
+         $payload['grand'] ?? [],
+      );
+
+      return $export->download();
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Night Audit Reconciliation Report
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function nightauditrecon(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+
+      $ncurdate = $this->ncurdate;
+      $company  = Companyreg::where('propertyid', $this->propertyid)->first();
+
+      return view('property.nightauditrecon', [
+         'fordate'  => $ncurdate,
+         'company'  => $company,
+      ]);
+   }
+
+   public function nightauditreconfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fordate    = $request->input('fordate');
+
+      if (!$fordate) {
+         return response()->json(['message' => 'Date required.'], 422);
+      }
+
+      $prevdate = date('Y-m-d', strtotime($fordate . ' -1 day'));
+
+      // ── 1. ROOM OCCUPANCY SNAPSHOT ──────────────────────────────────────
+      $occupancy = DB::table('roomocc AS ro')
+         ->select(
+            'ro.roomno',
+            'ro.name AS guestname',
+            'ro.roomcat',
+            'ro.roomtype',
+            'ro.roomrate',
+            'ro.chkindate',
+            'ro.depdate',
+            DB::raw('IFNULL(ro.chkoutdate, \'ACTIVE\') AS chkoutstatus')
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.chkindate', '<=', $fordate)
+         ->where(function ($q) use ($fordate) {
+            $q->whereNull('ro.chkoutdate')
+              ->orWhere('ro.chkoutdate', '>', $fordate);
+         })
+         ->orderBy('ro.roomno')
+         ->get();
+
+      $totalRooms    = $occupancy->count();
+      $activeGuests  = $occupancy->filter(fn($r) => $r->chkoutstatus === 'ACTIVE')->count();
+      $checkedOut    = $totalRooms - $activeGuests;
+
+      // ── 2. CHARGES POSTED FOR THE DATE ──────────────────────────────────
+      $charges = DB::table('paycharge AS P')
+         ->select(
+            'P.vtype',
+            DB::raw('COUNT(DISTINCT P.docid) AS billcount'),
+            DB::raw('SUM(P.amtdr - P.amtcr) AS netamount'),
+            DB::raw('SUM(P.amtdr) AS totaldr'),
+            DB::raw('SUM(P.amtcr) AS totalcr')
+         )
+         ->where('P.propertyid', $propertyid)
+         ->where('P.vdate', $fordate)
+         ->whereRaw('(P.amtdr - P.amtcr) <> 0')
+         ->groupBy('P.vtype')
+         ->orderByDesc('netamount')
+         ->get();
+
+      $revenueByType = [];
+      foreach ($charges as $c) {
+         $revenueByType[] = [
+            'vtype'      => $c->vtype,
+            'billcount'  => (int) $c->billcount,
+            'netamount'  => (float) $c->netamount,
+            'totaldr'    => (float) $c->totaldr,
+            'totalcr'    => (float) $c->totalcr,
+         ];
+      }
+
+      $totalRevenue = $charges->sum('netamount');
+
+      // ── 3. SETTLEMENT STATUS ────────────────────────────────────────────
+      $unsettled = DB::table('paycharge AS P')
+         ->join('roomocc AS ro', function ($j) use ($propertyid) {
+            $j->on('P.folionodocid', '=', 'ro.docid')
+               ->where('ro.propertyid', $propertyid)
+               ->whereNull('ro.type');
+         })
+         ->select(
+            'ro.roomno',
+            'ro.name AS guestname',
+            DB::raw('SUM(P.amtdr - P.amtcr) AS balance')
+         )
+         ->where('P.propertyid', $propertyid)
+         ->where('P.vdate', '<=', $fordate)
+         ->where('P.foliono', '<>', 0)
+         ->where(function ($q) {
+            $q->where('P.billno', '<>', 0)->orWhereNull('P.modeset');
+         })
+         ->groupBy('P.folionodocid', 'ro.roomno', 'ro.name')
+         ->havingRaw('ABS(SUM(P.amtdr - P.amtcr)) > 0.01')
+         ->orderByDesc('balance')
+         ->get();
+
+      // ── 4. COMPARISON WITH PRIOR NIGHT ──────────────────────────────────
+      $prevCharges = DB::table('paycharge')
+         ->selectRaw('SUM(amtdr - amtcr) AS total')
+         ->where('propertyid', $propertyid)
+         ->where('vdate', $prevdate)
+         ->whereRaw('(amtdr - amtcr) <> 0')
+         ->value('total') ?? 0;
+
+      $prevOccupied = DB::table('roomocc')
+         ->where('propertyid', $propertyid)
+         ->whereNull('type')
+         ->where('chkindate', '<=', $prevdate)
+         ->where(function ($q) use ($prevdate) {
+            $q->whereNull('chkoutdate')
+              ->orWhere('chkoutdate', '>', $prevdate);
+         })
+         ->count();
+
+      // ── 5. NIGHT AUDIT LOG ENTRIES ──────────────────────────────────────
+      $naLog = DB::table('nightauditlog')
+         ->where('propertyid', $propertyid)
+         ->where('ncurdate', $fordate)
+         ->orderBy('u_entdt')
+         ->get(['narration', 'u_name', 'u_entdt']);
+
+      return response()->json([
+         'occupancy' => [
+            'total'   => $totalRooms,
+            'active'  => $activeGuests,
+            'co'      => $checkedOut,
+            'rooms'   => $occupancy,
+         ],
+         'revenue' => [
+            'bytype'  => $revenueByType,
+            'total'   => $totalRevenue,
+         ],
+         'unsettled' => $unsettled,
+         'prev' => [
+            'revenue'   => (float) $prevCharges,
+            'occupied'  => $prevOccupied,
+         ],
+         'nalog' => $naLog,
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // AMR Morning Report
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function amrmorningreport(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.amrmorningreport', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function amrmorningreportfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fordate    = $request->input('fordate');
+      if (!$fordate) return response()->json(['message' => 'Date required.'], 422);
+
+      // ── 1. ROOM TYPE OCCUPANCY ──────────────────────────────────────
+      $roomTypes = DB::table('room_cat')
+         ->where('propertyid', $propertyid)
+         ->orderBy('cat_code')
+         ->get(['cat_code', 'name', 'noofrooms']);
+
+      $occupancyByType = [];
+      foreach ($roomTypes as $rt) {
+         $occupied = DB::table('roomocc')
+            ->where('propertyid', $propertyid)
+            ->whereNull('type')
+            ->where('roomcat', $rt->cat_code)
+            ->where('chkindate', '<=', $fordate)
+            ->where(function ($q) use ($fordate) {
+               $q->whereNull('chkoutdate')->orWhere('chkoutdate', '>', $fordate);
+            })->count();
+         $total = (int) ($rt->noofrooms ?? 0);
+         $occupancyByType[] = [
+            'category' => $rt->name,
+            'total'    => $total,
+            'occupied' => $occupied,
+            'vacant'   => $total - $occupied,
+            'occ_pct'  => $total > 0 ? round($occupied / $total * 100, 1) : 0,
+         ];
+      }
+
+      $totalRooms = array_sum(array_column($occupancyByType, 'total'));
+      $totalOccupied = array_sum(array_column($occupancyByType, 'occupied'));
+      $overallOccPct = $totalRooms > 0 ? round($totalOccupied / $totalRooms * 100, 1) : 0;
+
+      // ── 2. ROOM STATUS BREAKDOWN ────────────────────────────────────
+      $roomStatus = DB::table('room_mast')
+         ->where('propertyid', $propertyid)
+         ->where('type', 'RO')
+         ->selectRaw('room_stat, COUNT(*) AS cnt')
+         ->groupBy('room_stat')
+         ->get();
+
+      $statusMap = [];
+      foreach ($roomStatus as $rs) {
+         $statusMap[$rs->room_stat ?? 'U'] = (int) $rs->cnt;
+      }
+
+      // ── 3. EXPECTED ARRIVALS (reservations with ArrDate = fordate, not checked in) ─────────
+      $arrivals = DB::table('grpbookingdetails AS gb')
+         ->leftJoin('room_mast AS rm', function ($j) use ($propertyid) {
+            $j->on('gb.RoomNo', '=', 'rm.rcode')->where('rm.propertyid', $propertyid);
+         })
+         ->leftJoin('subgroup AS sg', 'gb.PartyCode', '=', 'sg.sub_code')
+         ->leftJoin('guestprof AS gp', 'gb.GuestProf', '=', 'gp.guestcode')
+         ->select(
+            'gb.RoomNo',
+            'gb.ArrDate',
+            'gb.DepDate',
+            'gb.NoOfRooms',
+            'gb.NoOfAdults',
+            'gb.NoOfChild',
+            DB::raw('IFNULL(sg.name, gb.PartyName) AS CompanyName'),
+            DB::raw('IFNULL(gp.name, gb.GuestName) AS GuestName'),
+            'gb.Comments',
+            'gb.ResStatus'
+         )
+         ->where('gb.Property_ID', $propertyid)
+         ->where('gb.Cancel', 'N')
+         ->where('gb.ArrDate', $fordate)
+         ->where('gb.ContraDocId', '')
+         ->orderBy('gb.RoomNo')
+         ->get();
+
+      // ── 4. EXPECTED DEPARTURES (roomocc with depdate = fordate) ─────────
+      $departures = DB::table('roomocc AS ro')
+         ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
+         ->select(
+            'ro.roomno',
+            'ro.name AS GuestName',
+            'ro.roomrate',
+            'ro.depdate',
+            DB::raw('IFNULL(gp.complimentry, "N") AS Complimentary')
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.depdate', $fordate)
+         ->whereNull('ro.chkoutdate')
+         ->orderBy('ro.roomno')
+         ->get();
+
+      // ── 5. TODAY REVENUE ────────────────────────────────────────────
+      $todayRevenue = DB::table('paycharge')
+         ->selectRaw('vtype, COUNT(DISTINCT docid) AS bills, SUM(amtdr-amtcr) AS net')
+         ->where('propertyid', $propertyid)
+         ->where('vdate', $fordate)
+         ->whereRaw('(amtdr-amtcr) <> 0')
+         ->groupBy('vtype')
+         ->orderByDesc('net')
+         ->get();
+
+      $totalRevenue = $todayRevenue->sum('net');
+
+      // ── 6. IN-HOUSE SUMMARY ─────────────────────────────────────────
+      $inHouse = DB::table('roomocc')
+         ->where('propertyid', $propertyid)
+         ->whereNull('type')
+         ->where('chkindate', '<=', $fordate)
+         ->where(function ($q) use ($fordate) {
+            $q->whereNull('chkoutdate')->orWhere('chkoutdate', '>', $fordate);
+         })
+         ->count();
+
+      return response()->json([
+         'occupancy' => [
+            'bytype'     => $occupancyByType,
+            'total'      => $totalRooms,
+            'occupied'   => $totalOccupied,
+            'occ_pct'    => $overallOccPct,
+            'roomstatus' => $statusMap,
+            'inhouse'    => $inHouse,
+         ],
+         'arrivals'   => $arrivals,
+         'departures' => $departures,
+         'revenue'    => [
+            'bytype' => $todayRevenue,
+            'total'  => $totalRevenue,
+         ],
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Checked-In Guest Detail Report
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function checkedinguestdetail(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.checkedinguestdetail', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function checkedinguestdetailfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fordate    = $request->input('fordate');
+      if (!$fordate) return response()->json(['message' => 'Date required.'], 422);
+
+      $guests = DB::table('roomocc AS ro')
+         ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
+         ->leftJoin('guestfolio AS gf', function ($j) {
+            $j->on('gf.docid', '=', 'ro.docid')->on('gf.sno1', '=', 'ro.sno1');
+         })
+         ->leftJoin('subgroup AS sg', 'gf.company', '=', 'sg.sub_code')
+         ->leftJoin('subgroup AS ta', 'gf.travelagent', '=', 'ta.sub_code')
+         ->leftJoin('room_cat AS rc', 'ro.roomcat', '=', 'rc.cat_code')
+         ->select(
+            'ro.roomno',
+            'ro.name AS GuestName',
+            DB::raw('IFNULL(gp.nationality, "") AS Nationality'),
+            DB::raw('IFNULL(gp.idno, "") AS IDNo'),
+            DB::raw('IFNULL(gp.idtype, "") AS IDType'),
+            DB::raw('IFNULL(gp.mobile, "") AS Mobile'),
+            DB::raw('IFNULL(sg.name, "") AS Company'),
+            DB::raw('IFNULL(ta.name, "") AS TravelAgent'),
+            DB::raw('IFNULL(rc.name, "") AS RoomType'),
+            'ro.roomrate',
+            'ro.chkindate',
+            'ro.depdate',
+            DB::raw('DATEDIFF(?, ro.chkindate) + 1 AS NightsStayed'),
+            DB::raw('IFNULL(ro.chkoutdate, "") AS CheckOut'),
+            DB::raw('IFNULL(gp.adults, ro.adults) AS Adults'),
+            DB::raw('IFNULL(gp.child, ro.child) AS Children'),
+            'ro.leaderyn',
+            'ro.sno1'
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.chkindate', '<=', $fordate)
+         ->where(function ($q) use ($fordate) {
+            $q->whereNull('ro.chkoutdate')->orWhere('ro.chkoutdate', '>', $fordate);
+         })
+         ->orderBy('ro.roomno')
+         ->setBindings([$fordate])
+         ->get();
+
+      // Balance per folio
+      $balances = [];
+      $foliodocids = $guests->pluck('roomno')->unique();
+      if ($guests->isNotEmpty()) {
+         $balRows = DB::table('paycharge')
+            ->select('folionodocid', DB::raw('SUM(amtdr-amtcr) AS balance'))
+            ->where('propertyid', $propertyid)
+            ->where('foliono', '<>', 0)
+            ->groupBy('folionodocid')
+            ->get();
+         foreach ($balRows as $b) {
+            $balances[$b->folionodocid] = (float) $b->balance;
+         }
+      }
+
+      $result = [];
+      foreach ($guests as $g) {
+         $result[] = [
+            'RoomNo'      => $g->roomno,
+            'GuestName'   => $g->GuestName,
+            'Nationality' => $g->Nationality,
+            'IDType'      => $g->IDType,
+            'IDNo'        => $g->IDNo,
+            'Mobile'      => $g->Mobile,
+            'Company'     => $g->Company,
+            'TravelAgent' => $g->TravelAgent,
+            'RoomType'    => $g->RoomType,
+            'Rate'        => (float) $g->roomrate,
+            'CheckIn'     => $g->chkindate,
+            'Departure'   => $g->depdate,
+            'Nights'      => (int) $g->NightsStayed,
+            'CheckOut'    => $g->CheckOut,
+            'Adults'      => (int) $g->Adults,
+            'Children'    => (int) $g->Children,
+            'Leader'      => $g->leaderyn === 'Y' ? 'Yes' : 'No',
+            'Balance'     => $balances[$g->docid ?? $g->roomno] ?? 0,
+         ];
+      }
+
+      $totalGuests = $guests->count();
+      $totalAdults = $guests->sum('adults');
+      $totalChildren = $guests->sum('child');
+      $totalRevenue = array_sum($balances);
+
+      return response()->json([
+         'data' => $result,
+         'summary' => [
+            'totalGuests'  => $totalGuests,
+            'totalAdults'  => $totalAdults,
+            'totalChildren'=> $totalChildren,
+            'totalBalance' => $totalRevenue,
+         ],
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Room-Wise Room Revenue Report
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function roomwiseroomrevenue(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.roomwiseroomrevenue', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function roomwiseroomrevenuefetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fromdate   = $request->input('fromdate');
+      $todate     = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['message' => 'From and To dates required.'], 422);
+
+      // All room charges (RC + REV) + POS charges (PPOS + IPOS) + tax per room
+      $rows = DB::table('paycharge AS P')
+         ->leftJoin('roomocc AS ro', function ($j) use ($propertyid) {
+            $j->on('P.folionodocid', '=', 'ro.docid')
+               ->on('P.sno1', '=', 'ro.sno1')
+               ->where('ro.propertyid', $propertyid)
+               ->whereNull('ro.type');
+         })
+         ->select(
+            'P.roomno',
+            DB::raw('MAX(ro.name) AS guestname'),
+            DB::raw('MAX(ro.roomcat) AS roomcat'),
+            DB::raw('MAX(ro.roomtype) AS roomtype'),
+            DB::raw('SUM(CASE WHEN P.vtype IN ("RC","REV") THEN P.amtdr-P.amtcr ELSE 0 END) AS roomcharge'),
+            DB::raw('SUM(CASE WHEN P.vtype IN ("PPOS","IPOS") THEN P.amtdr-P.amtcr ELSE 0 END) AS poscharge'),
+            DB::raw('SUM(CASE WHEN P.vtype = "CGSS" OR P.vtype = "SGSS" OR P.vtype = "IGSS" OR P.paycode LIKE "CGSS%" OR P.paycode LIKE "SGSS%" OR P.paycode LIKE "IGSS%" THEN P.amtdr-P.amtcr ELSE 0 END) AS tax'),
+            DB::raw('SUM(CASE WHEN P.vtype = "DISC" THEN P.amtdr-P.amtcr ELSE 0 END) AS discount'),
+            DB::raw('SUM(P.amtdr-P.amtcr) AS netamount')
+         )
+         ->where('P.propertyid', $propertyid)
+         ->whereBetween('P.vdate', [$fromdate, $todate])
+         ->where('P.roomtype', 'RO')
+         ->whereNotIn('P.vtype', ['ARRES', 'ADRES'])
+         ->groupBy('P.roomno')
+         ->orderBy('P.roomno')
+         ->get();
+
+      $totalRoom = 0; $totalPos = 0; $totalTax = 0; $totalDisc = 0; $totalNet = 0;
+      $result = [];
+      foreach ($rows as $r) {
+         $rc = (float) $r->roomcharge;
+         $pc = (float) $r->poscharge;
+         $tx = (float) $r->tax;
+         $dc = (float) $r->discount;
+         $nt = (float) $r->netamount;
+         $totalRoom += $rc; $totalPos += $pc; $totalTax += $tx; $totalDisc += $dc; $totalNet += $nt;
+         $result[] = [
+            'RoomNo'     => $r->roomno,
+            'GuestName'  => $r->guestname,
+            'RoomType'   => $r->roomcat,
+            'RoomCharge' => $rc,
+            'POSCharge'  => $pc,
+            'Tax'        => $tx,
+            'Discount'   => $dc,
+            'NetAmount'  => $nt,
+         ];
+      }
+
+      return response()->json([
+         'data' => $result,
+         'summary' => [
+            'totalRoom' => $totalRoom,
+            'totalPos'  => $totalPos,
+            'totalTax'  => $totalTax,
+            'totalDisc' => $totalDisc,
+            'totalNet'  => $totalNet,
+         ],
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Form C — Foreign Guest Registration (Compliance)
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function formcreport(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.formcreport', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function formcreportfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fromdate   = $request->input('fromdate');
+      $todate     = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['message' => 'From and To dates required.'], 422);
+
+      // Form C requires foreign guests — filter by nationality != India (country_code != 'IN')
+      // or idtype = 'Passport'
+      $guests = DB::table('roomocc AS ro')
+         ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
+         ->leftJoin('guestfolio AS gf', function ($j) {
+            $j->on('gf.docid', '=', 'ro.docid')->on('gf.sno1', '=', 'ro.sno1');
+         })
+         ->leftJoin('subgroup AS sg', 'gf.company', '=', 'sg.sub_code')
+         ->leftJoin('countries AS c', 'gp.nationality', '=', 'c.nationality')
+         ->select(
+            'ro.roomno',
+            'ro.name AS GuestName',
+            DB::raw('IFNULL(gp.sex, "") AS Sex'),
+            DB::raw('IFNULL(gp.nationality, "") AS Nationality'),
+            DB::raw('IFNULL(c.name, "") AS Country'),
+            DB::raw('IFNULL(gp.idtype, "") AS IDType'),
+            DB::raw('IFNULL(gp.idno, "") AS IDNo'),
+            DB::raw('IFNULL(gp.idate, "") AS IDate'),
+            DB::raw('IFNULL(gp(passport_no, gp.idno), "") AS PassportNo'),
+            DB::raw('IFNULL(gp.visa_no, "") AS VisaNo'),
+            DB::raw('IFNULL(gp.visa_date, "") AS VisaDate'),
+            DB::raw('IFNULL(gp.arrivedate, "") AS ArriveDate'),
+            DB::raw('IFNULL(gp.mobile, "") AS Mobile'),
+            DB::raw('IFNULL(gp.address, "") AS Address'),
+            DB::raw('IFNULL(sg.name, "") AS Company'),
+            'ro.chkindate',
+            'ro.depdate',
+            DB::raw('IFNULL(ro.chkoutdate, "") AS CheckOut')
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.chkindate', '<=', $todate)
+         ->where(function ($q) use ($todate) {
+            $q->whereNull('ro.chkoutdate')->orWhere('ro.chkoutdate', '>', $fromdate);
+         })
+         ->where(function ($q) {
+            $q->where('gp.idtype', 'Passport')
+              ->orWhere('gp.nationality', '!=', 'Indian')
+              ->orWhere('gp.nationality', '!=', 'IN');
+         })
+         ->orderBy('ro.chkindate')
+         ->orderBy('ro.roomno')
+         ->get();
+
+      $result = [];
+      foreach ($guests as $g) {
+         $result[] = [
+            'RoomNo'      => $g->roomno,
+            'GuestName'   => $g->GuestName,
+            'Sex'         => $g->Sex,
+            'Nationality' => $g->Nationality,
+            'Country'     => $g->Country,
+            'IDType'      => $g->IDType,
+            'IDNo'        => $g->IDNo,
+            'PassportNo'  => $g->PassportNo,
+            'VisaNo'      => $g->VisaNo,
+            'VisaDate'    => $g->VisaDate,
+            'ArriveDate'  => $g->ArriveDate,
+            'Mobile'      => $g->Mobile,
+            'Address'     => $g->Address,
+            'Company'     => $g->Company,
+            'CheckIn'     => $g->chkindate,
+            'Departure'   => $g->depdate,
+            'CheckOut'    => $g->CheckOut,
+         ];
+      }
+
+      return response()->json([
+         'data'    => $result,
+         'summary' => ['total' => count($result)],
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // FO Settlement Report (SettleRep parity)
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function fosettlereport(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.fosettlereport', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function fosettlereportfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fromdate   = $request->input('fromdate');
+      $todate     = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['message' => 'From and To dates required.'], 422);
+
+      // Settlements = paycharge rows with modeset = 'S' (settled) within date range
+      $settlements = DB::table('paycharge AS P')
+         ->leftJoin('revmast AS R', 'P.paycode', '=', 'R.rev_code')
+         ->leftJoin('roomocc AS ro', function ($j) use ($propertyid) {
+            $j->on('P.folionodocid', '=', 'ro.docid')
+               ->where('ro.propertyid', $propertyid)
+               ->whereNull('ro.type');
+         })
+         ->select(
+            'P.roomno',
+            DB::raw('MAX(ro.name) AS guestname'),
+            'P.settledate',
+            DB::raw('MAX(P.billno) AS billno'),
+            DB::raw('MAX(P.foliono) AS foliono'),
+            DB::raw("MAX(CASE WHEN R.pay_type = 'Cash' THEN P.amtcr ELSE 0 END) AS cash"),
+            DB::raw("MAX(CASE WHEN R.pay_type = 'Room' THEN P.amtcr ELSE 0 END) AS room"),
+            DB::raw("MAX(CASE WHEN R.pay_type = 'Company' THEN P.amtcr ELSE 0 END) AS company_pay"),
+            DB::raw("MAX(CASE WHEN R.pay_type = 'UPI' THEN P.amtcr ELSE 0 END) AS upi"),
+            DB::raw("MAX(CASE WHEN R.pay_type = 'Credit Card' THEN P.amtcr ELSE 0 END) AS card"),
+            DB::raw('SUM(P.amtcr) AS totalpaid'),
+            DB::raw('MAX(P.u_name) AS settledby')
+         )
+         ->where('P.propertyid', $propertyid)
+         ->where('P.modeset', 'S')
+         ->whereBetween('P.settledate', [$fromdate, $todate])
+         ->where('P.roomtype', 'RO')
+         ->where('P.amtcr', '>', 0)
+         ->groupBy('P.roomno', 'P.settledate', 'P.folionodocid')
+         ->orderBy('P.settledate')
+         ->orderBy('P.roomno')
+         ->get();
+
+      // Compute outstanding for each folio
+      $result = [];
+      foreach ($settlements as $s) {
+         $result[] = [
+            'RoomNo'     => $s->roomno,
+            'GuestName'  => $s->guestname,
+            'SettleDate' => $s->settledate,
+            'BillNo'     => $s->billno,
+            'FolioNo'    => $s->folioNo,
+            'Cash'       => (float) $s->cash,
+            'Room'       => (float) $s->room,
+            'Company'    => (float) $s->company_pay,
+            'UPI'        => (float) $s->upi,
+            'Card'       => (float) $s->card,
+            'TotalPaid'  => (float) $s->totalpaid,
+            'SettledBy'  => $s->settledby,
+         ];
+      }
+
+      $summary = [
+         'totalCash'   => $settlements->sum('cash'),
+         'totalRoom'   => $settlements->sum('room'),
+         'totalCompany'=> $settlements->sum('company_pay'),
+         'totalUPI'    => $settlements->sum('upi'),
+         'totalCard'   => $settlements->sum('card'),
+         'totalPaid'   => $settlements->sum('totalpaid'),
+         'count'       => $settlements->count(),
+      ];
+
+      return response()->json(['data' => $result, 'summary' => $summary]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Reservation Status Dashboard
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function reservationstatus(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.reservationstatus', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function reservationstatusfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fordate    = $request->input('fordate');
+      if (!$fordate) return response()->json(['message' => 'Date required.'], 422);
+
+      // ── 1. TODAY ARRIVALS (reservations with ArrDate = fordate, not checked in) ──
+      $arrivals = DB::table('grpbookingdetails AS gb')
+         ->leftJoin('room_mast AS rm', function ($j) use ($propertyid) {
+            $j->on('gb.RoomNo', '=', 'rm.rcode')->where('rm.propertyid', $propertyid);
+         })
+         ->leftJoin('subgroup AS sg', 'gb.PartyCode', '=', 'sg.sub_code')
+         ->leftJoin('guestprof AS gp', 'gb.GuestProf', '=', 'gp.guestcode')
+         ->select(
+            'gb.DocId', 'gb.RoomNo', 'gb.ArrDate', 'gb.DepDate',
+            'gb.NoOfRooms', 'gb.NoOfAdults', 'gb.NoOfChild',
+            DB::raw('IFNULL(sg.name, gb.PartyName) AS CompanyName'),
+            DB::raw('IFNULL(gp.name, gb.GuestName) AS GuestName'),
+            'gb.ResStatus', 'gb.Comments'
+         )
+         ->where('gb.Property_ID', $propertyid)
+         ->where('gb.Cancel', 'N')
+         ->where('gb.ArrDate', $fordate)
+         ->where('gb.ContraDocId', '')
+         ->orderBy('gb.RoomNo')
+         ->get();
+
+      // ── 2. IN-HOUSE (roomocc active) ──
+      $inhouse = DB::table('roomocc AS ro')
+         ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
+         ->leftJoin('guestfolio AS gf', function ($j) {
+            $j->on('gf.docid', '=', 'ro.docid')->on('gf.sno1', '=', 'ro.sno1');
+         })
+         ->leftJoin('subgroup AS sg', 'gf.company', '=', 'sg.sub_code')
+         ->select(
+            'ro.docid', 'ro.roomno', 'ro.name AS GuestName',
+            'ro.roomrate', 'ro.chkindate', 'ro.depdate',
+            DB::raw('IFNULL(sg.name, "") AS Company'),
+            DB::raw('IFNULL(ro.roomcat, "") AS RoomType')
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.chkindate', '<=', $fordate)
+         ->where(function ($q) use ($fordate) {
+            $q->whereNull('ro.chkoutdate')->orWhere('ro.chkoutdate', '>', $fordate);
+         })
+         ->orderBy('ro.roomno')
+         ->get();
+
+      // ── 3. TODAY DEPARTURES ──
+      $departures = DB::table('roomocc AS ro')
+         ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
+         ->select(
+            'ro.roomno', 'ro.name AS GuestName', 'ro.roomrate',
+            'ro.depdate',
+            DB::raw('IFNULL(ro.chkoutdate, "") AS CheckOut')
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.depdate', $fordate)
+         ->orderBy('ro.roomno')
+         ->get();
+
+      // ── 4. CANCELLATIONS TODAY ──
+      $cancellations = DB::table('grpbookingdetails AS gb')
+         ->leftJoin('subgroup AS sg', 'gb.PartyCode', '=', 'sg.sub_code')
+         ->select(
+            'gb.DocId', 'gb.RoomNo', 'gb.ArrDate', 'gb.DepDate',
+            DB::raw('IFNULL(sg.name, gb.PartyName) AS CompanyName'),
+            DB::raw('IFNULL(gb.GuestName, "") AS GuestName'),
+            'gb.CancelDate', 'gb.CancelUName'
+         )
+         ->where('gb.Property_ID', $propertyid)
+         ->where('gb.Cancel', 'Y')
+         ->whereDate('gb.CancelDate', $fordate)
+         ->orderBy('gb.CancelDate')
+         ->get();
+
+      // ── 5. NO-SHOWS TODAY ──
+      $noshow = DB::table('grpbookingdetails AS gb')
+         ->leftJoin('subgroup AS sg', 'gb.PartyCode', '=', 'sg.sub_code')
+         ->select(
+            'gb.DocId', 'gb.RoomNo', 'gb.ArrDate', 'gb.DepDate',
+            DB::raw('IFNULL(sg.name, gb.PartyName) AS CompanyName'),
+            DB::raw('IFNULL(gb.GuestName, "") AS GuestName')
+         )
+         ->where('gb.Property_ID', $propertyid)
+         ->where('gb.Cancel', 'Y')
+         ->where('gb.CancelUName', 'NOSHOW')
+         ->whereDate('gb.CancelDate', $fordate)
+         ->orderBy('gb.RoomNo')
+         ->get();
+
+      return response()->json([
+         'arrivals'      => $arrivals,
+         'inhouse'       => $inhouse,
+         'departures'    => $departures,
+         'cancellations' => $cancellations,
+         'noshow'        => $noshow,
+         'summary' => [
+            'arrivals'      => $arrivals->count(),
+            'inhouse'       => $inhouse->count(),
+            'departures'    => $departures->count(),
+            'cancellations' => $cancellations->count(),
+            'noshow'        => $noshow->count(),
+         ],
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Room Rent Audit Report
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function roomrentaudit(Request $request)
+   {
+      $permission = revokeopen(191212);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $company = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.roomrentaudit', [
+         'fordate' => $this->ncurdate,
+         'company' => $company,
+      ]);
+   }
+
+   public function roomrentauditfetch(Request $request)
+   {
+      $propertyid = $this->propertyid;
+      $fromdate   = $request->input('fromdate');
+      $todate     = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['message' => 'From and To dates required.'], 422);
+
+      // Get all rooms that were active during the period
+      $rooms = DB::table('roomocc AS ro')
+         ->leftJoin('room_cat AS rc', 'ro.roomcat', '=', 'rc.cat_code')
+         ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
+         ->select(
+            'ro.docid', 'ro.roomno', 'ro.sno1',
+            'ro.name AS GuestName',
+            'ro.roomrate',
+            'ro.chkindate',
+            'ro.depdate',
+            DB::raw('IFNULL(ro.chkoutdate, "") AS chkoutdate'),
+            DB::raw('IFNULL(rc.name, "") AS RoomType')
+         )
+         ->where('ro.propertyid', $propertyid)
+         ->whereNull('ro.type')
+         ->where('ro.chkindate', '<=', $todate)
+         ->where(function ($q) use ($fromdate) {
+            $q->whereNull('ro.chkoutdate')->orWhere('ro.chkoutdate', '>=', $fromdate);
+         })
+         ->orderBy('ro.roomno')
+         ->get();
+
+      $result = [];
+      foreach ($rooms as $room) {
+         // Compute nights in the selected period
+         $arrive     = max($room->chkindate, $fromdate);
+         $depart     = min(
+            $room->chkoutdate ?: $room->depdate ?: $todate,
+            $todate
+         );
+         $nights     = max(1, (int) (strtotime($depart) - strtotime($arrive)) / 86400 + 1);
+         $expected   = $room->roomrate * $nights;
+
+         // Sum actual RC charges posted for this folio in the period
+         $actualRC = DB::table('paycharge')
+            ->selectRaw('SUM(amtdr-amtcr) AS total')
+            ->where('propertyid', $propertyid)
+            ->where('folionodocid', $room->docid)
+            ->where('sno1', $room->sno1)
+            ->whereIn('vtype', ['RC', 'REV'])
+            ->whereBetween('vdate', [$fromdate, $todate])
+            ->value('total') ?? 0;
+
+         $variance = (float) $actualRC - $expected;
+         $flag = abs($variance) > 0.01 ? '⚠️' : '✅';
+
+         $result[] = [
+            'RoomNo'     => $room->roomno,
+            'GuestName'  => $room->GuestName,
+            'RoomType'   => $room->RoomType,
+            'Rate'       => (float) $room->roomrate,
+            'Nights'     => $nights,
+            'Expected'   => $expected,
+            'ActualRC'   => (float) $actualRC,
+            'Variance'   => $variance,
+            'Flag'       => $flag,
+            'CheckIn'    => $room->chkindate,
+            'Departure'  => $room->depdate,
+            'CheckOut'   => $room->chkoutdate,
+         ];
+      }
+
+      $totalExpected = array_sum(array_column($result, 'Expected'));
+      $totalActual   = array_sum(array_column($result, 'ActualRC'));
+      $flagged       = count(array_filter($result, fn($r) => $r['Flag'] === '⚠️'));
+
+      return response()->json([
+         'data' => $result,
+         'summary' => [
+            'totalExpected' => $totalExpected,
+            'totalActual'   => $totalActual,
+            'variance'      => $totalActual - $totalExpected,
+            'flagged'       => $flagged,
+            'totalRooms'    => count($result),
+         ],
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Movement List — daily booking movements (arrivals/departures/transfers)
+   // Legacy: GRepFormName = "MovementList"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function movementlist(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+
+      return view('property.movementlist', [
+         'comp' => $comp,
+         'fromdate' => $this->ncurdate,
+      ]);
+   }
+
+   public function movementlistfetch(Request $request)
+   {
+      $data = $this->getMovementListData($request);
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+         'totalPax' => $data->sum('Pax') + $data->sum('Child'),
+         'totalRooms' => $data->sum('RoomDet'),
+         'totalAdvance' => $data->sum('advance'),
+      ]);
+   }
+
+   public function printmovementlist(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $data = $this->getMovementListData($request);
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+
+      return view('property.printmovementlist', [
+         'data' => $data,
+         'comp' => $comp,
+         'fromdate' => $fromdate,
+         'todate' => $todate,
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Discount Register — POS discount audit trail
+   // Legacy: GRepFormName = "DiscountReg"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function discountregister(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      $outlets = DB::table('depart')->where('propertyid', $this->propertyid)->select('dcode', 'name')->get();
+
+      return view('property.discountregister', [
+         'comp' => $comp,
+         'fromdate' => $this->ncurdate,
+         'outlets' => $outlets,
+      ]);
+   }
+
+   public function discountregisterfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $restcode = $request->input('restcode', 'all');
+
+      $report = DB::table('stock AS S')
+         ->leftJoin('depart AS D', 'S.RestCode', '=', 'D.dcode')
+         ->leftJoin('itemmast AS I', function ($join) {
+            $join->on('S.Item', '=', 'I.Code')
+               ->on('S.RestCode', '=', 'I.RestCode');
+         })
+         ->where('S.DelFlag', '<>', 'D')
+         ->where('S.propertyid', $this->propertyid)
+         ->where('S.DiscPer', '>', 0)
+         ->whereBetween('S.VDate', [$fromdate, $todate])
+         ->select([
+            'S.VDate', 'S.VType', 'S.VNo', 'S.QtyIss AS Quantity',
+            'S.Rate', 'S.Amount', 'S.DiscPer', 'S.DiscAmt',
+            'S.RestCode', 'I.Name AS ItemName', 'D.Name AS DeptName',
+         ])
+         ->orderBy('D.Name')
+         ->orderBy('S.VDate');
+
+      if ($restcode !== 'all') {
+         $report->where('S.RestCode', $restcode);
+      }
+
+      $data = $report->get();
+
+      // Group by outlet for summary
+      $grouped = $data->groupBy('DeptName')->map(function ($items, $dept) {
+         return [
+            'dept' => $dept,
+            'items' => $items,
+            'totalAmount' => $items->sum('Amount'),
+            'totalDiscount' => $items->sum('DiscAmt'),
+         ];
+      })->values();
+
+      return response()->json([
+         'data' => $data,
+         'grouped' => $grouped,
+         'total' => $data->count(),
+         'totalAmount' => $data->sum('Amount'),
+         'totalDiscount' => $data->sum('DiscAmt'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Food Cost Report — F&B cost analysis (opening + purchases - closing)
+   // Legacy: GRepFormName = "FoodCost"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function foodcost(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+
+      return view('property.foodcost', [
+         'comp' => $comp,
+         'fromdate' => $this->ncurdate,
+      ]);
+   }
+
+   public function foodcostfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Column names: stock.propertyid, stock.departcode, stock.departcode, depart.dcode, depart.rest_type
+      // 1. Opening Stock (Raw Material + Semi-Finish) — purchases before fromdate
+      $openingStock = DB::table('stock AS S')
+         ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
+         ->where('S.propertyid', $pid)
+         ->where('I.ItemType', 'Store')
+         ->whereIn('I.Type', ['Semi Finish', 'Raw Material'])
+         ->where('S.departcode', $pid . 'PURC')
+         ->where(function ($q) use ($fromdate) {
+            $q->where('S.VDate', '<', $fromdate)
+               ->orWhere(function ($q2) use ($fromdate) {
+                  $q2->where('S.VType', 'STOP')->where('S.VDate', '=', $fromdate);
+               });
+         })
+         ->selectRaw('SUM(CASE WHEN QtyRec > 0 THEN Amount ELSE -Amount END) AS Amt')
+         ->value('Amt') ?? 0;
+
+      // 2. Purchases during period
+      $purchases = DB::table('stock AS S')
+         ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
+         ->where('S.propertyid', $pid)
+         ->where('I.ItemType', 'Store')
+         ->whereIn('I.Type', ['Semi Finish', 'Raw Material'])
+         ->where('S.departcode', $pid . 'PURC')
+         ->whereBetween('S.VDate', [$fromdate, $todate])
+         ->whereIn('S.VType', ['MRCH', 'MRCR', 'PBPB', 'PBPC'])
+         ->selectRaw('SUM(CASE WHEN QtyRec > 0 THEN Amount ELSE -Amount END) AS Amt')
+         ->value('Amt') ?? 0;
+
+      // 3. Closing Stock — total store stock up to todate
+      $closingStock = DB::table('stock AS S')
+         ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
+         ->where('S.propertyid', $pid)
+         ->where('I.ItemType', 'Store')
+         ->whereIn('I.Type', ['Semi Finish', 'Raw Material'])
+         ->where('S.departcode', $pid . 'PURC')
+         ->where('S.VDate', '<=', $todate)
+         ->selectRaw('SUM(CASE WHEN QtyRec > 0 THEN Amount ELSE -Amount END) AS Amt')
+         ->value('Amt') ?? 0;
+
+      $netStock = $openingStock + $purchases - $closingStock;
+
+      // 4. Staff Kitchen Issue
+      $staffKitchenIssue = DB::table('stock AS S')
+         ->where('S.propertyid', $pid)
+         ->whereBetween('S.VDate', [$fromdate, $todate])
+         ->whereIn('S.departcode', function ($q) use ($pid) {
+            $q->select('dcode')->from('depart')->where('rest_type', 'Staff Kitchen');
+         })
+         ->selectRaw('SUM(CASE WHEN QtyRec > 0 THEN Amount ELSE -Amount END) AS Amt')
+         ->value('Amt') ?? 0;
+
+      // 5. Kitchen Consumption (issues to kitchen outlets)
+      $kitchenConsumption = DB::table('stock AS S')
+         ->where('S.propertyid', $pid)
+         ->whereBetween('S.VDate', [$fromdate, $todate])
+         ->whereIn('S.departcode', function ($q) use ($pid) {
+            $q->select('dcode')->from('depart')->where('rest_type', 'Kitchen');
+         })
+         ->selectRaw('SUM(CASE WHEN QtyRec > 0 THEN Amount ELSE -Amount END) AS Amt')
+         ->value('Amt') ?? 0;
+
+      // 6. NC KOT deduction
+      $ncKotDeduction = DB::table('kot')
+         ->join('nctype_mast', 'kot.NCType', '=', 'nctype_mast.nctype')
+         ->where('kot.propertyid', $pid)
+         ->whereBetween('kot.VDate', [$fromdate, $todate])
+         ->selectRaw('SUM(Amount * ncper) / 100 AS Amt')
+         ->value('Amt') ?? 0;
+
+      // 7. Food Sales — POS outlets
+      $foodSalesPOS = DB::table('stock AS S')
+         ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
+         ->join('depart AS D', 'S.RestCode', '=', 'D.dcode')
+         ->join('itemcatmast AS IC', 'I.ItemCatCode', '=', 'IC.Code')
+         ->join('voucher_type AS VT', 'S.VType', '=', 'VT.V_Type')
+         ->where('S.propertyid', $pid)
+         ->whereBetween('S.VDate', [$fromdate, $todate])
+         ->whereIn('IC.CatType', ['Food', 'Beverage', 'Confectionary', 'Liquor', 'Tobacco'])
+         ->selectRaw('SUM(S.Amount) AS Amt, MAX(D.Name) AS RestName')
+         ->groupBy('S.RestCode')
+         ->get();
+
+      $totalFoodSalesPOS = $foodSalesPOS->sum('Amt');
+
+      // 8. Food Sales — Banquet
+      $foodSalesBanquet = DB::table('hallstock AS HS')
+         ->join('itemmast AS I', 'HS.Item', '=', 'I.Code')
+         ->join('itemcatmast AS IC', 'I.ItemCatCode', '=', 'IC.Code')
+         ->where('HS.propertyid', $pid)
+         ->whereBetween('HS.VDate', [$fromdate, $todate])
+         ->whereIn('IC.CatType', ['Food', 'Beverage', 'Confectionary', 'Liquor', 'Tobacco'])
+         ->selectRaw('SUM(HS.Amount) AS Amt')
+         ->value('Amt') ?? 0;
+
+      $totalFoodSales = $totalFoodSalesPOS + $foodSalesBanquet;
+      $netConsumption = $netStock - $staffKitchenIssue;
+      $foodCostPct = $totalFoodSales > 0 ? round(($netConsumption / $totalFoodSales) * 100, 2) : 0;
+
+      return response()->json([
+         'openingStock' => $openingStock,
+         'purchases' => $purchases,
+         'closingStock' => $closingStock,
+         'netStock' => $netStock,
+         'staffKitchenIssue' => $staffKitchenIssue,
+         'kitchenConsumption' => $kitchenConsumption,
+         'ncKotDeduction' => $ncKotDeduction,
+         'foodSalesPOS' => $totalFoodSalesPOS,
+         'foodSalesBanquet' => $foodSalesBanquet,
+         'totalFoodSales' => $totalFoodSales,
+         'netConsumption' => $netConsumption,
+         'foodCostPct' => $foodCostPct,
+         'posBreakdown' => $foodSalesPOS,
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Cover Analysis — pax/covers per outlet per day
+   // Legacy: GRepFormName = "CoverAnalysis"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function coveranalysis(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.coveranalysis', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function coveranalysisfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Bill-level summary: total net amount + covers per bill per outlet
+      // Column names: sale1.propertyid, sale1.restcode (lowercase), depart.dcode
+      $bills = DB::table('sale1 AS S1')
+         ->join('stock AS S', 'S1.DocId', '=', 'S.DocId')
+         ->join('depart AS D', 'S1.RestCode', '=', 'D.dcode')
+         ->join('itemmast AS I', function ($join) {
+            $join->on('S.Item', '=', 'I.Code')->on('S.RestCode', '=', 'I.RestCode');
+         })
+         ->join('itemcatmast AS IC', 'I.ItemCatCode', '=', 'IC.Code')
+         ->where('S1.propertyid', $pid)
+         ->whereBetween('S1.VDate', [$fromdate, $todate])
+         ->whereIn('IC.CatType', ['Food', 'Liquor', 'Confectionary', 'Beverage', 'Miscellaneous', 'Tobacco'])
+         ->where('S.DelFlag', '<>', 'D')
+         ->select([
+            'S1.VDate', 'S1.RestCode', 'D.Name AS DeptName', 'S1.VNo',
+            DB::raw('SUM(S.Amount - S.DiscAmt) AS NetAmt'),
+            DB::raw('MAX(S1.GuarAtt) AS Covers'),
+         ])
+         ->groupBy('S1.VDate', 'S1.RestCode', 'D.Name', 'S1.VNo')
+         ->get();
+
+      // Category-wise breakdown
+      $categoryWise = DB::table('sale1 AS S1')
+         ->join('stock AS S', 'S1.DocId', '=', 'S.DocId')
+         ->join('depart AS D', 'S1.RestCode', '=', 'D.dcode')
+         ->join('itemmast AS I', function ($join) {
+            $join->on('S.Item', '=', 'I.Code')->on('S.RestCode', '=', 'I.RestCode');
+         })
+         ->join('itemcatmast AS IC', 'I.ItemCatCode', '=', 'IC.Code')
+         ->where('S1.propertyid', $pid)
+         ->whereBetween('S1.VDate', [$fromdate, $todate])
+         ->whereIn('IC.CatType', ['Food', 'Liquor', 'Confectionary', 'Beverage', 'Miscellaneous', 'Tobacco'])
+         ->where('S.DelFlag', '<>', 'D')
+         ->select([
+            'D.Name AS DeptName', 'IC.CatType',
+            DB::raw('SUM(S.Amount - S.DiscAmt) AS NetAmt'),
+            DB::raw('COUNT(DISTINCT S1.VNo) AS BillCount'),
+         ])
+         ->groupBy('D.Name', 'IC.CatType')
+         ->orderBy('D.Name')
+         ->orderBy('IC.CatType')
+         ->get();
+
+      // Daily summary
+      $daily = $bills->groupBy('VDate')->map(function ($rows, $date) {
+         return [
+            'date' => $date,
+            'bills' => $rows->count(),
+            'covers' => $rows->sum('Covers'),
+            'netAmt' => $rows->sum('NetAmt'),
+            'avgPerCover' => $rows->sum('Covers') > 0 ? round($rows->sum('NetAmt') / $rows->sum('Covers'), 2) : 0,
+         ];
+      })->values();
+
+      return response()->json([
+         'bills' => $bills,
+         'categoryWise' => $categoryWise,
+         'daily' => $daily,
+         'totalBills' => $bills->count(),
+         'totalCovers' => $bills->sum('Covers'),
+         'totalNetAmt' => $bills->sum('NetAmt'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Waiter-Wise Sale — sales by steward/waiter
+   // Legacy: GRepFormName = "WaiterWiseSale"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function waitersale(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.waitersale', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function waitersalefetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Waiter code is stored directly in kot.Waiter (no separate waiter master table)
+      // Link: stock.kotdocid = kot.docid, stock.kotsno = kot.sno
+      $data = DB::table('stock AS S')
+         ->leftJoin('sale1 AS S1', 'S.DocId', '=', 'S1.DocId')
+         ->leftJoin('depart AS D', 'S1.RestCode', '=', 'D.dcode')
+         ->leftJoin('kot AS K', function ($join) {
+            $join->on('S.kotdocid', '=', 'K.DocId')
+               ->on('S.kotsno', '=', 'K.Sno');
+         })
+         ->leftJoin('paycharge AS PC', function ($join) {
+            $join->on('S1.DocId', '=', 'PC.DocId')
+               ->where('PC.RoomCat', '=', 'REST');
+         })
+         ->where('S.propertyid', $pid)
+         ->whereBetween('S.VDate', [$fromdate, $todate])
+         ->whereRaw("COALESCE(K.Waiter, '') <> ''")
+         ->select([
+            'K.Waiter AS WaiterCode',
+            DB::raw('K.Waiter AS WaiterName'),
+            'S1.RestCode',
+            DB::raw('MAX(D.Name) AS DeptName'),
+            DB::raw('COUNT(DISTINCT S.KOTDocId) AS KOTCount'),
+            DB::raw('SUM(S.Amount - S.DiscAmt) AS NetSale'),
+            DB::raw('SUM(S.TaxAmt) AS TaxAmt'),
+            DB::raw('MAX(PC.TipAmt) AS TipAmt'),
+         ])
+         ->groupBy('K.Waiter', 'S1.RestCode')
+         ->orderBy('D.Name')
+         ->orderBy('K.Waiter')
+         ->get();
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+         'totalSale' => $data->sum('NetSale'),
+         'totalTax' => $data->sum('TaxAmt'),
+         'totalTips' => $data->sum('TipAmt'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Cashier Settlement — cashier collection/closing
+   // Legacy: GRepFormName = "CashierSettlement"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function cashiersettlement(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.cashiersettlement', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function cashiersettlementfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Settlement by mode (CASH/CARD/UPI/ROOM/COMPANY etc.)
+      // Column: paycharge.propertyid, paycharge.restcode
+      $settlements = DB::table('paycharge AS PC')
+         ->leftJoin('depart AS D', 'PC.RestCode', '=', 'D.dcode')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.VDate', [$fromdate, $todate])
+         ->where('PC.VType', 'TOUT')
+         ->select([
+            'PC.VDate',
+            DB::raw('MAX(D.Name) AS DeptName'),
+            'PC.PayType',
+            DB::raw('SUM(PC.AmtDr) AS Amount'),
+         ])
+         ->groupBy('PC.VDate', 'PC.PayType')
+         ->orderBy('PC.VDate')
+         ->orderBy('PC.PayType')
+         ->get();
+
+      // Mode-wise summary
+      $modeWise = $settlements->groupBy('PayType')->map(function ($rows, $mode) {
+         return ['mode' => $mode, 'amount' => $rows->sum('Amount'), 'count' => $rows->count()];
+      })->values();
+
+      // Daily summary
+      $daily = $settlements->groupBy('VDate')->map(function ($rows, $date) {
+         return ['date' => $date, 'total' => $rows->sum('Amount'), 'count' => $rows->count()];
+      })->values();
+
+      return response()->json([
+         'data' => $settlements,
+         'modeWise' => $modeWise,
+         'daily' => $daily,
+         'total' => $settlements->sum('Amount'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Guest Payments — payment summary by guest/folio
+   // Legacy: GRepFormName = "GuestPayments"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function guestpayments(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.guestpayments', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function guestpaymentsfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Column: paycharge.propertyid, guestfolio.guestprof -> guestprof.guestcode
+      $data = DB::table('paycharge AS PC')
+         ->leftJoin('guestfolio AS GF', 'PC.FolioNoDocid', '=', 'GF.DocId')
+         ->leftJoin('guestprof AS GP', 'GF.GuestProf', '=', 'GP.guestcode')
+         ->leftJoin('roomocc AS RO', 'PC.FolioNoDocid', '=', 'RO.DocId')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.VDate', [$fromdate, $todate])
+         ->where('PC.VType', 'REC')
+         ->select([
+            'PC.VDate', 'PC.VType', 'PC.VNo', 'PC.DocId',
+            'GP.Name AS GuestName', 'RO.RoomNo', 'GF.folio_no AS FolioNo',
+            'PC.PayType', 'PC.AmtDr AS Amount', 'PC.Remarks',
+         ])
+         ->orderBy('PC.VDate')
+         ->orderBy('GP.Name')
+         ->get();
+
+      // Mode-wise summary
+      $modeWise = $data->groupBy('PayType')->map(function ($rows, $mode) {
+         return ['mode' => $mode, 'amount' => $rows->sum('Amount'), 'count' => $rows->count()];
+      })->values();
+
+      return response()->json([
+         'data' => $data,
+         'modeWise' => $modeWise,
+         'total' => $data->sum('Amount'),
+         'count' => $data->count(),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Room Change History — audit trail of room changes
+   // Legacy: GRepFormName = "RoomChangeHistory"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function roomchangehistory(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.roomchangehistory', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function roomchangehistoryfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Room changes are tracked in roomocc table (Type='C' = room change record)
+      // guestprof.docid = roomocc.docid (existing pattern from arrivallist)
+      $data = DB::table('roomocc AS RO')
+         ->leftJoin('guestprof AS GP', 'GP.docid', '=', 'RO.docid')
+         ->leftJoin('room_cat AS RC', 'RC.cat_code', '=', 'RO.RoomCat')
+         ->where('RO.propertyid', $pid)
+         ->whereBetween('RO.ChngDate', [$fromdate, $todate])
+         ->where('RO.Type', 'C')
+         ->select([
+            'RO.ChngDate',
+            DB::raw("TIME(RO.u_entdt) AS ChngTime"),
+            'GP.name AS GuestName',
+            'RO.RoomNo AS NewRoom',
+            'RO.NewRoomNo AS OldRoom',
+            'RC.name AS RoomType',
+            'RO.RoomRate',
+            'RO.ChkInDate', 'RO.ChkOutDate',
+            'RO.ReasonRChange AS Reason',
+            'RO.U_Name AS ChangedBy',
+         ])
+         ->orderBy('RO.ChngDate', 'DESC')
+         ->get();
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+      ]);
+   }
+
+   private function getMovementListData(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $reststatus = $request->input('reststatus', 'all');
+      $sortby = $request->input('sortby', 'arrdate');
+      $pendingyn = $request->input('pendingyn', 'all');
+      $roomcat = $request->input('roomcat', 'all');
+
+      $report = GrpBookinDetail::leftJoin('booking', 'booking.DocId', '=', 'grpbookingdetails.BookingDocid')
+         ->leftJoin('guestprof', 'guestprof.docid', '=', 'grpbookingdetails.BookingDocid')
+         ->leftJoin('plan_mast', 'grpbookingdetails.Plan_Code', '=', 'plan_mast.pcode')
+         ->leftJoin('room_cat', 'room_cat.cat_code', '=', 'grpbookingdetails.RoomCat')
+         ->leftJoin('subgroup AS S', 'booking.Company', '=', 'S.sub_code')
+         ->leftJoin('subgroup AS T', 'booking.TravelAgency', '=', 'T.sub_code')
+         ->leftJoin('paycharge', function ($join) {
+            $join->on('paycharge.refdocid', '=', 'grpbookingdetails.BookingDocid')
+               ->where('paycharge.sno', '1');
+         })
+         ->select([
+            'booking.Vtype', 'booking.DocId', 'grpbookingdetails.Sno',
+            'booking.BookNo AS ResNo', 'grpbookingdetails.GuestName AS GuestName',
+            'booking.MobNo AS MobileNo',
+            DB::raw("TRIM(CONCAT(COALESCE(S.name, ''), CASE WHEN COALESCE(T.name, '') <> '' THEN '/' ELSE '' END, COALESCE(T.name, ''))) AS Company"),
+            'grpbookingdetails.RoomDet', 'grpbookingdetails.ArrDate', 'grpbookingdetails.ArrTime',
+            'grpbookingdetails.Adults AS Pax', 'grpbookingdetails.Childs AS Child',
+            'grpbookingdetails.DepDate', 'grpbookingdetails.DepTime',
+            'plan_mast.name AS PlanName', 'grpbookingdetails.RoomNo',
+            'room_cat.name AS RoomType', 'booking.ArrFrom AS ArrDetail',
+            'booking.BookedBy', 'booking.ResStatus', 'booking.Remarks',
+            DB::raw('COALESCE(SUM(paycharge.amtcr) - SUM(paycharge.amtdr), 0) AS advance'),
+         ])
+         ->where('grpbookingdetails.Cancel', 'N')
+         ->where('grpbookingdetails.Property_ID', $this->propertyid)
+         ->whereBetween('grpbookingdetails.ArrDate', [$fromdate, $todate])
+         ->groupBy(
+            'booking.DocId', 'grpbookingdetails.BookingDocid', 'grpbookingdetails.Sno',
+            'booking.BookNo', 'grpbookingdetails.GuestName', 'booking.MobNo',
+            'S.name', 'T.name', 'grpbookingdetails.RoomDet',
+            'grpbookingdetails.ArrDate', 'grpbookingdetails.ArrTime',
+            'grpbookingdetails.Adults', 'grpbookingdetails.Childs',
+            'grpbookingdetails.DepDate', 'grpbookingdetails.DepTime',
+            'plan_mast.name', 'grpbookingdetails.RoomNo', 'room_cat.name',
+            'booking.ArrFrom', 'booking.BookedBy', 'booking.ResStatus', 'booking.Remarks', 'booking.Vtype'
+         );
+
+      if ($pendingyn === 'pending') {
+         $report->whereRaw("NOT EXISTS (SELECT 1 FROM guestfolio WHERE guestfolio.BookingDocId = grpbookingdetails.BookingDocid AND guestfolio.BookingSno = grpbookingdetails.Sno AND COALESCE(guestfolio.BookingDocId, '') <> '')");
+      }
+      if ($reststatus === 'confirm') {
+         $report->where(function ($q) {
+            $q->where('booking.ResStatus', 'Confirm')
+              ->orWhere('booking.ResStatus', '')
+              ->orWhereNull('booking.ResStatus');
+         });
+      } elseif ($reststatus === 'tentative') {
+         $report->where('booking.ResStatus', 'Tentative');
+      } elseif ($reststatus === 'waiting') {
+         $report->where('booking.ResStatus', 'Waiting');
+      }
+      if ($roomcat !== 'all') {
+         $report->where('grpbookingdetails.RoomCat', $roomcat);
+      }
+      switch ($sortby) {
+         case 'guest':
+            $report->orderBy('grpbookingdetails.GuestName')->orderBy('grpbookingdetails.ArrDate');
+            break;
+         case 'company':
+            $report->orderBy('S.name')->orderBy('grpbookingdetails.ArrDate');
+            break;
+         case 'travelagent':
+            $report->orderBy('T.name')->orderBy('grpbookingdetails.ArrDate');
+            break;
+         case 'resstatus':
+            $report->orderBy('booking.ResStatus')->orderBy('grpbookingdetails.ArrDate')->orderBy('grpbookingdetails.GuestName');
+            break;
+         default:
+            $report->orderBy('grpbookingdetails.ArrDate')->orderBy('grpbookingdetails.GuestName');
+            break;
+      }
+
+      return $report->get();
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Guest Trial Balance — charges vs payments per guest/folio
+   // Legacy: GRepFormName = "GuestTrialBalance"
+   // Filters: All / In House / Checked In / Checked Out
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function guesttrialbalance(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.guesttrialbalance', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function guesttrialbalancefetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $filter = $request->input('filter', 'all');
+      $pid = $this->propertyid;
+
+      // Guest Trial Balance: sum charges (AmtDr) and payments (AmtCr) per guest/folio
+      // then compute balance = charges - payments
+      $data = DB::table('paycharge AS PC')
+         ->leftJoin('guestfolio AS GF', 'PC.folionodocid', '=', 'GF.docid')
+         ->leftJoin('guestprof AS GP', 'GF.guestprof', '=', 'GP.guestcode')
+         ->leftJoin('roomocc AS RO', 'PC.folionodocid', '=', 'RO.docid')
+         ->leftJoin('room_mast AS RM', 'RO.roomno', '=', 'RM.rcode')
+         ->leftJoin('room_cat AS RC', 'RO.roomcat', '=', 'RC.cat_code')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.vdate', [$fromdate, $todate])
+         ->select([
+            'PC.folionodocid',
+            DB::raw('MAX(GP.name) AS GuestName'),
+            DB::raw('MAX(RO.roomno) AS RoomNo'),
+            DB::raw('MAX(RC.name) AS RoomType'),
+            DB::raw('MAX(GF.vdate) AS CheckInDate'),
+            DB::raw('MAX(RO.depdate) AS DepartDate'),
+            DB::raw('SUM(PC.amtdr) AS TotalCharges'),
+            DB::raw('SUM(PC.amtcr) AS TotalPayments'),
+            DB::raw('SUM(PC.amtdr) - SUM(PC.amtcr) AS Balance'),
+         ])
+         ->groupBy('PC.folionodocid')
+         ->havingRaw('ABS(SUM(PC.amtdr) - SUM(PC.amtcr)) > 0.01');
+
+      // Filter by status
+      if ($filter === 'inhouse') {
+         $data->where(function ($q) {
+            $q->whereNull('RO.chkoutdate')
+              ->orWhere('RO.chkoutdate', '=', '0000-00-00')
+              ->orWhere('RO.chkoutdate', '=', '');
+         });
+      } elseif ($filter === 'checkedin') {
+         $data->whereNotNull('RO.chkindate')
+            ->where('RO.chkindate', '<>', '');
+      } elseif ($filter === 'checkedout') {
+         $data->whereNotNull('RO.chkoutdate')
+            ->where('RO.chkoutdate', '<>', '')
+            ->where('RO.chkoutdate', '<>', '0000-00-00');
+      }
+
+      $results = $data->orderBy('GP.name')
+         ->get();
+
+      return response()->json([
+         'data' => $results,
+         'total' => $results->count(),
+         'totalCharges' => $results->sum('TotalCharges'),
+         'totalPayments' => $results->sum('TotalPayments'),
+         'totalBalance' => $results->sum('Balance'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Room Nights Analysis — room nights consumed per room type
+   // Legacy: GRepFormName = "RoomNights"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function roomnights(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.roomnights', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function roomnightsfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Room Nights: for each room type, count room nights consumed
+      // A room night = one room occupied for one night
+      $roomTypes = DB::table('room_cat')
+         ->where('propertyid', $pid)
+         ->get();
+
+      $totalRooms = $roomTypes->sum('norooms');
+
+      // RoomOcc with ChkInDate and ChkOutDate
+      $occupancy = DB::table('roomocc AS RO')
+         ->leftJoin('room_cat AS RC', 'RO.RoomCat', '=', 'RC.cat_code')
+         ->where('RO.propertyid', $pid)
+         ->where(function ($q) use ($fromdate, $todate) {
+            $q->where(function ($q2) use ($fromdate, $todate) {
+               // Rooms checked in before period end and not checked out (or checked out during/after period)
+               $q2->where('RO.ChkInDate', '<=', $todate)
+                  ->where(function ($q3) use ($fromdate) {
+                     $q3->whereNull('RO.ChkOutDate')
+                        ->orWhere('RO.ChkOutDate', '=', '0000-00-00')
+                        ->orWhere('RO.ChkOutDate', '>=', $fromdate);
+                  });
+            });
+         })
+         ->select([
+            'RC.cat_code',
+            'RC.name AS RoomTypeName',
+            'RC.norooms',
+            DB::raw('COUNT(*) AS OccupiedRooms'),
+            DB::raw('SUM(CASE WHEN RO.ChkInDate < ' . $fromdate . ' THEN DATEDIFF(LEAST(IFNULL(RO.ChkOutDate, ' . $todate . '), ' . $todate . '), ' . $fromdate . ') ELSE DATEDIFF(LEAST(IFNULL(RO.ChkOutDate, ' . $todate . '), ' . $todate . '), RO.ChkInDate) END) AS RoomNights')
+         ])
+         ->groupBy('RC.cat_code', 'RC.name', 'RC.norooms')
+         ->orderBy('RC.name')
+         ->get();
+
+      $totalNights = $occupancy->sum('RoomNights');
+      $periodDays = max(1, (strtotime($todate) - strtotime($fromdate)) / 86400);
+
+      return response()->json([
+         'data' => $occupancy,
+         'totalRooms' => $totalRooms,
+         'totalNights' => $totalNights,
+         'periodDays' => $periodDays,
+         'occupancyPct' => $totalRooms > 0 ? round(($totalNights / ($totalRooms * $periodDays)) * 100, 2) : 0,
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Check-Out Register — daily checkout list with bill details
+   // Legacy: GRepFormName = "ChkOutRegister"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function checkoutregister(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.checkoutregister', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function checkoutregisterfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      $data = DB::table('roomocc AS RO')
+         ->leftJoin('guestprof AS GP', 'GP.docid', '=', 'RO.docid')
+         ->leftJoin('room_cat AS RC', 'RO.roomcat', '=', 'RC.cat_code')
+         ->select([
+            'RO.docid AS FolioDocId',
+            'RO.foliono AS FolioNo',
+            'GP.name AS GuestName',
+            'GP.mobile_no AS Mobile',
+            'RO.roomno AS RoomNo',
+            'RC.name AS RoomType',
+            'RO.roomrate AS RoomRate',
+            'RO.chkindate AS ChkInDate',
+            'RO.chkoutdate AS ChkOutDate',
+            'RO.nodays AS Nights',
+            'RO.u_name AS CheckOutBy',
+            'RO.u_updatedt AS CheckOutTime',
+         ])
+         ->where('RO.propertyid', $pid)
+         ->whereBetween('RO.chkoutdate', [$fromdate, $todate])
+         ->whereNotNull('RO.chkoutdate')
+         ->where('RO.chkoutdate', '<>', '')
+         ->where('RO.chkoutdate', '<>', '0000-00-00')
+         ->orderBy('RO.chkoutdate')
+         ->orderBy('RO.roomno')
+         ->get();
+
+      $payments = DB::table('paycharge AS PC')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.settledate', [$fromdate, $todate])
+         ->where('PC.modeset', 'S')
+         ->select([
+            'PC.folionodocid',
+            'PC.paytype AS PayType',
+            DB::raw('SUM(PC.amtcr) AS Amount'),
+         ])
+         ->groupBy('PC.folionodocid', 'PC.paytype')
+         ->get()
+         ->groupBy('folionodocid');
+
+      $enriched = $data->map(function ($row) use ($payments) {
+         $row->payments = $payments->get($row->FolioDocId, collect());
+         $row->totalPaid = $row->payments->sum('Amount');
+         return $row;
+      });
+
+      return response()->json([
+         'data' => $enriched,
+         'total' => $enriched->count(),
+         'totalNights' => $enriched->sum('Nights'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Registered Guest Detail — guest master listing with visit history
+   // Legacy: GRepFormName = "RegisteredGuestDetail"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function registeredguestdetail(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.registeredguestdetail', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function registeredguestdetailfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+      $search = $request->input('search', '');
+
+      // Guest master with visit count, last visit, total spend
+      // Use subqueries for aggregations to avoid groupBy row explosion
+      $guestVisits = DB::table('guestfolio')
+         ->where('propertyid', $pid)
+         ->select([
+            'guestprof',
+            DB::raw('COUNT(*) AS Visits'),
+            DB::raw('MAX(vdate) AS LastVisit'),
+         ])
+         ->groupBy('guestprof')
+         ->get()
+         ->keyBy('guestprof');
+
+      $guestSpend = DB::table('paycharge AS PC')
+         ->join('guestfolio AS GF', 'PC.folionodocid', '=', 'GF.docid')
+         ->where('PC.vtype', 'RC')
+         ->where('GF.propertyid', $pid)
+         ->select([
+            'GF.guestprof',
+            DB::raw('SUM(PC.amtdr) AS TotalSpend'),
+         ])
+         ->groupBy('GF.guestprof')
+         ->get()
+         ->keyBy('guestprof');
+
+      $query = DB::table('guestprof AS GP')
+         ->where('GP.propertyid', $pid)
+         ->select([
+            'GP.guestcode',
+            'GP.name',
+            'GP.add1',
+            'GP.add2',
+            'GP.city',
+            'GP.mobile_no',
+            'GP.email_id',
+            'GP.nationality',
+            'GP.type AS GuestType',
+            'GP.gender',
+            'GP.panno',
+            'GP.guest_status',
+            'GP.spl_instr',
+         ]);
+
+      if (!empty($search)) {
+         $query->where(function ($q) use ($search) {
+            $q->where('GP.name', 'LIKE', "%$search%")
+              ->orWhere('GP.mobile_no', 'LIKE', "%$search%")
+              ->orWhere('GP.email_id', 'LIKE', "%$search%")
+              ->orWhere('GP.city', 'LIKE', "%$search%")
+              ->orWhere('GP.panno', 'LIKE', "%$search%");
+         });
+      }
+
+      $data = $query->orderBy('GP.name')
+         ->get()
+         ->map(function ($g) use ($guestVisits, $guestSpend) {
+            $g->Visits = $guestVisits->get($g->guestcode)->Visits ?? 0;
+            $g->LastVisit = $guestVisits->get($g->guestcode)->LastVisit ?? null;
+            $g->TotalSpend = $guestSpend->get($g->guestcode)->TotalSpend ?? 0;
+            return $g;
+         });
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+         'totalSpend' => $data->sum('TotalSpend'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Edited Bills — audit trail of modified FOM bills
+   // Legacy: GRepFormName = "EditedBills"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function editedbills(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.editedbills', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function editedbillsfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Edited bills: fombilldetails with u_ae = 'e' (edit)
+      $data = DB::table('fombilldetails')
+         ->where('propertyid', $pid)
+         ->where('u_ae', 'e')
+         ->whereBetween('billdate', [$fromdate, $todate])
+         ->select([
+            'billno',
+            'billdate',
+            'foliono',
+            'guestname',
+            'billamt',
+            'settamt',
+            'status',
+            'u_name',
+            'u_entdt',
+            'u_updatedt',
+         ])
+         ->orderBy('billdate', 'DESC')
+         ->orderBy('billno')
+         ->get();
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+         'totalBillAmt' => $data->sum('billamt'),
+         'totalSettAmt' => $data->sum('settamt'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // KOT Edit/Delete Log — audit trail of KOT modifications
+   // Legacy: GRepFormName = "KOTEditDelete"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function koteditdeletelog(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      $outlets = DB::table('depart')->where('propertyid', $this->propertyid)->select('dcode', 'name')->get();
+
+      return view('property.koteditdeletelog', [
+         'comp' => $comp,
+         'fromdate' => $this->ncurdate,
+         'outlets' => $outlets,
+      ]);
+   }
+
+   public function koteditdeletelogfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+      $outlet = $request->input('outlet', 'all');
+      $mode = $request->input('mode', 'all');
+
+      $query = DB::table('kotlog AS KL')
+         ->leftJoin('depart AS D', 'KL.restcode', '=', 'D.dcode')
+         ->where('KL.propertyid', $pid)
+         ->whereBetween('KL.vdate', [$fromdate, $todate])
+         ->select([
+            'KL.vdate',
+            'KL.vno AS KOTNo',
+            'KL.vtime AS KOTTime',
+            DB::raw("COALESCE(D.name, KL.restcode) AS OutletName"),
+            'KL.roomno',
+            'KL.item',
+            'KL.qty',
+            'KL.rate',
+            'KL.amount',
+            'KL.voidyn',
+            'KL.waiter',
+            'KL.pending',
+            'KL.u_name',
+            'KL.u_entdt',
+            'KL.u_ae',
+            'KL.delflag',
+            'KL.reasons',
+            'KL.ncreason',
+            'KL.remarks',
+            'KL.nckot',
+         ])
+         ->orderBy('KL.vdate', 'DESC')
+         ->orderBy('KL.vno');
+
+      if ($outlet !== 'all') {
+         $query->where('KL.restcode', $outlet);
+      }
+
+      if ($mode === 'edited') {
+         $query->where('KL.u_ae', 'e');
+      } elseif ($mode === 'deleted') {
+         $query->where('KL.delflag', 'Y');
+      } elseif ($mode === 'voided') {
+         $query->where('KL.voidyn', 'Y');
+      } elseif ($mode === 'nc') {
+         $query->where('KL.nckot', 'Y');
+      }
+
+      $data = $query->get();
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+         'totalAmount' => $data->sum('amount'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Revenue Analysis — revenue breakdown by source/vtype
+   // Legacy: GRepFormName = "RevAnalysis"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function revenueanalysis(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.revenueanalysis', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function revenueanalysisfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Revenue by vtype from paycharge (FO charges)
+      $foRevenue = DB::table('paycharge AS PC')
+         ->leftJoin('revmast AS RM', 'PC.paycode', '=', 'RM.rev_code')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.vdate', [$fromdate, $todate])
+         ->where('PC.amtdr', '>', 0)
+         ->select([
+            'PC.vtype',
+            DB::raw('MAX(COALESCE(RM.name, PC.vtype)) AS RevName'),
+            DB::raw('SUM(PC.amtdr) AS Amount'),
+            DB::raw('COUNT(*) AS TxnCount'),
+         ])
+         ->groupBy('PC.vtype')
+         ->orderBy('Amount', 'DESC')
+         ->get();
+
+      // Revenue by outlet from sale1 (POS)
+      $posRevenue = DB::table('sale1 AS S1')
+         ->leftJoin('depart AS D', 'S1.restcode', '=', 'D.dcode')
+         ->leftJoin('stock AS S', 'S1.docid', '=', 'S.docid')
+         ->where('S1.propertyid', $pid)
+         ->whereBetween('S1.vdate', [$fromdate, $todate])
+         ->select([
+            DB::raw('COALESCE(D.name, S1.restcode) AS OutletName'),
+            DB::raw('SUM(S1.netamt) AS Amount'),
+            DB::raw('COUNT(DISTINCT S1.docid) AS BillCount'),
+         ])
+         ->groupBy('S1.restcode', 'D.name')
+         ->orderBy('Amount', 'DESC')
+         ->get();
+
+      // Revenue by vtype from suntran (accounting postings)
+      $accRevenue = DB::table('suntran AS ST')
+         ->leftJoin('suntranh AS STH', function ($j) {
+            $j->on('ST.docid', '=', 'STH.docid')
+              ->on('ST.propertyid', '=', 'STH.propertyid');
+         })
+         ->where('ST.propertyid', $pid)
+         ->whereBetween('ST.vdate', [$fromdate, $todate])
+         ->where('ST.amtdr', '>', 0)
+         ->select([
+            'ST.vtype',
+            DB::raw('SUM(ST.amtdr) AS Amount'),
+            DB::raw('COUNT(*) AS TxnCount'),
+         ])
+         ->groupBy('ST.vtype')
+         ->orderBy('Amount', 'DESC')
+         ->get();
+
+      $totalFO = $foRevenue->sum('Amount');
+      $totalPOS = $posRevenue->sum('Amount');
+      $totalAcc = $accRevenue->sum('Amount');
+
+      return response()->json([
+         'foRevenue' => $foRevenue,
+         'posRevenue' => $posRevenue,
+         'accRevenue' => $accRevenue,
+         'totalFO' => $totalFO,
+         'totalPOS' => $totalPOS,
+         'totalAcc' => $totalAcc,
+         'grandTotal' => $totalFO + $totalPOS + $totalAcc,
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Guest Charges MIS — charges summary per guest/folio
+   // Legacy: GRepFormName = "GuestChargesMIS"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function guestchargesmis(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.guestchargesmis', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function guestchargesmisfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Guest charges summary: charges vs payments per folio
+      $data = DB::table('paycharge AS PC')
+         ->leftJoin('guestfolio AS GF', 'PC.folionodocid', '=', 'GF.docid')
+         ->leftJoin('guestprof AS GP', 'GF.guestprof', '=', 'GP.guestcode')
+         ->leftJoin('roomocc AS RO', 'PC.folionodocid', '=', 'RO.docid')
+         ->leftJoin('room_cat AS RC', 'RO.roomcat', '=', 'RC.cat_code')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.vdate', [$fromdate, $todate])
+         ->select([
+            'PC.folionodocid AS FolioDocId',
+            'GF.folio_no AS FolioNo',
+            DB::raw('MAX(GP.name) AS GuestName'),
+            DB::raw('MAX(RO.roomno) AS RoomNo'),
+            DB::raw('MAX(RC.name) AS RoomType'),
+            DB::raw('MAX(GF.vdate) AS CheckInDate'),
+            DB::raw('SUM(PC.amtdr) AS TotalCharges'),
+            DB::raw('SUM(PC.amtcr) AS TotalPayments'),
+            DB::raw('SUM(PC.amtdr) - SUM(PC.amtcr) AS Balance'),
+         ])
+         ->groupBy('PC.folionodocid', 'GF.folio_no')
+         ->havingRaw('ABS(SUM(PC.amtdr) - SUM(PC.amtcr)) > 0.01')
+         ->orderBy('GP.name')
+         ->get();
+
+      return response()->json([
+         'data' => $data,
+         'total' => $data->count(),
+         'totalCharges' => $data->sum('TotalCharges'),
+         'totalPayments' => $data->sum('TotalPayments'),
+         'totalBalance' => $data->sum('Balance'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Extra Charges During Stay — non-room charges (POS, laundry, etc.)
+   // Legacy: GRepFormName = "ExtraChargesDuringStay"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function extrachargesduringstay(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.extrachargesduringstay', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function extrachargesduringstayfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+
+      // Extra charges = PPOS (POS room charge) + IPOS (POS in-house) + other non-RC vtypes
+      $data = DB::table('paycharge AS PC')
+         ->leftJoin('guestfolio AS GF', 'PC.folionodocid', '=', 'GF.docid')
+         ->leftJoin('guestprof AS GP', 'GF.guestprof', '=', 'GP.guestcode')
+         ->leftJoin('roomocc AS RO', 'PC.folionodocid', '=', 'RO.docid')
+         ->leftJoin('room_cat AS RC', 'RO.roomcat', '=', 'RC.cat_code')
+         ->where('PC.propertyid', $pid)
+         ->whereBetween('PC.vdate', [$fromdate, $todate])
+         ->whereIn('PC.vtype', ['PPOS', 'IPOS'])
+         ->select([
+            'PC.folionodocid AS FolioDocId',
+            'GF.folio_no AS FolioNo',
+            DB::raw('MAX(GP.name) AS GuestName'),
+            DB::raw('MAX(RO.roomno) AS RoomNo'),
+            DB::raw('MAX(RC.name) AS RoomType'),
+            DB::raw('MAX(GF.vdate) AS CheckInDate'),
+            'PC.vtype',
+            DB::raw('SUM(PC.amtdr) AS Amount'),
+            DB::raw('COUNT(*) AS TxnCount'),
+         ])
+         ->groupBy('PC.folionodocid', 'GF.folio_no', 'PC.vtype')
+         ->orderBy('GP.name')
+         ->orderBy('PC.vtype')
+         ->get();
+
+      // Aggregate by folio
+      $byFolio = $data->groupBy('FolioDocId')->map(function ($rows) {
+         return [
+            'FolioDocId' => $rows->first()->FolioDocId,
+            'FolioNo' => $rows->first()->FolioNo,
+            'GuestName' => $rows->first()->GuestName,
+            'RoomNo' => $rows->first()->RoomNo,
+            'RoomType' => $rows->first()->RoomType,
+            'CheckInDate' => $rows->first()->CheckInDate,
+            'TotalExtra' => $rows->sum('Amount'),
+            'TxnCount' => $rows->sum('TxnCount'),
+            'Breakdown' => $rows->pluck('Amount', 'vtype')->toArray(),
+         ];
+      })->values();
+
+      return response()->json([
+         'data' => $byFolio,
+         'total' => $byFolio->count(),
+         'totalExtra' => $byFolio->sum('TotalExtra'),
+         'totalTxn' => $byFolio->sum('TxnCount'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Advance Reconciliation — 3-way match: Booking → PayCharge → Folio
+   // Detects mismatches between reservation advance and posted payments
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function advancereconcil(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      $comp = DB::table('company')->where('propertyid', $this->propertyid)->first();
+      return view('property.advancereconcil', ['comp' => $comp, 'fromdate' => $this->ncurdate]);
+   }
+
+   public function advancereconcilfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      $pid = $this->propertyid;
+      $filter = $request->input('filter', 'all');
+
+      // Step 1: Get all ADRES (advance) PayCharge records grouped by refdocid
+      $allAdvances = DB::table('paycharge AS PC')
+         ->where('PC.propertyid', $pid)
+         ->where('PC.vtype', 'ADRES')
+         ->whereBetween('PC.vdate', [$fromdate, $todate])
+         ->select([
+            'PC.refdocid',
+            'PC.paytype',
+            'PC.amtcr',
+            'PC.amtdr',
+            'PC.folionodocid',
+            'PC.vdate',
+            'PC.sno',
+         ])
+         ->get()
+         ->groupBy('refdocid');
+
+      // Step 2: Get booking details for these refdocids
+      $bookingIds = $allAdvances->keys()->toArray();
+      $bookings = DB::table('booking AS B')
+         ->leftJoin('guestprof AS GP', 'B.GuestProf', '=', 'GP.guestcode')
+         ->leftJoin('grpbookingdetails AS GBD', function ($j) use ($pid) {
+            $j->on('GBD.BookingDocid', '=', 'B.DocId')
+              ->where('GBD.Property_ID', '=', $pid)
+              ->where('GBD.Sno', '=', 1);
+         })
+         ->where('B.Property_ID', $pid)
+         ->whereIn('B.DocId', $bookingIds)
+         ->select([
+            'B.DocId AS BookingDocId',
+            'B.BookNo',
+            'GP.name AS GuestName',
+            'GBD.RoomNo',
+            'GBD.ArrDate',
+            'GBD.DepDate',
+            'B.Cancel',
+            'B.ResStatus',
+         ])
+         ->get();
+
+      // Step 3: Reconcile
+      $results = $bookings->map(function ($b) use ($allAdvances) {
+         $pcRecords = $allAdvances->get($b->BookingDocId, collect());
+         $postedCredit = (float) $pcRecords->sum('amtcr');
+         $postedDebit = (float) $pcRecords->sum('amtdr');
+         $totalAdvance = $postedCredit - $postedDebit; // This IS the booking advance
+
+         // Check if any ADRES record has a folio reference (advance transferred at check-in)
+         $hasFolio = $pcRecords->where('folionodocid', '<>', '')->where('folionodocid', '<>', null)->count() > 0;
+
+         // Status determination
+         // Since totalAdvance comes from paycharge, all records with ADRES are the source of truth
+         if ($totalAdvance <= 0) {
+            $status = 'NO_ADVANCE';
+            $mismatch = 0;
+         } elseif ($b->Cancel === 'Y') {
+            // Cancelled booking with advance — check if refund was processed
+            $refundCheck = DB::table('paycharge')
+               ->where('propertyid', $b->BookingDocId ? '' : '')
+               ->where('refdocid', $b->BookingDocId)
+               ->where('vtype', 'ADRES')
+               ->where('amtdr', '>', 0)
+               ->sum('amtdr');
+            $status = $refundCheck > 0 ? 'REFUNDED' : 'CANCELLED_NO_REFUND';
+            $mismatch = $refundCheck > 0 ? 0 : $totalAdvance;
+         } elseif ($hasFolio) {
+            $status = 'RECONCILED';
+            $mismatch = 0;
+         } else {
+            // Advance collected but not yet checked in or not transferred to folio
+            $status = 'ADVANCE_ONLY';
+            $mismatch = 0; // Not a mismatch — just advance collected, check-in pending
+         }
+
+         return [
+            'BookingDocId' => $b->BookingDocId,
+            'BookNo' => $b->BookNo,
+            'GuestName' => $b->GuestName,
+            'RoomNo' => $b->RoomNo,
+            'ArrDate' => $b->ArrDate,
+            'DepDate' => $b->DepDate,
+            'Cancel' => $b->Cancel,
+            'ResStatus' => $b->ResStatus,
+            'BookingAdvance' => $totalAdvance,
+            'PostedCredit' => $postedCredit,
+            'PostedDebit' => $postedDebit,
+            'NetPosted' => $totalAdvance,
+            'Mismatch' => $mismatch,
+            'HasFolio' => $hasFolio,
+            'Status' => $status,
+         ];
+      });
+
+      // Apply filter
+      if ($filter === 'mismatch') {
+         $results = $results->filter(fn($r) => $r['Mismatch'] > 0);
+      } elseif ($filter === 'not_posted') {
+         $results = $results->filter(fn($r) => $r['Status'] === 'NOT_POSTED');
+      } elseif ($filter === 'cancelled') {
+         $results = $results->filter(fn($r) => $r['Cancel'] === 'Y');
+      }
+
+      $results = $results->values();
+
+      return response()->json([
+         'data' => $results,
+         'total' => $results->count(),
+         'mismatchCount' => $results->filter(fn($r) => $r['Mismatch'] > 0)->count(),
+         'totalBookingAdvance' => $results->sum('BookingAdvance'),
+         'totalNetPosted' => $results->sum('NetPosted'),
+         'totalMismatch' => $results->sum('Mismatch'),
+      ]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Party Outstanding Report — banquet party wise outstanding
+   // Legacy: PartyOutStanding — HallSale1 vs PaychargeH advance
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function partyoutstanding(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+      }
+      return view('property.partyoutstanding');
+   }
+
+   public function partyoutstandingfetch(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return response()->json(['error' => 'No permission']);
+      }
+
+      $fromdate = $request->input('fromdate', date('Y-m-d'));
+      $todate = $request->input('todate', date('Y-m-d'));
+
+      $results = DB::select("
+         SELECT H.DocID, HB.VDate AS BookDate,
+                V.FromDate AS FuncStartDate, V.ToDate AS FuncEndDate,
+                V.FromTime AS FuncStartTime, V.ToTime AS FuncEndTime,
+                F.Name AS FuncName, H.Party AS PartyName,
+                H.Vno as BillNo, H.VDate as BillDate,
+                (H.NetAmt) AS Amount,
+                IFNULL((SELECT SUM(amtcr) FROM paycharge WHERE contradocid=H.BookDocID AND vtype='HADV'),0) as Advance,
+                (H.NetAmt) - IFNULL((SELECT SUM(amtcr) FROM paycharge WHERE contradocid=H.BookDocID AND vtype='HADV'),0) as Balance,
+                H.BookDocID
+         FROM hallsale1 AS H
+         LEFT JOIN paycharge AS P ON H.DocId = P.DocId
+         LEFT JOIN hallbook AS HB ON H.BookDocID = HB.DocID
+         LEFT JOIN functiontype AS F ON HB.Func_Name = F.Code
+         LEFT JOIN venueocc AS V ON HB.DocId = V.FPDocId
+         WHERE H.propertyid = ?
+         AND H.VDate BETWEEN ? AND ?
+         AND (H.NetAmt) - IFNULL((SELECT SUM(amtcr) FROM paycharge WHERE contradocid=H.BookDocID AND vtype='HADV'),0) > 0
+         ORDER BY H.Party, H.Vno
+      ", [$this->propertyid, $fromdate, $todate]);
+
+      return response()->json($results);
+   }
+
+
+
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // Plan Report — plan/room category wise booking analysis
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function planreport(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return redirect()->back()->with('error', 'No permission');
+      }
+      return view('property.planreport');
+   }
+
+   public function planreportfetch(Request $request)
+   {
+      $permission = revokeopen(131211);
+      if (is_null($permission) || $permission->view == 0) {
+         return response()->json(['error' => 'No permission']);
+      }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $r = DB::select('SELECT B.Plan AS PlanCode, PM.Name AS PlanName, RC.Name AS RoomCategory, COUNT(*) AS TotalBookings, SUM(B.NoofRooms) AS TotalRooms, SUM(B.Adults) AS TotalAdults, SUM(B.Child) AS TotalChildren, AVG(B.Rate) AS AvgRate, SUM(B.Rate*B.NoofRooms) AS TotalRevenue FROM booking AS B LEFT JOIN planmast AS PM ON B.Plan=PM.Code LEFT JOIN roomcategory AS RC ON B.RoomCat=RC.Code WHERE B.Property_ID=? AND B.ArrDate BETWEEN ? AND ? GROUP BY B.Plan,PM.Name,RC.Name ORDER BY PlanName,RoomCategory', [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+
+   public function guestwiseanalysis(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.guestwiseanalysis");
+   }
+
+   public function guestwiseanalysisfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT GP.DocID AS GuestCode,GP.FirstName,GP.LastName,GP.Mobile,CM.Name AS CompanyName,COUNT(DISTINCT B.DocID) AS TotalBookings,IFNULL(SUM(PC.amtdr),0) AS TotalCharges,IFNULL(SUM(PC.amtcr),0) AS TotalPayments FROM guestprof AS GP LEFT JOIN booking AS B ON GP.DocID=B.GuestCode AND B.Property_ID=? LEFT JOIN companyreg AS CM ON B.Compid=CM.Code LEFT JOIN paycharge AS PC ON B.DocID=PC.refdocid WHERE GP.propertyid=? AND B.ArrDate BETWEEN ? AND ? GROUP BY GP.DocID,GP.FirstName,GP.LastName,GP.Mobile,CM.Name ORDER BY TotalCharges DESC", [$this->propertyid,$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function guestwiserevenue(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.guestwiserevenue");
+   }
+
+   public function guestwiserevenuefetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT GP.DocID AS GuestCode,GP.FirstName,GP.LastName,B.RoomNo,RC.Name AS RoomCategory,B.Rate,B.ArrDate,B.DepDate,IFNULL(SUM(PC.amtdr),0) AS RoomRent,IFNULL(SUM(PC.amtcr),0) AS Payments FROM guestprof AS GP INNER JOIN booking AS B ON GP.DocID=B.GuestCode AND B.Property_ID=? LEFT JOIN roomcategory AS RC ON B.RoomCat=RC.Code LEFT JOIN paycharge AS PC ON B.DocID=PC.refdocid WHERE GP.propertyid=? AND B.ArrDate BETWEEN ? AND ? GROUP BY GP.DocID,GP.FirstName,GP.LastName,B.RoomNo,RC.Name,B.Rate,B.ArrDate,B.DepDate ORDER BY B.ArrDate", [$this->propertyid,$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+
+   public function revenueanalysis2(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.revenueanalysis2");
+   }
+
+   public function revenueanalysis2fetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT D.Name AS DeptName, COUNT(DISTINCT PC.DocID) AS TotalBills, IFNULL(SUM(PC.amtdr),0) AS TotalRevenue, IFNULL(SUM(PC.amtcr),0) AS TotalPayments FROM paycharge AS PC LEFT JOIN depart AS D ON PC.dcode=D.Code WHERE PC.propertyid=? AND PC.vdate BETWEEN ? AND ? GROUP BY D.Name ORDER BY TotalRevenue DESC", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function gratuityreport(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.gratuityreport");
+   }
+
+   public function gratuityreportfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT PC.vdate AS VDate, PC.DocID, PC.Vno, PC.amtdr AS Amount, PC.remark AS Remark FROM paycharge AS PC WHERE PC.propertyid=? AND PC.vdate BETWEEN ? AND ? AND PC.vtype IN (GC,SC) ORDER BY PC.vdate", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function cashiercollectionmis(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.cashiercollectionmis");
+   }
+
+   public function cashiercollectionmisfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT PC.vdate AS VDate, U.name AS UserName, COUNT(*) AS TotalBills, IFNULL(SUM(PC.amtdr),0) AS TotalCharges, IFNULL(SUM(PC.amtcr),0) AS TotalCollections FROM paycharge AS PC LEFT JOIN users AS U ON PC.uid=U.id WHERE PC.propertyid=? AND PC.vdate BETWEEN ? AND ? GROUP BY PC.vdate, U.name ORDER BY PC.vdate", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+
+   public function accountchecklist(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.accountchecklist");
+   }
+
+   public function accountchecklistfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT SG.Name AS SubGroupName, LA.Name AS AccountName, IFNULL(SUM(L.Debit),0) AS TotalDebit, IFNULL(SUM(L.Credit),0) AS TotalCredit FROM ledger AS L LEFT JOIN ledgeraccount AS LA ON L.AccCode=LA.Code LEFT JOIN subgroup AS SG ON LA.SubGroup=SG.Code WHERE L.propertyid=? AND L.Vdate BETWEEN ? AND ? GROUP BY SG.Name,LA.Name ORDER BY SG.Name,LA.Name", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function deliverystatus(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.deliverystatus");
+   }
+
+   public function deliverystatusfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT B.DocID AS BookingDocID, B.RoomNo, GP.FirstName, GP.LastName, SR.ReqType AS ServiceType, SR.Description, SR.Status, SR.CreatedAt FROM servicerequest AS SR LEFT JOIN booking AS B ON SR.booking_id=B.DocID LEFT JOIN guestprof AS GP ON B.GuestCode=GP.DocID WHERE SR.propertyid=? AND SR.created_at BETWEEN ? AND ? ORDER BY SR.created_at DESC", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function functionwiseitemdetail(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.functionwiseitemdetail");
+   }
+
+   public function functionwiseitemdetailfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT F.Name AS FuncName, H.Party AS PartyName, H.Vno AS BillNo, H2.ItemName, H2.Qty, H2.Rate, H2.Amount FROM hallsale2 AS H2 LEFT JOIN hallsale1 AS H ON H2.DocID=H.DocID LEFT JOIN hallbook AS HB ON H.BookDocID=HB.DocID LEFT JOIN functiontype AS F ON HB.Func_Name=F.Code WHERE H.propertyid=? AND H.Vdate BETWEEN ? AND ? ORDER BY F.Name,H.Party", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+
+   public function itemwisesalehall(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.itemwisesalehall");
+   }
+
+   public function itemwisesalehallfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT H2.ItemName, SUM(H2.Qty) AS TotalQty, SUM(H2.Amount) AS TotalAmount FROM hallsale2 AS H2 LEFT JOIN hallsale1 AS H ON H2.DocID=H.DocID WHERE H.propertyid=? AND H.Vdate BETWEEN ? AND ? GROUP BY H2.ItemName ORDER BY TotalAmount DESC", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function htcashiersumm(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.htcashiersumm");
+   }
+
+   public function htcashiersummfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT PC.vdate AS VDate, PC.paymode AS PayMode, COUNT(*) AS TotalBills, IFNULL(SUM(PC.amtdr),0) AS TotalCharges, IFNULL(SUM(PC.amtcr),0) AS TotalCollections FROM paycharge AS PC WHERE PC.propertyid=? AND PC.vdate BETWEEN ? AND ? GROUP BY PC.vdate, PC.paymode ORDER BY PC.vdate", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
+   }
+
+   public function billwiseadjustment(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with("error","No permission"); }
+      return view("property.billwiseadjustment");
+   }
+
+   public function billwiseadjustmentfetch(Request $request)
+   {
+      $p = revokeopen(131211);
+      if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
+      $fd = $request->input("fromdate",date("Y-m-d"));
+      $td = $request->input("todate",date("Y-m-d"));
+      $r = DB::select("SELECT PC.vdate AS VDate, PC.DocID, PC.Vno, PC.vtype AS VType, PC.amtdr AS Debit, PC.amtcr AS Credit, PC.paymode AS PayMode, PC.remark AS Remark FROM paycharge AS PC WHERE PC.propertyid=? AND PC.vdate BETWEEN ? AND ? AND PC.vtype IN (ADJ,REV) ORDER BY PC.vdate", [$this->propertyid,$fd,$td]);
+      return response()->json($r);
    }
 }

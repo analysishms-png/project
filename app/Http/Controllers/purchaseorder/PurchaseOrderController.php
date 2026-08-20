@@ -144,6 +144,10 @@ class PurchaseOrderController extends Controller
     // Submit Purchase Order
     public function purchaseordersubmit(Request $request)
     {
+        $permission = revokeopen(161114);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validate = $request->validate([
             'pono' => 'required',
             'vdate' => 'required',

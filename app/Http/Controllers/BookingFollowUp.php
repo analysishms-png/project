@@ -173,6 +173,10 @@ class BookingFollowUp extends Controller
 
     public function store(Request $request)
     {
+        $permission = revokeopen(131211);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $validated = $request->validate([
             'sn' => 'required|integer',
             'next_follow_date' => 'required|date',

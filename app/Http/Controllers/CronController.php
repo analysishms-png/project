@@ -102,6 +102,10 @@ class CronController extends Controller
 
     public function autoCharge(Request $request)
     {
+        $permission = revokeopen(191112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response('Unauthorized', 403);
+        }
 
         // return 'sagar';
 

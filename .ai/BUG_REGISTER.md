@@ -234,3 +234,75 @@
 ## RPT-08 — Raw CMS content output (documented, not fixed)
 - **Severity**: P3
 - **Status**: DOCUMENTED — stored-XSS review pending for frontend/page.blade.php CMS output.
+
+## BUG-047: dailyreport passes undefined $todate to view — FIXED ✅
+- **Severity**: P2
+- **File**: `app/Http/Controllers/Reporting.php:3607`
+- **Root cause**: `'todate',` (bare string in array) instead of `'todate' => $ncurdate,`. This is a PHP syntax quirk — bare strings in arrays are silently accepted but produce an undefined variable when the view tries to access `$todate`.
+- **Impact**: dailyreport view receives no `$todate` value, causing undefined variable errors on any page element referencing it.
+- **Fix**: Changed `'todate',` → `'todate' => $ncurdate,`.
+
+## BUG-048: Member CRUD controllers missing permission guards — FIXED ✅
+- **Severity**: P1 (security — authorization bypass)
+- **Files**: `MemberCategoryController.php`, `MemberMasterController.php`, `MemberFacilityMasterController.php`
+- **Root cause**: All 3 controllers had zero permission checks on `store` and `delete` methods. Any authenticated user could create/delete member categories, members, or facilities without authorization.
+- **Impact**: Unauthorized member record creation/deletion.
+- **Fix**: Added `revokeopen()` permission guards (171111 for category, 171112 for master, 171113 for facility) matching the menuhelp permission family pattern.
+
+## BUG-049: Group account + Guest Ledger advance update missing permission guards — FIXED ✅
+- **Severity**: P1 (security — authorization bypass on financial master data)
+- **Files**: `CompanyController.php` (3 methods)
+- **Root cause**: `savegroupaccountentry` had commented-out permission check; `updategroupaccountentry` had no permission check; `updateGuestLedgerAdvanceEntry` had no permission check. Any authenticated user could modify accounting group structure or guest ledger advance entries without authorization.
+- **Impact**: Unauthorized modification of accounting group master data and guest ledger financial entries.
+- **Fix**: Added `revokeopen()` permission guards — 122014 for group account save/update (matching opengroupupdateentry), 131111 for guest ledger advance update (matching FO operations family).
+
+## BUG-050: Critical financial write methods missing permission guards (CompanyController + Pos + Banquet) — FIXED ✅
+- **Severity**: P0 (security — authorization bypass on financial transactions)
+- **Files**: `CompanyController.php` (4 methods), `Pos.php` (3 methods), `Banquet.php` (5 methods)
+- **Root cause**: 12 critical financial write methods had zero permission checks. Any authenticated user could delete guest ledger entries, delete advances, submit room changes, delete POS bills, settle POS bills, delete banquet bookings, delete banquet advances, delete banquet bills, submit banquet bills, and submit proforma invoices without authorization.
+- **Impact**: Unauthorized financial transaction modification across FO, POS, and Banquet modules.
+- **Fix**: Added `revokeopen()` permission guards:
+  - CompanyController: 131111 (FO family) for deleteguestledger, deleteadvancedeposit, submitadvcahrge, submitroomchange
+  - Pos: 171711 (POS delete) for deletebillxhr; 172315 (POS settlement) for possalebillsettleupdate, possalebillsettle
+  - Banquet: 141611 (new Banquet family) for deletebanquet, deleteadvancebanquet, deletebanquetbill, performaInvoiceSubmit, banquetbillsubmit
+
+## BUG-051: Inventory + HouseKeeping + Tools controllers missing permission guards — FIXED ✅
+- **Severity**: P0 (Tools = critical data wipe; Inventory = financial stock; Housekeeping = operational)
+- **Files**: `InventoryController.php` (4 methods), `HouseKeeping.php` (11 methods), `ToolsController.php` (5 methods)
+- **Root cause**: 20 write methods across 3 controllers had zero permission checks. Tools controller routes have NO auth middleware at all — any unauthenticated user could reach `deletedate` (full property wipe), `deletetablerecord`, `deletemultiplerecords`, `resetOutletData`.
+- **Impact**: Unauthorized data wipe (Tools), stock manipulation (Inventory), housekeeping log modification (Housekeeping).
+- **Fix**:
+  - InventoryController: 161117 (requisition) for stockissuerequistionbillno; 121618 (opening stock) for deleteopeningstock; 161112 (indent) for updateindent; 161116 (stock transfer) for kitchenclosingstocksubmit
+  - HouseKeeping: 151112 (HK master) for log form + wake-up + guest message methods; 151114 (cleaning assignment) for startcleaning; 151115 (cleaning entry) for roomcleaningentry
+  - ToolsController: 201111 (new Tools admin family) for deletedate, resetOutletData, deletetablerecord, deletemultiplerecords, resetNotificationSound
+
+## BUG-052: CronController + MainController + ChannelPush + Fetch + AddNewProfile missing permission guards — FIXED ✅
+- **Severity**: P0 (CronController = financial auto-charge; MainController = admin/user/permission; ChannelPush = channel sync; Fetch = channel update)
+- **Files**: `CronController.php` (1 method), `MainController.php` (8 methods), `ChannelPush.php` (3 methods), `Fetch.php` (2 methods), `AddNewProfile.php` (1 method)
+- **Root cause**: 15 write methods across 5 controllers had zero permission checks. `autoCharge` (GET route `/autochargepost`) was accessible to anyone — could trigger room charge posting. MainController admin methods (property setup, user master, permissions) had no guards. ChannelPush channel sync methods had no guards.
+- **Impact**: Unauthorized room charge posting, property config changes, user/permission modifications, channel sync.
+- **Fix**: `revokeopen()` permission guards — 191112 (night audit) for autoCharge; 201111 (admin) for MainController; 131111 (FO) for ChannelPush/Fetch/AddNewProfile.
+
+## BUG-053: Pointofsale + Reservation + SaleBill missing permission guards — FIXED ✅
+- **Severity**: P0 (financial — POS bill submit/update/settle, reservation cancel, sale bill submit/update)
+- **Files**: `Pointofsale.php` (7 methods), `Reservation.php` (1 method), `SaleBill.php` (2 methods)
+- **Root cause**: 10 write methods had zero permission checks. POS bill submit/update/settle/nil-settle accessible without authorization. Reservation cancellation unguarded. Sale bill submit/update unguarded.
+- **Impact**: Unauthorized POS bill creation/modification, reservation cancellation, sale bill manipulation.
+- **Fix**: `revokeopen()` permission guards — 172011 (POS operations) for POS submit/update/print; 172315 (POS settlement) for settle/nil-settle; 131211 (reservation) for cancel; 172011 (POS) for SaleBill.
+
+## BUG-054: FinanceEnviro + ChargePosting + PurchaseOrder + HrPayroll + GatePass + EInvoice + BookingFollowUp missing permission guards — FIXED ✅
+- **Severity**: P0/P1 (ChargePosting = financial account posting; FinanceEnviro = voucher update; PurchaseOrder = PO submit; HrPayroll = employee delete)
+- **Files**: `FinanceEnviro.php` (1), `ChargePosting.php` (1), `PurchaseOrderController.php` (1), `HrpayrollsController.php` (2), `GatePassController.php` (2), `EInvoiceParameter.php` (1), `BookingFollowUp.php` (1)
+- **Root cause**: 9 write methods across 7 controllers had zero permission checks. Account posting and voucher entry update were the most critical financial operations.
+- **Fix**: `revokeopen()` — 111111 (accounts) for FinanceEnviro/ChargePosting; 161114 (purchase) for PurchaseOrder; 201111 (admin) for HrPayroll; 131111 (FO) for GatePass; 141511 (e-invoice) for EInvoiceParameter; 131211 (reservation) for BookingFollowUp.
+
+## BUG-055: 29 composer audit security vulnerabilities across 6 packages — OPEN ⚠️
+
+- **Severity**: P1 (HIGH — 1 high-severity CVE in guzzle)
+- **Module**: Dependencies
+- **Status**: OPEN
+- **Date**: 2026-08-20
+- **Description**: `composer audit` reports 29 security advisories across 6 packages: dompdf/dompdf (6 CVEs), guzzlehttp/guzzle (10 CVEs, 1 HIGH), guzzlehttp/psr7, laravel/framework (EOL), league/commonmark, phpoffice/phpspreadsheet.
+- **Fix**: Safe minor/patch `composer update` for 5 of 6 packages (24 of 29 CVEs). Laravel framework requires L12 upgrade (5 remaining CVEs).
+- **Blocked**: Requires user approval per mission §26 (dependency management).
+- **Recommendation**: Run `composer update dompdf/dompdf guzzlehttp/guzzle guzzlehttp/psr7 league/commonmark phpoffice/phpspreadsheet --with-dependencies`

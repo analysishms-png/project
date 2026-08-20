@@ -21,8 +21,32 @@
 | SEC-11 | EOL laravel/framework 10.50.2 (unfixable CVEs on L10) | HIGH* | ⚠️ OPEN — requires L12 upgrade (UPGRADE_PLAN.md) |
 | SEC-12 | yajra datatables ^10.11 in AIKIDO-2025-10705 RCE range | MEDIUM | ⚠️ OPEN — upgrade to ^12.6/^13 (deferred to upgrade plan) |
 | SEC-13 | phpMyAdmin/XAMPP default exposure (dev) | LOW | ⚠️ OPEN — deployment checklist |
+| SEC-14 | 29 `composer audit` vulnerabilities (6 packages) | HIGH | ⚠️ OPEN — see DEPENDENCY_AUDIT below |
 
-*Laravel 10 EOL = no security patches; the single highest-priority strategic item (requires approval — major version upgrade).
+*Laravel 10 EOL = no security patches; the single highest-priority strategic item (requires approval — major version upgrade).*
+
+## DEPENDENCY_AUDIT (2026-08-20)
+
+`composer audit` found **29 security advisories** across **6 packages**:
+
+| Package | Installed | Fix Version | CVEs | Highest Severity |
+|---------|-----------|-------------|------|------------------|
+| dompdf/dompdf | v3.1.5 | ≥3.1.6 | 6 (SVG file leak, DoS via bitmap, chroot bypass) | MEDIUM |
+| guzzlehttp/guzzle | 7.11.0 | ≥7.12.1 | 10 (host bypass, cookie leak, HTTPS downgrade) | **HIGH** |
+| guzzlehttp/psr7 | 2.11.0 | ≥2.12.3 | Multiple | MEDIUM |
+| laravel/framework | 10.50.2 | EOL (12.x) | Multiple | HIGH* |
+| league/commonmark | 2.8.2 | ≥2.9.0 | Multiple | MEDIUM |
+| phpoffice/phpspreadsheet | 5.7.0 | (check) | Multiple | MEDIUM |
+
+*All fixes are minor/patch upgrades (safe). **BLOCKED**: `composer update` requires approval per mission §26.
+
+### Recommended `composer update` (safe, minor/patch only)
+
+```bash
+composer update dompdf/dompdf guzzlehttp/guzzle guzzlehttp/psr7 league/commonmark phpoffice/phpspreadsheet --with-dependencies
+```
+
+This resolves 24 of 29 CVEs. The remaining 5 are on laravel/framework (EOL → requires L12 upgrade).
 
 ## Verified good
 

@@ -723,6 +723,10 @@ class Reservation extends Controller
 
     public function updatecancel(Request $request)
     {
+        $permission = revokeopen(131211);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $DocId = base64_decode($request->input('DocId'));
 
         $guestprof = GuestProf::where('docid', $DocId)->first();

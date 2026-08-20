@@ -198,3 +198,178 @@ Route::post('roomreconfetch', [Reporting::class, 'roomreconfetch'])->name('roomr
 Route::get('printoccupancyforecast', [Reporting::class, 'printoccupancyforecast'])->name('printoccupancyforecast');
 // Occupancy Forecast Excel Export
 Route::get('exportoccupancyforecast', [Reporting::class, 'exportoccupancyforecast'])->name('exportoccupancyforecast');
+
+// ─── GST Consolidated Register (all-source unified tax view) ─────────────────
+Route::get('gstconsolidatedregister', [Reporting::class, 'gstconsolidatedregister'])->name('gstconsolidatedregister');
+Route::post('gstconsolidatedregisterfetch', [Reporting::class, 'gstconsolidatedregisterfetch'])->name('gstconsolidatedregisterfetch');
+Route::get('printgstconsolidatedregister', [Reporting::class, 'printgstconsolidatedregister'])->name('printgstconsolidatedregister');
+Route::get('exportgstconsolidatedregister', [Reporting::class, 'exportgstconsolidatedregister'])->name('exportgstconsolidatedregister');
+
+// ─── Night Audit Reconciliation Report ────────────────────────────────────────
+Route::get('nightauditrecon', [Reporting::class, 'nightauditrecon'])->name('nightauditrecon');
+Route::post('nightauditreconfetch', [Reporting::class, 'nightauditreconfetch'])->name('nightauditreconfetch');
+
+// ─── AMR Morning Report ───────────────────────────────────────────────────────
+Route::get('amrmorningreport', [Reporting::class, 'amrmorningreport'])->name('amrmorningreport');
+Route::post('amrmorningreportfetch', [Reporting::class, 'amrmorningreportfetch'])->name('amrmorningreportfetch');
+
+// ─── Checked-In Guest Detail Report ──────────────────────────────────────────
+Route::get('checkedinguestdetail', [Reporting::class, 'checkedinguestdetail'])->name('checkedinguestdetail');
+Route::post('checkedinguestdetailfetch', [Reporting::class, 'checkedinguestdetailfetch'])->name('checkedinguestdetailfetch');
+
+// ─── Room-Wise Room Revenue Report ──────────────────────────────────────────
+Route::get('roomwiseroomrevenue', [Reporting::class, 'roomwiseroomrevenue'])->name('roomwiseroomrevenue');
+Route::post('roomwiseroomrevenuefetch', [Reporting::class, 'roomwiseroomrevenuefetch'])->name('roomwiseroomrevenuefetch');
+
+// ─── Form C — Foreign Guest Registration (Compliance) ───────────────────────
+Route::get('formcreport', [Reporting::class, 'formcreport'])->name('formcreport');
+Route::post('formcreportfetch', [Reporting::class, 'formcreportfetch'])->name('formcreportfetch');
+
+// ─── FO Settlement Report (SettleRep parity) ────────────────────────────────
+Route::get('fosettlereport', [Reporting::class, 'fosettlereport'])->name('fosettlereport');
+Route::post('fosettlereportfetch', [Reporting::class, 'fosettlereportfetch'])->name('fosettlereportfetch');
+
+// ─── Reservation Status Dashboard ────────────────────────────────────────────
+Route::get('reservationstatus', [Reporting::class, 'reservationstatus'])->name('reservationstatus');
+Route::post('reservationstatusfetch', [Reporting::class, 'reservationstatusfetch'])->name('reservationstatusfetch');
+
+// ─── Room Rent Audit Report ─────────────────────────────────────────────────
+Route::get('roomrentaudit', [Reporting::class, 'roomrentaudit'])->name('roomrentaudit');
+Route::post('roomrentauditfetch', [Reporting::class, 'roomrentauditfetch'])->name('roomrentauditfetch');
+
+   // Movement List
+   Route::get('movementlist', [Reporting::class, 'movementlist'])->name('movementlist');
+   Route::post('movementlistfetch', [Reporting::class, 'movementlistfetch'])->name('movementlistfetch');
+   Route::get('printmovementlist', [Reporting::class, 'printmovementlist'])->name('printmovementlist');
+
+   // Discount Register
+   Route::get('discountregister', [Reporting::class, 'discountregister'])->name('discountregister');
+   Route::post('discountregisterfetch', [Reporting::class, 'discountregisterfetch'])->name('discountregisterfetch');
+
+   // Food Cost Report
+   Route::get('foodcost', [Reporting::class, 'foodcost'])->name('foodcost');
+   Route::post('foodcostfetch', [Reporting::class, 'foodcostfetch'])->name('foodcostfetch');
+
+   // Cover Analysis
+   Route::get('coveranalysis', [Reporting::class, 'coveranalysis'])->name('coveranalysis');
+   Route::post('coveranalysisfetch', [Reporting::class, 'coveranalysisfetch'])->name('coveranalysisfetch');
+
+   // Waiter-Wise Sale
+   Route::get('waitersale', [Reporting::class, 'waitersale'])->name('waitersale');
+   Route::post('waitersalefetch', [Reporting::class, 'waitersalefetch'])->name('waitersalefetch');
+
+   // Cashier Settlement
+   Route::get('cashiersettlement', [Reporting::class, 'cashiersettlement'])->name('cashiersettlement');
+   Route::post('cashiersettlementfetch', [Reporting::class, 'cashiersettlementfetch'])->name('cashiersettlementfetch');
+
+   // Guest Payments
+   Route::get('guestpayments', [Reporting::class, 'guestpayments'])->name('guestpayments');
+   Route::post('guestpaymentsfetch', [Reporting::class, 'guestpaymentsfetch'])->name('guestpaymentsfetch');
+
+   // Room Change History
+   Route::get('roomchangehistory', [Reporting::class, 'roomchangehistory'])->name('roomchangehistory');
+   Route::post('roomchangehistoryfetch', [Reporting::class, 'roomchangehistoryfetch'])->name('roomchangehistoryfetch');
+
+   // Guest Trial Balance
+   Route::get('guesttrialbalance', [Reporting::class, 'guesttrialbalance'])->name('guesttrialbalance');
+   Route::post('guesttrialbalancefetch', [Reporting::class, 'guesttrialbalancefetch'])->name('guesttrialbalancefetch');
+
+   // Pending KOT Report
+   Route::get('pendingkotreport', [Reporting::class, 'pendingkotreport'])->name('pendingkotreport');
+   Route::post('pendingkotreportfetch', [Reporting::class, 'pendingkotreportfetch'])->name('pendingkotreportfetch');
+
+   // Room Nights Analysis
+   Route::get('roomnights', [Reporting::class, 'roomnights'])->name('roomnights');
+   Route::post('roomnightsfetch', [Reporting::class, 'roomnightsfetch'])->name('roomnightsfetch');
+
+   // Check-Out Register
+   Route::get('checkoutregister', [Reporting::class, 'checkoutregister'])->name('checkoutregister');
+   Route::post('checkoutregisterfetch', [Reporting::class, 'checkoutregisterfetch'])->name('checkoutregisterfetch');
+
+   // Advance Reconciliation Report
+   Route::get('advancereconcil', [Reporting::class, 'advancereconcil'])->name('advancereconcil');
+   Route::post('advancereconcilfetch', [Reporting::class, 'advancereconcilfetch'])->name('advancereconcilfetch');
+
+   // Registered Guest Detail
+   Route::get('registeredguestdetail', [Reporting::class, 'registeredguestdetail'])->name('registeredguestdetail');
+   Route::post('registeredguestdetailfetch', [Reporting::class, 'registeredguestdetailfetch'])->name('registeredguestdetailfetch');
+
+   // Edited Bills Report
+   Route::get('editedbills', [Reporting::class, 'editedbills'])->name('editedbills');
+   Route::post('editedbillsfetch', [Reporting::class, 'editedbillsfetch'])->name('editedbillsfetch');
+
+   // KOT Edit/Delete Log
+   Route::get('koteditdeletelog', [Reporting::class, 'koteditdeletelog'])->name('koteditdeletelog');
+   Route::post('koteditdeletelogfetch', [Reporting::class, 'koteditdeletelogfetch'])->name('koteditdeletelogfetch');
+
+   // Revenue Analysis
+   Route::get('revenueanalysis', [Reporting::class, 'revenueanalysis'])->name('revenueanalysis');
+   Route::post('revenueanalysisfetch', [Reporting::class, 'revenueanalysisfetch'])->name('revenueanalysisfetch');
+
+   // Guest Charges MIS
+   Route::get('guestchargesmis', [Reporting::class, 'guestchargesmis'])->name('guestchargesmis');
+   Route::post('guestchargesmisfetch', [Reporting::class, 'guestchargesmisfetch'])->name('guestchargesmisfetch');
+
+   // Extra Charges During Stay
+   Route::get('extrachargesduringstay', [Reporting::class, 'extrachargesduringstay'])->name('extrachargesduringstay');
+   Route::post('extrachargesduringstayfetch', [Reporting::class, 'extrachargesduringstayfetch'])->name('extrachargesduringstayfetch');
+
+   // Party Outstanding Report (P1)
+   Route::get('partyoutstanding', [Reporting::class, 'partyoutstanding'])->name('partyoutstanding');
+   Route::post('partyoutstandingfetch', [Reporting::class, 'partyoutstandingfetch'])->name('partyoutstandingfetch');
+
+   // Reservation Status Arrival (P1)
+   Route::get('reservstatusarrival', [Reporting::class, 'reservstatusarrival'])->name('reservstatusarrival');
+   Route::post('reservstatusarrivalfetch', [Reporting::class, 'reservstatusarrivalfetch'])->name('reservstatusarrivalfetch');
+
+   // Reservation Status In-House (P1)
+   Route::get('reservstatusinhouse', [Reporting::class, 'reservstatusinhouse'])->name('reservstatusinhouse');
+   Route::post('reservstatusinhousefetch', [Reporting::class, 'reservstatusinhousefetch'])->name('reservstatusinhousefetch');
+
+   // Plan Report (P2)
+   Route::get('planreport', [Reporting::class, 'planreport'])->name('planreport');
+   Route::post('planreportfetch', [Reporting::class, 'planreportfetch'])->name('planreportfetch');
+
+   // Guest Wise Analysis (P2)
+   Route::get('guestwiseanalysis', [Reporting::class, 'guestwiseanalysis'])->name('guestwiseanalysis');
+   Route::post('guestwiseanalysisfetch', [Reporting::class, 'guestwiseanalysisfetch'])->name('guestwiseanalysisfetch');
+
+   // Guest Wise Revenue (P2)
+   Route::get('guestwiserevenue', [Reporting::class, 'guestwiserevenue'])->name('guestwiserevenue');
+   Route::post('guestwiserevenuefetch', [Reporting::class, 'guestwiserevenuefetch'])->name('guestwiserevenuefetch');
+
+   // Revenue Analysis (P2)
+   Route::get('revenueanalysis2', [Reporting::class, 'revenueanalysis2'])->name('revenueanalysis2');
+   Route::post('revenueanalysis2fetch', [Reporting::class, 'revenueanalysis2fetch'])->name('revenueanalysis2fetch');
+
+   // Gratuity Report (P2)
+   Route::get('gratuityreport', [Reporting::class, 'gratuityreport'])->name('gratuityreport');
+   Route::post('gratuityreportfetch', [Reporting::class, 'gratuityreportfetch'])->name('gratuityreportfetch');
+
+   // Cashier Collection MIS (P2)
+   Route::get('cashiercollectionmis', [Reporting::class, 'cashiercollectionmis'])->name('cashiercollectionmis');
+   Route::post('cashiercollectionmisfetch', [Reporting::class, 'cashiercollectionmisfetch'])->name('cashiercollectionmisfetch');
+
+   // Account Checklist (P2)
+   Route::get('accountchecklist', [Reporting::class, 'accountchecklist'])->name('accountchecklist');
+   Route::post('accountchecklistfetch', [Reporting::class, 'accountchecklistfetch'])->name('accountchecklistfetch');
+
+   // Delivery Status (P2)
+   Route::get('deliverystatus', [Reporting::class, 'deliverystatus'])->name('deliverystatus');
+   Route::post('deliverystatusfetch', [Reporting::class, 'deliverystatusfetch'])->name('deliverystatusfetch');
+
+   // Function Wise Item Detail (P2)
+   Route::get('functionwiseitemdetail', [Reporting::class, 'functionwiseitemdetail'])->name('functionwiseitemdetail');
+   Route::post('functionwiseitemdetailfetch', [Reporting::class, 'functionwiseitemdetailfetch'])->name('functionwiseitemdetailfetch');
+
+   // Item Wise Sale Hall (P2)
+   Route::get('itemwisesalehall', [Reporting::class, 'itemwisesalehall'])->name('itemwisesalehall');
+   Route::post('itemwisesalehallfetch', [Reporting::class, 'itemwisesalehallfetch'])->name('itemwisesalehallfetch');
+
+   // HT Cashier Summary (P2)
+   Route::get('htcashiersumm', [Reporting::class, 'htcashiersumm'])->name('htcashiersumm');
+   Route::post('htcashiersummfetch', [Reporting::class, 'htcashiersummfetch'])->name('htcashiersummfetch');
+
+   // Bill Wise Adjustment Report (P2)
+   Route::get('billwiseadjustment', [Reporting::class, 'billwiseadjustment'])->name('billwiseadjustment');
+   Route::post('billwiseadjustmentfetch', [Reporting::class, 'billwiseadjustmentfetch'])->name('billwiseadjustmentfetch');

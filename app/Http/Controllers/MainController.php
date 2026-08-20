@@ -315,6 +315,10 @@ class MainController extends Controller
 
     public function store(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|max:100',
             'username' => 'required|max:25',
@@ -401,6 +405,10 @@ class MainController extends Controller
 
     public function companyupdate(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|max:100',
             'username' => 'required|max:25',
@@ -519,6 +527,10 @@ class MainController extends Controller
 
     public function submitcountry(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validatedData = $request->validate([
             'countryname' => 'required',
             'nationality' => 'required',
@@ -570,6 +582,10 @@ class MainController extends Controller
 
     public function submitstate(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validatedData = $request->validate([
             'country_select' => 'required',
             'state_name' => 'required',
@@ -621,6 +637,10 @@ class MainController extends Controller
 
     public function submitcity(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validatedData = $request->validate([
             'country' => 'required',
             'cityname' => 'required',
@@ -825,6 +845,10 @@ class MainController extends Controller
 
     public function submitusermaster(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $request->validate([
             'username' => 'required',
             'password' => 'required',
@@ -884,6 +908,10 @@ class MainController extends Controller
 
     public function updateUserAp(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'ap_type' => 'required|in:A,P',
@@ -906,6 +934,10 @@ class MainController extends Controller
 
     public function PermissionUpdate(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $tablename = 'permission';
         $request->validate([
             'propertyid' => 'required',

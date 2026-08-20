@@ -42,6 +42,36 @@
 | Membership/reward | FrMember | ⚠️ | PARTIAL | Verify |
 | Telephone/EPABX | — | ❌ | UNKNOWN | Verify module existence first |
 
+### Night Audit Reports
+| Legacy Report | Laravel Equivalent | Status | Notes |
+|---|---|---|---|
+| DailyReport | dailyreport (NightAudit/Reports/DailyReport.php) | ✅ EXISTS | |
+| NightAuditReport | nightauditrecon | ✅ **NEW 2026-08-19** | Room occupancy vs charges + settlement + prior-night comparison |
+| NightAuditReportI | nightauditrecon (list variant) | ✅ **NEW 2026-08-19** | Covered by reconciliation report |
+| AMRMorningReport | amrmorningreport | ✅ **NEW 2026-08-19** | Daily operational snapshot: occupancy + arrivals + departures + revenue |
+| CheckedInGuestDtl | checkedinguestdetail | ✅ **NEW 2026-08-19** | All checked-in guests with room, ID, company, balance |
+| DailySumm | dailyreport | ✅ EXISTS | |
+| DailyDiet | — | ❌ MISSING | P2 — meal plan tracking |
+| DailyFuncSheet | — | ❌ MISSING | P2 — documented in BANQUET_GAPS.md |
+| RoomNights | — | ❌ MISSING | P2 — occupancy statistics |
+| DailyStoreIssRpt | inventory reports | ✅ EXISTS | |
+
+### GST/TAX Reports
+| Legacy Report | Laravel Equivalent | Status | Notes |
+|---|---|---|---|
+| FOM Tax Detail | fomtaxdetail | ✅ EXISTS | |
+| FOM Tax Wise Charge Detail | fomtaxdetail (rate pivot) | ✅ EXISTS | |
+| TaxReport (room) | fomtaxdetail | ✅ EXISTS | |
+| TaxReportHall | taxReport | ✅ EXISTS | |
+| TaxSummaryHall | taxReportData | ✅ EXISTS | |
+| TaxSumm | fomtaxdetail summary | ✅ EXISTS | |
+| TaxInvoiceDetail | taxreportinv | ✅ EXISTS | |
+| TaxWiseSale / TaxRegister | gstconsolidatedregister | ✅ **NEW 2026-08-19** | Unified all-source tax view |
+| VATRegister / II / III | N/A | ⬛ OBSOLETE | Pre-GST |
+| UPVATXXIV | N/A | ⬛ OBSOLETE | Pre-GST |
+| LuxuryTaxRegister / I | N/A | ⬛ OBSOLETE | Absorbed in GST |
+| MemTaxReport | — | ❌ MISSING | Belongs to Membership module (16) |
+
 ## Next actions
 
 1. Run a full report inventory: grep `*.blade.php` in `resources/views/property` + list `Reporting.php` methods → build complete EXISTS list.

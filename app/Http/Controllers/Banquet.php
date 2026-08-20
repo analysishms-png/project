@@ -697,6 +697,10 @@ class Banquet extends Controller
 
     public function deletebanquet(Request $request, $docid)
     {
+        $permission = revokeopen(141611);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $hallsale = HallSale1::where('propertyid', $this->propertyid)->where('bookdocid', $docid)->first();
 
         $inquiry = BookingInquiry::where('propertyid', $this->propertyid)->where('contradocid', $docid)->first();
@@ -783,6 +787,10 @@ class Banquet extends Controller
 
     public function deleteadvancebanquet($docid)
     {
+        $permission = revokeopen(141611);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
         $chk = PaychargeH::where('propertyid', $this->propertyid)->where('docid', $docid)->first();
 
         if (is_null($chk)) {
@@ -1786,6 +1794,10 @@ class Banquet extends Controller
 
     public function performaInvoiceSubmit(Request $request)
     {
+        $permission = revokeopen(141611);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
 
         try {
             DB::beginTransaction();
@@ -2358,6 +2370,10 @@ class Banquet extends Controller
 
     public function deletebanquetbill(Request $request)
     {
+        $permission = revokeopen(141611);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
         try {
             DB::beginTransaction();
             $docid = $request->input('docid');
@@ -3990,6 +4006,10 @@ class Banquet extends Controller
 
     public function banquetbillsubmit(Request $request)
     {
+        $permission = revokeopen(141611);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
         DB::beginTransaction();
         try {
 

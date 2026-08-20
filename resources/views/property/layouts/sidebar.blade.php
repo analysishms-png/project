@@ -1,25 +1,22 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-
 <style>
+    /* Sidebar mobile responsive */
     @media (max-width: 767px) {
         .nk-sidebar {
             position: fixed;
-            top: 82px;
-            left: -100% !important; /* hide by default */
-            width: 250px;
+            top: 0;
+            left: -100% !important;
+            width: 270px;
             height: 100%;
-            background: #fff;
+            background: #0f172a;
             z-index: 2000;
             transition: left 0.3s ease;
         }
-
         .nk-sidebar.open {
             left: 0 !important;
-            /* show when open */
         }
-
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -27,9 +24,9 @@
             left: 0;
             width: 100%;
             height: 100%;
+            background: rgba(0,0,0,0.5);
             z-index: 1999;
         }
-
         .sidebar-overlay.show {
             display: block;
         }
@@ -50,8 +47,7 @@
                 </a>
             </li>
         </ul>
-        {{--
-        <script src="https://code.jquery.com/jquery-3.5.1.js"></script> --}}
+        {{-- Dynamic Main Menu --}}
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 let dashboardid = document.getElementById('dashboardid');
@@ -82,6 +78,7 @@
             });
         </script>
 
+        {{-- Dynamic Sub Menu --}}
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 let clickcount = 0;
@@ -137,6 +134,7 @@
             });
         </script>
 
+        {{-- Dynamic Last Menu --}}
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 let clickcount2 = 0;
@@ -205,7 +203,7 @@
 
         // Sidebar toggle
         toggleBtn.addEventListener('click', function () {
-            sidebar.classList.toggle('open');  // This triggers left:0 or -100%
+            sidebar.classList.toggle('open');
             overlay.classList.toggle('show');
         });
 
@@ -230,7 +228,6 @@
     });
 </script>
 
-
 <script src="{{ asset('admin/js/sidebar.js') }}"></script>
 
 <script>
@@ -250,7 +247,4 @@
     }
     let element = document.getElementById('ncurdate');
     fetchncur(element);
-    setTimeout(function () {
-        document.querySelector('.nav-control').click();
-    }, 500);
 </script>

@@ -584,6 +584,10 @@ class Pos extends Controller
 
     public function deletebillxhr(Request $request)
     {
+        $permission = revokeopen(171711);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $docid = $request->input('docid');
         $reason = $request->input('reason');
         $existingrowsdata = Paycharge::where('propertyid', $this->propertyid)->where('docid', $docid)->get();
@@ -711,6 +715,10 @@ class Pos extends Controller
 
     public function possalebillsettleupdate(Request $request)
     {
+        $permission = revokeopen(172315);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
 
         // echo "<pre>";
         // print_r($request->all());
@@ -1166,6 +1174,10 @@ class Pos extends Controller
 
     public function possalebillsettle(Request $request)
     {
+        $permission = revokeopen(172315);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $sale1docid = $request->input('sale1docid');
         $rowcount = $request->input('rowcount');
 

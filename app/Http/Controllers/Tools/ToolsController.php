@@ -492,6 +492,10 @@ class ToolsController extends Controller
 
     public function deletedate(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $request->validate([
             'propertyid' => 'required',
             'delete_type' => 'required|in:with_cm,without_cm',
@@ -2307,6 +2311,10 @@ class ToolsController extends Controller
 
     public function resetOutletData(int $propertyId)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         DB::beginTransaction();
 
         try {
@@ -2885,6 +2893,10 @@ class ToolsController extends Controller
     // Delete Table Record
     public function deletetablerecord(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         try {
             $tableName = $request->table_name;
             $primaryKey = $request->primary_key;
@@ -2946,6 +2958,10 @@ class ToolsController extends Controller
     // Delete Multiple Records
     public function deletemultiplerecords(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         try {
             $tableName = $request->table_name;
             $primaryKey = $request->primary_key;
@@ -3854,6 +3870,10 @@ class ToolsController extends Controller
 
     public function resetNotificationSound(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         try {
             $existing = DB::table('support_notification_sound_settings')
                 ->where('user_id', Auth::id())

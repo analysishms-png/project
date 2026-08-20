@@ -202,6 +202,10 @@ class Pointofsale extends Controller
 
     public function updatedelflagxhr(Request $request)
     {
+        $permission = revokeopen(172011);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $docid = $request->input('docid');
         $reason = $request->input('reason');
         $sale1 = Sale1::where('propertyid', $this->propertyid)->where('docid', $docid)->first();
@@ -605,6 +609,10 @@ class Pointofsale extends Controller
 
     public function salebillsubmit(Request $request)
     {
+        $permission = revokeopen(172011);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
 
         $validate = $request->validate([
             'roomno' => 'required',
@@ -1478,6 +1486,10 @@ class Pointofsale extends Controller
 
     public function salebillupdate(Request $request)
     {
+        $permission = revokeopen(172011);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $validate = $request->validate([
             'pax' => 'required',
         ]);
@@ -2735,6 +2747,10 @@ class Pointofsale extends Controller
 
     public function posbillprintsubmit(Request $request)
     {
+        $permission = revokeopen(172011);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
 
         $totalrows = $request->input('btotalrows');
         try {
@@ -2793,6 +2809,10 @@ class Pointofsale extends Controller
 
     public function salebillsettle(Request $request)
     {
+        $permission = revokeopen(172315);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $res_code = $request->query('rest_code');
         $vno = $request->query('vno');
         $sale1docid = $request->query('sale1docid');
@@ -2898,6 +2918,10 @@ class Pointofsale extends Controller
 
     public function nillsettle(Request $request)
     {
+        $permission = revokeopen(172315);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $docid = $request->docid;
         $sno1 = $request->sno1;
         $sno = $request->sno;
@@ -2948,6 +2972,10 @@ class Pointofsale extends Controller
 
     public function salebillsettlesubmit(Request $request)
     {
+        $permission = revokeopen(172315);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
 
         $sale1docid = $request->input('sale1docid');
         $rowcount = $request->input('rowcount');

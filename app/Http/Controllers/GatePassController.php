@@ -159,6 +159,10 @@ class GatePassController extends Controller
      */
     public function store(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $propertyid = $this->propertyid;
 
         $validated = $request->validate([
@@ -400,6 +404,10 @@ class GatePassController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $validated = $request->validate([
             'type' => 'required',
             'visitiorname' => 'nullable|string|max:35',

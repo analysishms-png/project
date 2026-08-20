@@ -119,6 +119,10 @@ class AddNewProfile extends Controller
 
     public function updatenewprofile(Request $request)
     {
+        $permission = revokeopen(131111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $request->validate([
             'docid' => 'required',
             'sno1' => 'required',

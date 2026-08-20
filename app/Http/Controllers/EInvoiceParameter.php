@@ -91,6 +91,10 @@ class EInvoiceParameter extends Controller
 
     public function einvoiceparametersubmit(Request $request)
     {
+        $permission = revokeopen(141511);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         try {
             $validated = $request->validate([
                 'apiid' => 'nullable|string|max:255',

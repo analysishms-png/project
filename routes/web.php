@@ -579,3 +579,8 @@ Route::post('/guest-portal/{propertyid}/{roomno}/express-checkout', [FeedbackMas
 Route::get('/livewire-pilot', function () {
     return view('admin.livewire-pilot');
 })->name('livewire.pilot');
+
+Route::get('dashboard-modern', function() {
+    // Redirect to existing loadProperty but with modern view
+    return redirect()->route('company');
+})->name('dashboard.modern');

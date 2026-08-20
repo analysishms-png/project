@@ -925,6 +925,10 @@ class InventoryController extends Controller
 
     public function stockissuerequistionbillno(Request $request)
     {
+        $permission = revokeopen(161117);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $vtype = "RQI";
         $vdate = $request->input('vdate');
         $chkvpf = VoucherPrefix::where('propertyid', $this->propertyid)
@@ -3740,6 +3744,10 @@ class InventoryController extends Controller
 
     public function deleteopeningstock(Request $request)
     {
+        $permission = revokeopen(121618);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $docid = $request->docid;
         $chk = Stock::where('propertyid', $this->propertyid)->where('docid', $docid)->first();
 
@@ -4868,6 +4876,10 @@ class InventoryController extends Controller
 
     public function updateindent(Request $request, $docid)
     {
+        $permission = revokeopen(161112);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $departs = Depart::where('propertyid', $this->propertyid)
             ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
 
@@ -5412,6 +5424,10 @@ class InventoryController extends Controller
 
     public function kitchenclosingstocksubmit(Request $request)
     {
+        $permission = revokeopen(161116);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $request->validate([
             'vdate'      => 'required',
             'department' => 'required',

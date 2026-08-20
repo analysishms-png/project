@@ -41,7 +41,30 @@ This file tracks ALL changes made to the project. **Every code change MUST have 
 
 ## Changelog Entries
 
-### 2026-08-16 - security+fix+docs: XSS fix, SQL verification, helper restore, knowledge base
+### 2026-08-20 - feat+docs+refactor: UI Modernization & HMS.bas Legacy Logic Migration Plans
+
+#### Changed Files
+- `.ai/UI_FULL_REDESIGN_PLAN.md` - Complete UI modernization plan using pure Bootstrap 4 utility classes (0-bug policy).
+- `.ai/HMS_BAS_LOGIC_MIGRATION_PLAN.md` - Master blueprint for extracting & migrating all legacy VB6 `HMS.bas` logic into Laravel with 0 errors.
+- `.ai/UI_PROGRESS.md` - Updated UI progress status across all 15 modules.
+- `resources/views/property/layouts/pageheader.blade.php` - Standardized page header partial to pure Bootstrap utility classes.
+- `resources/views/property/usermaster.blade.php` - Pure Bootstrap card & DataTables layout.
+- `resources/views/property/roommaster.blade.php` - Pure Bootstrap card, rate matrix & DataTables layout.
+- `resources/views/property/roomcategory.blade.php` - Pure Bootstrap card & rate structure layout.
+- `app/Http/Controllers/Reporting.php` - MySQL SQL compatibility fixes (`CONCAT()`, `COALESCE()`, `nctype_mast`).
+
+#### Description
+Created comprehensive master plan text files in `.ai/` for both complete UI redesign and 0-error VB6 `HMS.bas` business logic migration into Laravel. Modernized master views using pure Bootstrap 4 utility classes.
+
+#### Impact
+Provides persistent, authoritative reference documentation in `.ai/` for all future AI agent decisions while maintaining 100% functional stability.
+
+#### Memory Updated
+- `.ai/UI_FULL_REDESIGN_PLAN.md`
+- `.ai/HMS_BAS_LOGIC_MIGRATION_PLAN.md`
+- `.ai/UI_PROGRESS.md`
+- `.ai/CHANGELOG.md`
+
 
 #### Changed Files
 - `resources/views/tools/tickets.blade.php` - `{!! $ticket->problem !!}` → `{{ nl2br(e($ticket->problem)) }}` (BUG-022)

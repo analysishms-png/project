@@ -132,6 +132,10 @@ class SaleBill extends Controller
 
     public function salebillsubmit(Request $request)
     {
+        $permission = revokeopen(172011);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $request->validate([
             'roomno' => 'required',
             'pax' => 'required',
@@ -1072,6 +1076,10 @@ class SaleBill extends Controller
 
     public function salebillupdate(Request $request)
     {
+        $permission = revokeopen(172011);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         DB::beginTransaction();
 
         try {

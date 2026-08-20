@@ -67,6 +67,10 @@ class ChargePosting extends Controller
 
     public function accountpoststore(Request $request, AccountPosting $accountposting)
     {
+        $permission = revokeopen(111111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $result = $accountposting->accountpoststore($request->fromdate, $request->todate);
         
         // return $result;

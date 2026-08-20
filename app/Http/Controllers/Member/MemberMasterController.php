@@ -40,6 +40,11 @@ class MemberMasterController extends Controller
 
     public function store(Request $request)
     {
+        $permission = revokeopen(171112);
+        if (is_null($permission) || $permission->ins == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
         $profileFilePath = '';
         $signFilePath = '';
 
@@ -382,6 +387,11 @@ class MemberMasterController extends Controller
 
     public function deletemaster(Request $request, $code)
     {
+        $permission = revokeopen(171112);
+        if (is_null($permission) || $permission->del == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
         try {
             SubGroup::where('propertyid', $this->propertyid)->where('sub_code', $code)->delete();
 

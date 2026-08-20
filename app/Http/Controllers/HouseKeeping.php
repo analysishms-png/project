@@ -441,6 +441,10 @@ class HouseKeeping extends Controller
 
     public function updatelogform()
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
         $mainMenus = DB::table('tbl_usermodule')
             ->where('flag', 'N')
             ->where('opt2', 0)
@@ -451,12 +455,16 @@ class HouseKeeping extends Controller
         $data = UpdateLog::orderBy('u_entdt', 'DESC')->get();
 
         return view('admin.updatelogform', compact('data', 'mainMenus'));
-    }
-
-    public function submitupdatelogform(Request $request)
+    }    public function submitupdatelogform(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
 
         try {
+
+
             $uplog = new UpdateLog;
             $uplog->mainmenu = $request->mainmenu;
             $uplog->submenu = $request->submenu;
@@ -501,6 +509,10 @@ class HouseKeeping extends Controller
 
     public function deleteupdatelog(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $sn = base64_decode($request->sn);
         if (! $sn) {
             return back()->with('error', 'SN is missing or undefined!');
@@ -3054,6 +3066,10 @@ class HouseKeeping extends Controller
 
     public function startcleaning(Request $request)
     {
+        $permission = revokeopen(151114);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $propertyId = $this->propertyid;
         $asOnDate   = $this->ncurdate;
         date_default_timezone_set('Asia/Kolkata');
@@ -3397,6 +3413,10 @@ class HouseKeeping extends Controller
 
     public function roomcleaningentry(Request $request)
     {
+        $permission = revokeopen(151115);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $propertyId        = $this->propertyid;
         $asOnDate          = $this->ncurdate;   // ncur date
         $selectedCleaningId = $request->query('cleaningid');
@@ -4656,6 +4676,10 @@ class HouseKeeping extends Controller
 
     public function openwakeupentry(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $rooms = DB::table('roomocc')
             ->where('propertyid', $this->propertyid)
             ->where('type', 'I')
@@ -4677,6 +4701,10 @@ class HouseKeeping extends Controller
 
     public function submitwakeup(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $validate = $request->validate([
             'roomno' => 'required',
             'wdate' => 'required',
@@ -4714,6 +4742,10 @@ class HouseKeeping extends Controller
 
     public function deletewakeup(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $id = $request->input('id');
         if (!$id) {
             return response()->json(['success' => false, 'message' => 'ID required'], 400);
@@ -4779,6 +4811,10 @@ class HouseKeeping extends Controller
 
     public function openguestmessageentry(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $rooms = DB::table('roomocc')
             ->where('propertyid', $this->propertyid)
             ->where('type', 'I')
@@ -4797,6 +4833,10 @@ class HouseKeeping extends Controller
 
     public function submitguestmessage(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $validate = $request->validate([
             'roomno' => 'required',
             'caller' => 'required',
@@ -4849,6 +4889,10 @@ class HouseKeeping extends Controller
 
     public function deleteguestmessage(Request $request)
     {
+        $permission = revokeopen(151112);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access'], 403);
+        }
         $id = $request->input('id');
         if (!$id) {
             return response()->json(['success' => false, 'message' => 'ID required'], 400);

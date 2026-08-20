@@ -1,9 +1,32 @@
 @extends('property.layouts.main')
 @section('main-container')
 @include('property.dashboardcss')
+<link href="{{ asset('admin/css/dashboard-modern.css') }}" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <div class="content-body">
-        <div class="container-fluid mt-5">
-             <h2 class="mb-4" style="font-weight: 700; color: #333;">Analytics Dashboard</h2>
+        <div class="container-fluid" style="margin-top:90px;">
+             <!-- Modern Dashboard Title Bar -->
+             <div class="dash-title-bar">
+                <div class="title-left">
+                    <h3>Analytics Dashboard</h3>
+                    <p>Welcome back, {{ Auth::user()->name }}! 👋</p>
+                </div>
+                <div class="title-right">
+                    <div class="dash-date-pill">
+                        <i class="fa fa-calendar"></i>
+                        <span>{{ $datearr['ncurdate'] ?? '' }}</span>
+                    </div>
+                    <button onclick="location.reload()" class="dash-btn-refresh">
+                        <i class="fa fa-sync-alt"></i> Refresh
+                    </button>
+                    <button onclick="window.print()" class="dash-btn-icon"><i class="fa fa-print"></i></button>
+                    <div class="dash-btn-icon"><i class="fa fa-bell"></i></div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="dash-user-avatar">{{ strtoupper(substr(Auth::user()->name,0,1)) }}</div>
+                        <div class="dash-user-label"><strong>{{ Auth::user()->name }}</strong>Admin</div>
+                    </div>
+                </div>
+             </div>
             <!-- Analytics Dashboard Section -->
     
             <div class="row justify-content-center">
@@ -240,7 +263,334 @@
                 </div>
             </div>
              
-         {{-- @if (Auth::user()->propertyid == '103') --}}
+         {{-- ═══════════════════════════════════════════════════════════════
+             KPI SUMMARY ROW + DONUT + REVENUE + EVENTS + QUICK ACTIONS
+             ═══════════════════════════════════════════════════════════════ --}}
+        @php
+            $occCount = $status['Occupied'] ? count($status['Occupied']) : 0;
+            $coCount = $status['CheckOut'] ? count($status['CheckOut']) : 0;
+            $dirtyCount = $status['OccupiedDirtyRooms'] ? count($status['OccupiedDirtyRooms']) : 0;
+            $vacantDirtyCount = $status['VacantDirtyRooms'] ? count($status['VacantDirtyRooms']) : 0;
+            $occNames = $status['Occupied'] ? $status['Occupied']->pluck('Name')->take(5)->implode(', ') : '';
+            $coNames = $status['CheckOut'] ? $status['CheckOut']->pluck('Name')->take(5)->implode(', ') : '';
+            $dirtyNames = $status['OccupiedDirtyRooms'] ? $status['OccupiedDirtyRooms']->pluck('name')->take(5)->implode(', ') : '';
+            $vacantDirtyNames = $status['VacantDirtyRooms'] ? $status['VacantDirtyRooms']->pluck('Name')->take(5)->implode(', ') : '';
+            $oooCount = $status['OutOfOrderRooms'] ? count($status['OutOfOrderRooms']) : 0;
+            $totalRooms = $occCount + $coCount + $dirtyCount + $vacantDirtyCount + $oooCount;
+            $vacantCleanCount = 0; // VacantCleanRooms not in controller status array
+            $chargeableRooms = $occCount + $dirtyCount;
+            $occPct = $totalRooms > 0 ? round(($occCount / $totalRooms) * 100, 2) : 0;
+        @endphp
+
+        {{-- KPI SUMMARY ROW --}}
+        <div class="kpi-row">
+            <div class="kpi-card" onclick="showRoomModal('Occupied Room', {{ json_encode($status['Occupied'] ? $status['Occupied']->pluck('Name') : []) }}, 'occupied')">
+                <div class="kpi-icon blue"><i class="fa fa-bed"></i></div>
+                <div class="kpi-info">
+                    <div class="kpi-number">{{ $occCount }}</div>
+                    <div class="kpi-label">Occupied Rooms</div>
+                    <div class="kpi-rooms">{{ $occNames }}{{ $occCount > 5 ? '...' : '' }}</div>
+                </div>
+                <div class="kpi-arrow"><i class="fa fa-chevron-right"></i></div>
+            </div>
+            <div class="kpi-card" onclick="showRoomModal('Checkout Room', {{ json_encode($status['CheckOut'] ? $status['CheckOut']->pluck('Name') : []) }}, 'checkout')">
+                <div class="kpi-icon green"><i class="fa fa-check-circle"></i></div>
+                <div class="kpi-info">
+                    <div class="kpi-number">{{ $coCount }}</div>
+                    <div class="kpi-label">Checkout Rooms</div>
+                    <div class="kpi-rooms">{{ $coNames }}{{ $coCount > 5 ? '...' : '' }}</div>
+                </div>
+                <div class="kpi-arrow"><i class="fa fa-chevron-right"></i></div>
+            </div>
+            <div class="kpi-card" onclick="showRoomModal('Occupied Dirty Room', {{ json_encode($status['OccupiedDirtyRooms'] ? $status['OccupiedDirtyRooms']->pluck('name') : []) }}, 'dirty')">
+                <div class="kpi-icon orange"><i class="fa fa-bell"></i></div>
+                <div class="kpi-info">
+                    <div class="kpi-number">{{ $dirtyCount }}</div>
+                    <div class="kpi-label">Occupied Dirty Rooms</div>
+                    <div class="kpi-rooms">{{ $dirtyNames }}{{ $dirtyCount > 5 ? '...' : '' }}</div>
+                </div>
+                <div class="kpi-arrow"><i class="fa fa-chevron-right"></i></div>
+            </div>
+            <div class="kpi-card" onclick="showRoomModal('Vacant Dirty Room', {{ json_encode($status['VacantDirtyRooms'] ? $status['VacantDirtyRooms']->pluck('Name') : []) }}, 'clean')">
+                <div class="kpi-icon purple"><i class="fa fa-clipboard"></i></div>
+                <div class="kpi-info">
+                    <div class="kpi-number">{{ $vacantDirtyCount }}</div>
+                    <div class="kpi-label">Vacant Dirty Rooms</div>
+                    <div class="kpi-rooms">{{ $vacantDirtyNames }}{{ $vacantDirtyCount > 5 ? '...' : '' }}</div>
+                </div>
+                <div class="kpi-arrow"><i class="fa fa-chevron-right"></i></div>
+            </div>
+        </div>
+
+        {{-- MAIN DASHBOARD GRID: Donut + Revenue + Events --}}
+        <div class="dash-grid">
+            {{-- Room Status Overview Donut --}}
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <h4>Room Status Overview</h4>
+                    <select class="filter-select"><option>All Room Types</option></select>
+                </div>
+                <div class="dash-card-body">
+                    <div class="donut-container">
+                        <div class="donut-chart-wrap">
+                            <canvas id="roomStatusDonut"></canvas>
+                            <div class="donut-center-text">
+                                <div class="total">{{ $totalRooms }}</div>
+                                <div class="label">Total Rooms</div>
+                            </div>
+                        </div>
+                        <div class="donut-legend">
+                            <div class="donut-legend-item">
+                                <div class="donut-legend-dot" style="background:#ef4444;"></div>
+                                <span class="donut-legend-name">Occupied</span>
+                                <span class="donut-legend-count">{{ $occCount }}</span>
+                                <span class="donut-legend-pct">{{ $totalRooms > 0 ? round(($occCount/$totalRooms)*100,2) : 0 }}%</span>
+                            </div>
+                            <div class="donut-legend-item">
+                                <div class="donut-legend-dot" style="background:#22c55e;"></div>
+                                <span class="donut-legend-name">Vacant Clean</span>
+                                <span class="donut-legend-count">{{ $vacantCleanCount }}</span>
+                                <span class="donut-legend-pct">{{ $totalRooms > 0 ? round(($vacantCleanCount/$totalRooms)*100,2) : 0 }}%</span>
+                            </div>
+                            <div class="donut-legend-item">
+                                <div class="donut-legend-dot" style="background:#8b5cf6;"></div>
+                                <span class="donut-legend-name">Vacant Dirty</span>
+                                <span class="donut-legend-count">{{ $vacantDirtyCount }}</span>
+                                <span class="donut-legend-pct">{{ $totalRooms > 0 ? round(($vacantDirtyCount/$totalRooms)*100,2) : 0 }}%</span>
+                            </div>
+                            <div class="donut-legend-item">
+                                <div class="donut-legend-dot" style="background:#64748b;"></div>
+                                <span class="donut-legend-name">Out Of Order</span>
+                                <span class="donut-legend-count">{{ $oooCount }}</span>
+                                <span class="donut-legend-pct">{{ $totalRooms > 0 ? round(($oooCount/$totalRooms)*100,2) : 0 }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="donut-stats-row">
+                        <div class="donut-stat">
+                            <div class="stat-val">{{ $chargeableRooms }}</div>
+                            <div class="stat-label">Chargeable Rooms</div>
+                        </div>
+                        <div class="donut-stat">
+                            <div class="stat-val">{{ $occPct }}%</div>
+                            <div class="stat-label">Occupancy %</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Revenue Summary --}}
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <h4>Revenue Summary</h4>
+                    <select class="filter-select"><option>&#8377; INR</option></select>
+                </div>
+                <div class="dash-card-body">
+                    <div class="ri-label" style="font-size:12px;color:#94a3b8;">Gross Revenue</div>
+                    <div class="revenue-big">&#8377;0.00</div>
+                    <div class="revenue-sub">Total for selected period</div>
+                    <div class="revenue-chart-wrap">
+                        <canvas id="revenueLineChart"></canvas>
+                    </div>
+                    <div class="revenue-breakdown">
+                        <div class="revenue-item"><div class="ri-label">Room Rent</div><div class="ri-val">&#8377;0.00</div></div>
+                        <div class="revenue-item"><div class="ri-label">Transfer From Outlet</div><div class="ri-val">&#8377;0.00</div></div>
+                        <div class="revenue-item"><div class="ri-label">Tax</div><div class="ri-val">&#8377;0.00</div></div>
+                    </div>
+                    <div class="revenue-metrics">
+                        <div class="revenue-metric"><div class="rm-label">ADR</div><div class="rm-val">&#8377;0.00</div></div>
+                        <div class="revenue-metric"><div class="rm-label">RevPAR</div><div class="rm-val">&#8377;0.00</div></div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Today's Events --}}
+            <div class="events-card-modern">
+                <div class="events-header-modern">
+                    <h4><i class="fa fa-calendar"></i> Today's Events</h4>
+                    <a href="#" class="view-cal">View Calendar</a>
+                </div>
+                <div class="events-list-modern">
+                    @php
+                        $eventColors = ['birthday'=>'blue','wedding'=>'orange','meeting'=>'green','conference'=>'purple'];
+                        $eventBadge = ['birthday'=>'birthday','wedding'=>'wedding','meeting'=>'meeting'];
+                    @endphp
+                    @if ($status['Events'] && count($status['Events']) > 0)
+                        @foreach ($status['Events'] as $ev)
+                        @php
+                            $evType = strtolower($ev->FName ?? '');
+                            $evColor = 'default';
+                            foreach($eventBadge as $k=>$v){ if(stripos($evType,$k) !== false){ $evColor=$v; break; } }
+                            $evDotColor = 'blue';
+                            foreach($eventColors as $k=>$v){ if(stripos($evType,$k) !== false){ $evDotColor=$v; break; } }
+                        @endphp
+                        <div class="event-row">
+                            <div class="event-time-badge-modern {{ $evDotColor }}">
+                                {{ \Carbon\Carbon::parse($ev->PTime)->format('h:i A') }}
+                            </div>
+                            <div class="event-info">
+                                <div class="ev-name">{{ $ev->FName }} - {{ $ev->VName }}</div>
+                                <div class="ev-guest"><i class="fa fa-user"></i> {{ $ev->PName }}</div>
+                            </div>
+                            <div class="event-type-badge {{ $evColor }}">{{ ucfirst($evType) }}</div>
+                        </div>
+                        @endforeach
+                    @else
+                        <div style="text-align:center;padding:30px;color:#94a3b8;">No events today</div>
+                    @endif
+                </div>
+                <div class="events-footer-modern">
+                    <span><strong>{{ $status['Events'] ? count($status['Events']) : 0 }}</strong> Total Events Today</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- BOTTOM GRID: Room Quick Status + Quick Actions --}}
+        <div class="dash-bottom-grid">
+            <div class="room-quick-status">
+                <div class="room-quick-header">
+                    <h4>Room Quick Status</h4>
+                    <a href="{{ route('roomstatus') }}" class="view-all">View All Rooms <i class="fa fa-arrow-right"></i></a>
+                </div>
+                <div class="room-chips-row">
+                    <div class="room-chip occupied"><span class="chip-count">{{ $occCount }}</span><span class="chip-text">Occupied</span></div>
+                    <div class="room-chip checkout"><span class="chip-count">{{ $coCount }}</span><span class="chip-text">Checkout</span></div>
+                    <div class="room-chip dirty"><span class="chip-count">{{ $dirtyCount }}</span><span class="chip-text">Dirty</span></div>
+                    <div class="room-chip vacant-dirty"><span class="chip-count">{{ $vacantDirtyCount }}</span><span class="chip-text">Vacant Dirty</span></div>
+                </div>
+                <div class="room-chips-grid">
+                    @php $roomChipCount = 0; @endphp
+                    @if($status['Occupied'])
+                        @foreach($status['Occupied'] as $rm)
+                            @if($roomChipCount < 8)<span class="room-num-chip occupied">{{ $rm->Name }}</span>@php $roomChipCount++; @endphp
+                            @endif
+                        @endforeach
+                    @endif
+                    @if($status['CheckOut'])
+                        @foreach($status['CheckOut'] as $rm)
+                            @if($roomChipCount < 8)<span class="room-num-chip checkout">{{ $rm->Name }}</span>@php $roomChipCount++; @endphp
+                            @endif
+                        @endforeach
+                    @endif
+                    @if($status['OccupiedDirtyRooms'])
+                        @foreach($status['OccupiedDirtyRooms'] as $rm)
+                            @if($roomChipCount < 8)<span class="room-num-chip dirty">{{ $rm->name }}</span>@php $roomChipCount++; @endphp
+                            @endif
+                        @endforeach
+                    @endif
+                    @if($status['VacantDirtyRooms'])
+                        @foreach($status['VacantDirtyRooms'] as $rm)
+                            @if($roomChipCount < 8)<span class="room-num-chip vacant-dirty">{{ $rm->Name }}</span>@php $roomChipCount++; @endphp
+                            @endif
+                        @endforeach
+                    @endif
+                    @php
+                        $remaining = $occCount + $coCount + $dirtyCount + $vacantDirtyCount - $roomChipCount;
+                    @endphp
+                    @if($remaining > 0)
+                        <span class="room-more-btn">+{{ $remaining }} More</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <h4>Quick Actions</h4>
+                <div class="quick-actions-grid">
+                    <a href="{{ url('walkincheckin') }}" class="qa-item">
+                        <div class="qa-icon blue"><i class="fa fa-user-plus"></i></div>
+                        <div class="qa-label">Quick Check-In</div>
+                    </a>
+                    <a href="{{ url('reservation') }}" class="qa-item">
+                        <div class="qa-icon green"><i class="fa fa-calendar-plus"></i></div>
+                        <div class="qa-label">New Reservation</div>
+                    </a>
+                    <a href="{{ route('roomstatus') }}" class="qa-item">
+                        <div class="qa-icon teal"><i class="fa fa-door-open"></i></div>
+                        <div class="qa-label">Room Availability</div>
+                    </a>
+                    <a href="{{ url('openchargeposting') }}" class="qa-item">
+                        <div class="qa-icon orange"><i class="fa fa-file-invoice"></i></div>
+                        <div class="qa-label">Create Invoice</div>
+                    </a>
+                    <a href="{{ url('salebillentry') }}" class="qa-item">
+                        <div class="qa-icon red"><i class="fa fa-cash-register"></i></div>
+                        <div class="qa-label">POS Billing</div>
+                    </a>
+                    <a href="{{ url('reporting') }}" class="qa-item">
+                        <div class="qa-icon indigo"><i class="fa fa-chart-bar"></i></div>
+                        <div class="qa-label">Reports</div>
+                    </a>
+                    <a href="{{ url('opennightaudit') }}" class="qa-item">
+                        <div class="qa-icon purple"><i class="fa fa-moon"></i></div>
+                        <div class="qa-label">Night Audit</div>
+                    </a>
+                    <a href="#" class="qa-item">
+                        <div class="qa-icon gray"><i class="fa fa-ellipsis-h"></i></div>
+                        <div class="qa-label">More Options</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {{-- Donut + Revenue Chart JS --}}
+        <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            // Room Status Donut Chart
+            var donutCtx = document.getElementById('roomStatusDonut');
+            if(donutCtx){
+                new Chart(donutCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Occupied','Vacant Clean','Vacant Dirty','Out Of Order'],
+                        datasets: [{
+                            data: [{{ $occCount }},{{ $vacantCleanCount }},{{ $vacantDirtyCount }},{{ $oooCount }}],
+                            backgroundColor: ['#ef4444','#22c55e','#8b5cf6','#64748b'],
+                            borderWidth: 0,
+                            cutout: '70%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+            // Revenue Line Chart
+            var revCtx = document.getElementById('revenueLineChart');
+            if(revCtx){
+                new Chart(revCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Apr','May','Jun','Jul','Aug'],
+                        datasets: [{
+                            data: [0,0,0,0,0],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#3b82f6'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+                            y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8', callback: function(v){ return '\u20B9' + (v/1000) + 'K'; } } }
+                        }
+                    }
+                });
+            }
+        });
+        </script>
+
+        {{-- ═══════════════════════════════════════════════════════════════
+             EXISTING DETAILED ROOM STATUS CARDS (preserved below)
+             ═══════════════════════════════════════════════════════════════ --}}
+        {{-- @if (Auth::user()->propertyid == '103') --}}
         <!-- Room Status Dashboard -->
         <div class="container-fluid mt-4">
             @if ($status['OutletSalesWithRunningKots'] && count($status['OutletSalesWithRunningKots']) > 0)

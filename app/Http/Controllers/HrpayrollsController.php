@@ -982,6 +982,10 @@ class HrpayrollsController extends Controller
 
     public function updateEmployee(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $id = $request->id;
 
         // Validation
@@ -1131,6 +1135,10 @@ class HrpayrollsController extends Controller
 
     public function deleteEmployee(Request $request)
     {
+        $permission = revokeopen(201111);
+        if (is_null($permission) || $permission->view == 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         $request->validate([
             'sn' => 'required|integer|exists:employee,sn',
         ]);

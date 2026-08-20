@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Depart extends Model
+{
+    use HasFactory;
+    const CREATED_AT = 'u_entdt';
+    const UPDATED_AT = 'u_updatedt';
+    protected $table = 'depart';
+
+    protected $fillable = [
+        'propertyid',
+        'dcode',
+        'name',
+        'nature',
+        'kot_yn',
+        'companyname',
+        'companyaddress',
+        'gstin',
+        'logo',
+        'header1',
+        'header2',
+        'mobile_no',
+        'slogan1',
+        'slogan2',
+        'company_title',
+        'pos',
+        'u_name',
+        'u_entdt',
+        'u_updatedt',
+        'u_ae',
+        'sysYN',
+        'activeYN',
+        'rest_type',
+        'fssaicode',
+        'back_color',
+        'outlet_yn',
+        'short_name',
+        'disc_app',
+        'store_type',
+        'token_print',
+        'print_type',
+        'order_booking',
+        'outlet_title',
+        'member_info',
+        'auto_split',
+        'party_name',
+        'split_bill',
+        'cust_info',
+        'ckot_print_yn',
+        'ckot_print_path',
+        'cur_token_no',
+        'no_of_kot',
+        'no_of_bill',
+        'token_print_after',
+        'token_print_before',
+        'order_book_com1',
+        'order_book_com2',
+        'print_on_save',
+        'header3',
+        'header4',
+        'print_token_no',
+        'auto_settlement',
+        'sale_bill_token_header1',
+        'barcode_app',
+        'auto_reset_token',
+        'cur_token_no_kot',
+        'barcode_partition_app_on',
+        'outlet_selection',
+        'dis_print',
+        'grp_disc_app',
+        'multi_bill',
+        'disc_remark_yn',
+        'label_printing',
+        'free_item_app',
+        'cover_mandatory',
+        'mobile_no_mandatory',
+        'open_item_yn',
+        'token_header',
+        'occupied',
+        'paymentqr',
+        'vacant',
+        'billed',
+        'booked',
+        'height',
+        'fontsize',
+        'col',
+        'uborderspace',
+        'divcode'
+    ];
+}

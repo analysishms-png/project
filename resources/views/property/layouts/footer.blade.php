@@ -52,10 +52,10 @@
 <!--**********************************
             Footer start
         ***********************************-->
-<div class="footer">
-    <div class="copyright text-center text-bg-secondary rounded-1">
-        &copy; Copyright <strong><span>{{ config('app.name', 'Analysis') }} {{ date('Y') }}</span></strong>
-        Analysis HMS</a></a></p>
+<div class="footer" style="background:#f0f2f5;border-top:1px solid #e5e7eb;">
+    <div class="copyright text-center" style="padding:12px;color:#94a3b8;font-size:12px;display:flex;justify-content:space-between;max-width:1440px;margin:0 auto;">
+        <span>&copy; {{ date('Y') }} {{ config('app.name', 'Analysis') }} Hotel Management System. All Rights Reserved.</span>
+        <span>Version 1.0.0</span>
     </div>
 </div>
 <!--**********************************

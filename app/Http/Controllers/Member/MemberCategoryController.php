@@ -32,6 +32,11 @@ class MemberCategoryController extends Controller
 
     public function categoryStore(Request $request)
     {
+        $permission = revokeopen(171111);
+        if (is_null($permission) || $permission->ins == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
         try {
 
             $request->validate([
@@ -108,6 +113,11 @@ class MemberCategoryController extends Controller
 
     public function deletecategory(Request $request, $code)
     {
+        $permission = revokeopen(171111);
+        if (is_null($permission) || $permission->del == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
         try {
             MemberCategory::where('propertyid', $this->propertyid)->where('code', $code)->delete();
 
