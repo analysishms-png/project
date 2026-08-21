@@ -1158,3 +1158,47 @@ Reports / Guest Management
 - RESULT: PASS
 - RISK: LOW — new feature, no existing functionality changed
 - ROLLBACK: Remove routes and controller
+
+## 2026-08-21 — Digital Registration Card + Dashboard Revenue Charts
+
+### Communication Hub (Previous Commit)
+- TASK: Implement centralized Communication Hub
+- MODULE: Communication/WhatsApp
+- FILES: CommunicationController.php, 3 Blade views, 8 routes
+- STATUS: ✅ COMPLETE
+
+### Digital Registration Card
+- TASK: Implement mobile-friendly guest pre-registration
+- MODULE: Guest Management / Front Office
+- FILES:
+  - app/Http/Controllers/GuestRegistrationController.php (NEW — 167 lines)
+  - resources/views/property/guest-registration/form.blade.php (NEW)
+  - resources/views/property/guest-registration/success.blade.php (NEW)
+  - resources/views/property/guest-registration/not-found.blade.php (NEW)
+  - routes/web.php (+2 routes)
+- FEATURES:
+  - Public mobile-friendly form (no auth required)
+  - Pre-filled from reservation data
+  - ID proof collection (Aadhaar, Passport, PAN, DL, Voter ID)
+  - Creates/updates GuestProf profile
+  - Special requests, company name, purpose of visit
+  - Expected arrival time
+- ROUTES:
+  - GET /guest-registration/{reservationNo} — Show form
+  - POST /guest-registration/{reservationNo} — Submit form
+- TEST: Routes verified (2/2), syntax verified, views created
+- STATUS: ✅ COMPLETE
+
+### Dashboard Revenue Charts
+- TASK: Add real revenue data to dashboard
+- MODULE: Dashboard
+- FILES:
+  - app/Http/Controllers/PropertyController.php (+58 lines)
+  - resources/views/property/index.blade.php (revenue section updated)
+- FEATURES:
+  - getMonthlyRevenue() — last 6 months revenue from paycharge + sale1 + hallsale1
+  - Stacked bar chart: Room Rent + POS + Banquet
+  - Real ADR and RevPAR calculations
+  - Revenue breakdown: Room Rent, POS, Banquet
+- TEST: Syntax verified, views cleared
+- STATUS: ✅ COMPLETE
