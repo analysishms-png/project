@@ -620,3 +620,14 @@ Route::post('cashcard/recharge/store', [TelephoneController::class, 'cashcardrec
 Route::get('cashcard/refund', [TelephoneController::class, 'cashcardrefund'])->name('cashcard.refund');
 Route::post('cashcard/refund/store', [TelephoneController::class, 'cashcardrefundstore'])->name('cashcard.refund.store');
 Route::get('cashcard/history', [TelephoneController::class, 'cashcardhistory'])->name('cashcard.history');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYMENT GATEWAY — Razorpay Integration
+// ═══════════════════════════════════════════════════════════════════════════
+use App\Http\Controllers\PaymentController;
+
+Route::get('payment/checkout', [PaymentController::class, 'checkout'])->name('payment.checkout');
+Route::post('payment/create-order', [PaymentController::class, 'createOrder'])->name('payment.createOrder');
+Route::post('payment/verify', [PaymentController::class, 'verifyPayment'])->name('payment.verify');
+Route::post('payment/webhook', [PaymentController::class, 'webhook'])->name('payment.webhook');
+Route::post('payment/refund', [PaymentController::class, 'refund'])->name('payment.refund');
