@@ -418,6 +418,13 @@ Route::post('deleteassets', [MaintenanceController::class, 'deleteAssets'])->nam
 // Get Assets CSV
 Route::get('assetsexport', [MaintenanceController::class, 'assetsExport'])->name('assetsexport');
 
+// Meter Reading (legacy FrmMeterReading)
+Route::get('meterreading', [MaintenanceController::class, 'meterreading'])->name('meterreading');
+Route::post('meterreading/store', [MaintenanceController::class, 'meterreadingstore'])->name('meterreading.store');
+Route::post('meterreading/edit', [MaintenanceController::class, 'meterreadingedit'])->name('meterreading.edit');
+Route::post('meterreading/delete', [MaintenanceController::class, 'meterreadingdelete'])->name('meterreading.delete');
+Route::get('printmeterreading', [MaintenanceController::class, 'printmeterreading'])->name('printmeterreading');
+
 
 
 ////////////////////////// Extra Reward Points ///////////////////
@@ -660,3 +667,12 @@ Route::post('/api/push/subscribe', [PushNotificationController::class, 'subscrib
 Route::post('/api/push/unsubscribe', [PushNotificationController::class, 'unsubscribe'])->name('push.unsubscribe');
 Route::post('/api/push/send', [PushNotificationController::class, 'send'])->name('push.send');
 Route::get('/api/push/status', [PushNotificationController::class, 'status'])->name('push.status');
+
+// ═══════════════════════════════════════════════════════════════
+// REVENUE MANAGEMENT — AI dynamic pricing + analytics
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\RevenueManagementController;
+Route::get('revenue', [RevenueManagementController::class, 'dashboard'])->name('revenue.dashboard');
+Route::post('revenue/apply-ai-rates', [RevenueManagementController::class, 'applyAIRates'])->name('revenue.applyAIRates');
+Route::get('revenue/history', [RevenueManagementController::class, 'pricingHistory'])->name('revenue.history');
+Route::get('revenue/rate-comparison', [RevenueManagementController::class, 'rateComparison'])->name('revenue.rateComparison');
