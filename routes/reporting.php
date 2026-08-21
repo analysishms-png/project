@@ -559,3 +559,45 @@ Route::get('refreport', [Reporting::class, 'refreport'])->name('refreport');
 Route::post('refreportfetch', [Reporting::class, 'refreportfetch'])->name('refreportfetch');
 Route::get('travelagentanalysis', [Reporting::class, 'travelagentanalysis'])->name('travelagentanalysis');
 Route::post('travelagentanalysisfetch', [Reporting::class, 'travelagentanalysisfetch'])->name('travelagentanalysisfetch');
+
+   // ═══ MISSING HMS REPORTS — Migration Batch ═══
+
+   // 1. Arrival Departure Register
+   Route::get('arrdepreg', [Reporting::class, 'arrdepreg']);
+   Route::post('arrdepregfetch', [Reporting::class, 'arrdepregfetch']);
+
+   // 2. Bank Clearance
+   Route::get('bankclg', [Reporting::class, 'bankclg']);
+   Route::post('bankclgfetch', [Reporting::class, 'bankclgfetch']);
+
+   // 3. Bank Not Cleared
+   Route::get('bankclgnot', [Reporting::class, 'bankclgnot']);
+   Route::post('bankclgnotfetch', [Reporting::class, 'bankclgnotfetch']);
+
+   // 4. Debit Ledger
+   Route::get('ledgerdeb', [Reporting::class, 'ledgerdeb']);
+   Route::post('ledgerdebfetch', [Reporting::class, 'ledgerdebfetch']);
+
+   // 5. Interest Ledger
+   Route::get('ledgerint', [Reporting::class, 'ledgerint']);
+   Route::post('ledgerintfetch', [Reporting::class, 'ledgerintfetch']);
+
+   // 6. Daily Cash Register (Roz Namcha)
+   Route::get('roznamcha', [Reporting::class, 'roznamcha']);
+   Route::post('roznamchafetch', [Reporting::class, 'roznamchafetch']);
+
+   // 7. Goods Receipt Challan
+   Route::get('grc', [Reporting::class, 'grc']);
+   Route::post('grcfetch', [Reporting::class, 'grcfetch']);
+
+   // 8. GSTR-1
+   Route::get('gstr1report', [Reporting::class, 'gstr1report']);
+   Route::post('gstr1reportfetch', [Reporting::class, 'gstr1reportfetch']);
+
+   // 9. PLU File Export
+   Route::get('plufile', [Reporting::class, 'plufile']);
+   Route::post('plufilefetch', [Reporting::class, 'plufilefetch']);
+
+   // 10. General Ledger (if not exists)
+   Route::get('generalledger2', [Reporting::class, 'generalledger2']);
+   Route::post('generalledger2fetch', [Reporting::class, 'generalledger2fetch']);

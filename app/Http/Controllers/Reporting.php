@@ -10325,4 +10325,190 @@ class Reporting extends Controller
       return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
    }
 
+   // ═══════════════════════════════════════════════════════════════════════════
+   // MISSING HMS REPORTS — Migration Batch
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   // 1. Arrival/Departure Register — Legacy: ArrDepReg
+   public function arrdepreg(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.arrdepreg', ['comp' => $comp]);
+   }
+   public function arrdepregfetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $data = DB::table('roomocc')->where('propertyid', $this->propertyid)
+         ->whereBetween('chkindate', [$fd, $td])
+         ->select('docid','name','roomno','roomcat','chkindate','depdate','roomrate','nodays','guestprof')
+         ->orderBy('chkindate')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 2. Bank Clearance — Legacy: Clg
+   public function bankclg(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.bankclg', ['comp' => $comp]);
+   }
+   public function bankclgfetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $data = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td])
+         ->whereIn('suncode', ['16103','42103','455103','459103'])
+         ->select('docid','vdate','suncode','dispname','amount','vno')
+         ->orderBy('vdate')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 3. Bank Not Cleared — Legacy: ClgNot
+   public function bankclgnot(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.bankclgnot', ['comp' => $comp]);
+   }
+   public function bankclgnotfetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $data = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td])
+         ->whereIn('suncode', ['16103','42103','455103','459103'])
+         ->whereNull('sunappdate')
+         ->select('docid','vdate','suncode','dispname','amount','vno')
+         ->orderBy('vdate')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 4. Debit Ledger — Legacy: LedDeb
+   public function ledgerdeb(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      $accounts = DB::table('subgroup')->where('propertyid', $this->propertyid)->where('activeyn', 'Y')->orderBy('name')->get();
+      return view('property.ledgerdeb', ['comp' => $comp, 'accounts' => $accounts]);
+   }
+   public function ledgerdebfetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $party = $request->input('partycode', '');
+      $q = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td])
+         ->where('amount', '>', 0);
+      if ($party) $q->where('partycode', $party);
+      $data = $q->select('docid','vdate','suncode','dispname','amount','partycode','vno')
+         ->orderBy('vdate')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 5. Interest Ledger — Legacy: LedInt
+   public function ledgerint(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.ledgerint', ['comp' => $comp]);
+   }
+   public function ledgerintfetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $data = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td])
+         ->where('suncode', 'LIKE', '%INT%')
+         ->select('docid','vdate','suncode','dispname','amount','partycode','vno')
+         ->orderBy('vdate')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 6. Daily Cash Register (Roz Namcha) — Legacy: RozNamcha
+   public function roznamcha(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.roznamcha', ['comp' => $comp]);
+   }
+   public function roznamchafetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $data = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->where('vdate', $fd)
+         ->whereIn('suncode', ['16103','42103','455103','459103','5103','6103'])
+         ->select('docid','vdate','suncode','dispname','amount','vno','restcode')
+         ->orderBy('vdate')->get();
+      $receipts = $data->where('amount', '>', 0)->sum('amount');
+      $payments = $data->where('amount', '<', 0)->sum('amount');
+      return response()->json(['data' => $data, 'receipts' => $receipts, 'payments' => $payments, 'balance' => $receipts + $payments]);
+   }
+
+   // 7. Goods Receipt Challan — Legacy: GRC
+   public function grc(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.grc', ['comp' => $comp]);
+   }
+   public function grcfetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $data = DB::table('stock')->where('propertyid', $this->propertyid)
+         ->whereBetween('vdate', [$fd, $td])
+         ->where('qtyrec', '>', 0)
+         ->select('docid','vdate','item','qtyrec','rate','amount','partycode','restcode')
+         ->orderBy('vdate')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 8. GSTR-1 Report — Legacy: GSTR1
+   public function gstr1report(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.gstr1report', ['comp' => $comp]);
+   }
+   public function gstr1reportfetch(Request $request) {
+      $month = $request->input('month', date('Y-m'));
+      $fd = $month . '-01';
+      $td = date('Y-m-t', strtotime($fd));
+      $data = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td])
+         ->whereIn('suncode', ['5103','8103','9103','10103','58103','59103','60103'])
+         ->select('suncode','dispname','SUM(amount) as total')
+         ->groupBy('suncode','dispname')
+         ->get();
+      $invoiced = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td])
+         ->select(DB::raw("COUNT(DISTINCT docid) as invoices, SUM(amount) as taxable, SUM(CASE WHEN suncode='58103' THEN amount ELSE 0 END) as cgst, SUM(CASE WHEN suncode='59103' THEN amount ELSE 0 END) as sgst"))
+         ->first();
+      return response()->json(['data' => $data, 'summary' => $invoiced]);
+   }
+
+   // 9. PLU File Export — Legacy: PLUFile
+   public function plufile(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      return view('property.plufile', ['comp' => $comp]);
+   }
+   public function plufilefetch(Request $request) {
+      $data = DB::table('itemmast')->where('Property_ID', $this->propertyid)
+         ->join('itemrate', function($j) {
+            $j->on('itemrate.Property_ID', '=', 'itemmast.Property_ID')
+              ->on('itemrate.ItemCode', '=', 'itemmast.Code')
+              ->on('itemrate.RestCode', '=', 'itemmast.RestCode');
+         })
+         ->select('itemmast.Code','itemmast.Name','itemrate.Rate','itemmast.Unit','itemmast.RestCode','itemrate.AppDate')
+         ->orderBy('itemmast.Name')->get();
+      return response()->json(['data' => $data]);
+   }
+
+   // 10. General Ledger 2 — Legacy: Led
+   public function generalledger2(Request $request) {
+      $comp = Companyreg::where('propertyid', $this->propertyid)->first();
+      $accounts = DB::table('subgroup')->where('propertyid', $this->propertyid)->where('activeyn', 'Y')->orderBy('name')->get();
+      return view('property.generalledger2', ['comp' => $comp, 'accounts' => $accounts]);
+   }
+   public function generalledger2fetch(Request $request) {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $party = $request->input('partycode', '');
+      $q = DB::table('suntran')->where('propertyid', $this->propertyid)
+         ->where('delflag', 'N')
+         ->whereBetween('vdate', [$fd, $td]);
+      if ($party) $q->where('partycode', $party);
+      $data = $q->select('docid','vdate','suncode','dispname','amount','partycode','vno','restcode')
+         ->orderBy('vdate')->get();
+      $opening = $q->where('vdate', '<', $fd)->sum('amount');
+      return response()->json(['data' => $data, 'opening' => $opening]);
+   }
+
 }
