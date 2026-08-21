@@ -10977,6 +10977,17 @@ class CompanyController extends Controller
             // ]);
 
             \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
+
+            // Broadcast real-time check-in event
+            \App\Http\Controllers\RealtimeController::broadcastRoomStatus(
+                $this->propertyid, $request->roomno ?? '', 'occupied', '',
+                ['guest_name' => $request->name ?? '', 'room_cat' => $request->roomcat ?? '', 'room_rate' => $request->roomrate ?? 0]
+            );
+            \App\Http\Controllers\RealtimeController::broadcastCheckInOut(
+                $this->propertyid, 'checkin',
+                ['docid' => $docid, 'guest_name' => $request->name ?? '', 'room_no' => $request->roomno ?? '', 'room_cat' => $request->roomcat ?? '', 'arrival_date' => $request->checkindate ?? '', 'departure_date' => $request->departuredate ?? '']
+            );
+
             return response()->json([
                 'redirecturl' => fomparameter()->pageopenwalkin,
                 'status' => 'success',

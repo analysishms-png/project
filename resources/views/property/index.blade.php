@@ -541,6 +541,25 @@
             </div>
         </div>
 
+        {{-- ═══════════════════════════════════════════════════════════════
+             LIVE ACTIVITY FEED — Real-time check-in/out via WebSocket
+             ═══════════════════════════════════════════════════════════════ --}}
+        <div class="container-fluid mt-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fa fa-bolt text-warning me-2"></i>Live Activity</h5>
+                    <span class="badge badge-soft-success"><i class="fa fa-circle text-success me-1" style="font-size:8px;"></i>Real-time</span>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    <div class="list-group list-group-flush" id="liveActivityFeed">
+                        <div class="list-group-item text-center text-muted py-3">
+                            <i class="fa fa-satellite-dish me-1"></i>Waiting for live activity...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Donut + Revenue Chart JS --}}
         <script>
         document.addEventListener('DOMContentLoaded', function(){
@@ -1331,7 +1350,72 @@
             $('#roomModalBody').html(roomsHtml);
             $('#roomModal').modal('show');
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // REAL-TIME FUNCTIONS — Called by Laravel Echo listeners
+        // ═══════════════════════════════════════════════════════════
+
+        // Update room status KPI cards in real-time
+        function updateDashboardRoomStatus(data) {
+            if (data.counts) {
+                // Update occupied count
+                var occEl = document.querySelector('.kpi-number');
+                if (occEl && data.counts.occupied !== undefined) {
+                    occEl.textContent = data.counts.occupied;
+                }
+                // Update donut chart if exists
+                if (window.roomStatusDonutChart && data.counts) {
+                    window.roomStatusDonutChart.data.datasets[0].data = [
+                        data.counts.occupied,
+                        data.counts.vacant_clean || 0,
+                        data.counts.vacant_dirty || 0,
+                        data.counts.out_of_order || 0
+                    ];
+                    window.roomStatusDonutChart.update('none');
+                }
+            }
+        }
+
+        // Update live revenue counter
+        function updateLiveRevenue(data) {
+            // Update today's revenue display
+            var revEl = document.querySelector('.revenue-big');
+            if (revEl && data.today_revenue !== undefined) {
+                revEl.innerHTML = '&#8377;' + Number(data.today_revenue).toLocaleString('en-IN', {minimumFractionDigits: 2});
+            }
+            // Update ADR
+            var adrEls = document.querySelectorAll('.rm-val');
+            if (adrEls.length >= 1 && data.adr !== undefined) {
+                adrEls[0].innerHTML = '&#8377;' + Number(data.adr).toLocaleString('en-IN', {minimumFractionDigits: 2});
+            }
+            if (adrEls.length >= 2 && data.revpar !== undefined) {
+                adrEls[1].innerHTML = '&#8377;' + Number(data.revpar).toLocaleString('en-IN', {minimumFractionDigits: 2});
+            }
+        }
+
+        // Add live activity to activity feed
+        function addLiveActivity(type, guestName, roomNo, timestamp) {
+            var feedHtml = '<div class="list-group-item" style="animation: fadeIn 0.3s;">' +
+                '<div class="d-flex align-items-center">' +
+                '<span class="me-2">' + (type === 'checkin' ? '🔑' : '🚪') + '</span>' +
+                '<div><strong>' + guestName + '</strong> ' + (type === 'checkin' ? 'checked in' : 'checked out') +
+                ' <span class="badge badge-soft-info">Room ' + roomNo + '</span>' +
+                '<br><small class="text-muted">' + new Date(timestamp).toLocaleTimeString() + '</small></div>' +
+                '</div></div>';
+            var feed = $('#liveActivityFeed');
+            if (feed.length) {
+                feed.prepend(feedHtml);
+                // Keep only last 10 items
+                feed.children().slice(10).remove();
+            }
+        }
     </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 
     <!-- Room Modal -->
     <div class="modal fade" id="roomModal" tabindex="-1" role="dialog" aria-labelledby="roomModalLabel" aria-hidden="true">

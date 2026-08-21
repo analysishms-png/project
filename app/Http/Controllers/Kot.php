@@ -1076,6 +1076,12 @@ class Kot extends Controller
 
             DB::commit();
 
+            // Broadcast real-time POS activity
+            \App\Http\Controllers\RealtimeController::broadcastPosActivity(
+                $this->propertyid, 'kot',
+                ['bill_no' => implode(',', $uniqueDocIDs ?? []), 'outlet' => $request->restcode ?? '', 'amount' => 0, 'item_count' => count($request->items ?? [])]
+            );
+
             return response()->json([
                 'status' => 'success',
                 'docid' => $uniqueDocIDs,

@@ -251,6 +251,95 @@ const pwaNotifications = {
 };
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     REAL-TIME — Laravel Echo + Reverb for live dashboard updates
+     ═══════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.min.js"></script>
+<script>
+// Initialize Laravel Echo with Reverb
+window.Echo = null;
+try {
+    window.Echo = new Echo({
+        broadcaster: 'reverb',
+        key: '{{ env("REVERB_APP_KEY", "") }}',
+        wsHost: '{{ env("REVERB_HOST", "localhost") }}',
+        wsPort: {{ env("REVERB_PORT", 8080) }},
+        wssPort: {{ env("REVERB_PORT", 8080) }},
+        forceTLS: {{ env("REVERB_SCHEME", "http") === "https" ? "true" : "false" }},
+        enabledTransports: ['ws', 'wss'],
+    });
+    console.log('[Realtime] Laravel Echo initialized with Reverb');
+} catch(e) {
+    console.log('[Realtime] Echo init failed:', e.message);
+}
+
+// Property ID for channel subscription
+var realtimePropertyId = {{ Auth::user()->propertyid ?? 0 }};
+
+if (window.Echo && realtimePropertyId > 0) {
+    // ═══ Room Status Channel ═══
+    window.Echo.channel('property.' + realtimePropertyId + '.room-status')
+        .listen('.RoomStatusChanged', (e) => {
+            console.log('[Realtime] Room status changed:', e);
+            // Update KPI cards if on dashboard
+            if (typeof updateDashboardRoomStatus === 'function') {
+                updateDashboardRoomStatus(e);
+            }
+            // Show toast notification
+            if (typeof toastr !== 'undefined') {
+                var icon = e.status === 'occupied' ? '🏨' : (e.status === 'vacant' ? '✅' : '🔧');
+                toastr.info(icon + ' Room ' + e.room_no + ' → ' + e.status.toUpperCase(), 'Room Status Update');
+            }
+        });
+
+    // ═══ Guest Activity Channel ═══
+    window.Echo.channel('property.' + realtimePropertyId + '.guest-activity')
+        .listen('.GuestCheckInOut', (e) => {
+            console.log('[Realtime] Guest activity:', e);
+            if (typeof toastr !== 'undefined') {
+                var icon = e.type === 'checkin' ? '🔑' : '🚪';
+                var msg = e.type === 'checkin'
+                    ? icon + ' ' + e.guest_name + ' checked in → Room ' + e.room_no
+                    : icon + ' ' + e.guest_name + ' checked out from Room ' + e.room_no;
+                toastr.success(msg, 'Guest ' + (e.type === 'checkin' ? 'Check-in' : 'Check-out'));
+            }
+            // Update live activity feed
+            if (typeof addLiveActivity === 'function') {
+                addLiveActivity(e.type, e.guest_name, e.room_no, e.timestamp);
+            }
+        });
+
+    // ═══ POS Activity Channel ═══
+    window.Echo.channel('property.' + realtimePropertyId + '.pos-activity')
+        .listen('.PosActivity', (e) => {
+            console.log('[Realtime] POS activity:', e);
+            if (typeof toastr !== 'undefined') {
+                var icon = e.type === 'kot' ? '🍽️' : (e.type === 'payment' ? '💳' : '🧾');
+                toastr.info(icon + ' ' + e.type.toUpperCase() + (e.outlet ? ' at ' + e.outlet : ''), 'POS Activity');
+            }
+        });
+
+    // ═══ Dashboard Revenue Channel ═══
+    window.Echo.channel('property.' + realtimePropertyId + '.dashboard')
+        .listen('.DashboardRevenueUpdate', (e) => {
+            console.log('[Realtime] Dashboard update:', e);
+            // Update live revenue counter
+            if (typeof updateLiveRevenue === 'function') {
+                updateLiveRevenue(e);
+            }
+        });
+
+    // ═══ Notifications Channel ═══
+    window.Echo.channel('property.' + realtimePropertyId + '.notifications')
+        .listen('.DashboardNotification', (e) => {
+            console.log('[Realtime] Notification:', e);
+            if (typeof toastr !== 'undefined') {
+                toastr[e.type || 'info'](e.message, e.title);
+            }
+        });
+}
+</script>
+
 </body>
 
 </html>

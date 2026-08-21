@@ -1491,6 +1491,14 @@ class Pos extends Controller
         }
 
             DB::commit();
+
+            // Broadcast real-time POS activity
+            \App\Http\Controllers\RealtimeController::broadcastPosActivity(
+                $this->propertyid, 'payment',
+                ['bill_no' => $request->billno ?? '', 'outlet' => '', 'amount' => $request->billamt ?? 0, 'payment_mode' => $request->paytype ?? '', 'room_no' => $request->roomno ?? '']
+            );
+            \App\Http\Controllers\RealtimeController::broadcastDashboardUpdate($this->propertyid);
+
             return back()->with('success', 'POS Settlement submitted successfully');
         } catch (Exception $e) {
             DB::rollBack();
