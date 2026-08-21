@@ -242,6 +242,11 @@ class Banquet extends Controller
                     Storage::delete('public/' . $oldLogo);
                 }
                 $file = $request->file('logo');
+                $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
+                $ext = strtolower($file->getClientOriginalExtension());
+                if (!in_array($ext, $allowedExts) || $file->getSize() > 5 * 1024 * 1024) {
+                    return back()->with('error', 'Logo must be image (jpg/png/gif/svg/webp) under 5MB.');
+                }
                 $filename = time() . '_' . $file->getClientOriginalName();
                 $file->storeAs('public/banquet/logos', $filename);
                 $data->logo = 'banquet/logos/' . $filename;

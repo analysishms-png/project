@@ -373,8 +373,15 @@ class MainController extends Controller
         $countrycode = $request->input('country_select');
         $company->nationality = DB::table('tbl_country')->where('country_code', $countrycode)->value('nationality');
         $company->country = $request->input('country_select');
+        // Validate file uploads before processing
         $logo_property = $request->file('logo_property');
+        if ($logo_property && !$logo_property->isValid()) {
+            return redirect()->back()->with('error', 'Invalid logo file uploaded.');
+        }
         $dealer_logo_property = $request->file('dealer_logo_property');
+        if ($dealer_logo_property && !$dealer_logo_property->isValid()) {
+            return redirect()->back()->with('error', 'Invalid dealer logo file uploaded.');
+        }
         $company->logo = $inputMobile . $request->input('company_name') . time() . '.' . $logo_property->getClientOriginalExtension();
 
         $state_code = DB::table('tbl_state')->where('name', $company->state)->value('state_code');

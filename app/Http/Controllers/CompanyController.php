@@ -9601,6 +9601,11 @@ class CompanyController extends Controller
 
         if ($request->hasFile('companylogo')) {
             $companypic = $request->file('companylogo');
+            $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
+            $ext = strtolower($companypic->getClientOriginalExtension());
+            if (!in_array($ext, $allowedExts) || $companypic->getSize() > 5 * 1024 * 1024) {
+                return redirect()->back()->with('error', 'Logo must be image (jpg/png/gif/svg/webp) under 5MB.');
+            }
             $companylogo = $request->input('name') . $this->propertyid . 'OT' . $request->input('short_name') . $this->propertyid . '.' . $companypic->getClientOriginalExtension();
             $folderPathp = 'public/admin/property_logo';
             Storage::makeDirectory($folderPathp);
@@ -13195,6 +13200,8 @@ class CompanyController extends Controller
         // return 'sagar';
 
         // FINANCIAL SAFETY: audit deleted PPOS/IPOS rows before daily re-posting
+        DB::beginTransaction();
+        try {
         PaychargeLog::auditDeleted(
             Paycharge::where('vdate', $request->input('charge_date'))->whereIn('vtype', ['PPOS', 'IPOS'])->where('propertyid', $this->propertyid)->get(),
             'Daily POS to Folio re-posting (chargesposting)'
@@ -14232,7 +14239,12 @@ class CompanyController extends Controller
                 ->where('prefix', $vprefix)
                 ->increment('start_srl_no');
         }
+        DB::commit();
         return back()->with('success', 'Room Charge Posted Successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Room charge posting failed: ' . $e->getMessage());
+        }
     }
 
     public function submitadvcahrge(Request $request)
