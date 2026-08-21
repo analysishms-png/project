@@ -326,7 +326,6 @@ class PrintController extends Controller
             ->groupBy('P2.item')
             ->get();
 
-        // var_dump($purchaseData);
         // exit;
 
         $suntranData = DB::table('suntran')
@@ -2476,7 +2475,6 @@ class PrintController extends Controller
             ->distinct()
             ->get();
 
-        //dd($itemcatmast); // check if this has data
 
 
         return view('property.menucat', [
@@ -4584,7 +4582,6 @@ class PrintController extends Controller
 
     public function getStockReport(Request $request)
     {
-        // dd($request->all());
 
         $propertyId = $this->propertyid;
         $fromDate = $request->fromdate;

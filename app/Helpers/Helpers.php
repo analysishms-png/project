@@ -1414,3 +1414,21 @@ function readyroomoccdataprofile()
 
     return $data;
 }
+
+/**
+ * Sanitize HTML output — strips dangerous tags/attributes, keeps safe formatting.
+ * BUG-053 fix: prevents stored XSS in frontend page views.
+ */
+if (!function_exists('cleanHtml')) {
+    function cleanHtml($html) {
+        if (empty($html)) return '';
+        $allowed = ['p','br','b','i','u','em','strong','h1','h2','h3','h4','h5','h6','ul','ol','li','a','img','table','thead','tbody','tr','td','th','blockquote','pre','code','span','div','hr'];
+        $html = strip_tags($html, '<'.implode('><',$allowed).'>');
+        $html = preg_replace('/\bon\w+\s*=\s*["\'][^"\']*["\']/i', '', $html);
+        $html = preg_replace('/\bon\w+\s*=\s*\S+/i', '', $html);
+        $html = preg_replace('/javascript\s*:/i', '', $html);
+        $html = preg_replace('/vbscript\s*:/i', '', $html);
+        $html = preg_replace('/data\s*:/i', '', $html);
+        return trim($html);
+    }
+}

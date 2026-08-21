@@ -1598,7 +1598,6 @@ class ToolsController extends Controller
                 ->where('roomocc.propertyid', $propertyid)
                 ->get();
 
-            // var_dump($results);
 
             $paycode = DB::table('revmast')->where('propertyid', $propertyid)->where('name', 'ROOM CHARGE')->value('rev_code');
             $tablename = 'paycharge';
@@ -2213,9 +2212,7 @@ class ToolsController extends Controller
             ->get();
 
         // echo "<pre>";
-        // print_r($request->toArray());
 
-        // print_r($bills->toArray());
         // echo "</pre>";
         // exit;
 

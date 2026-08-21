@@ -72,7 +72,6 @@ class BookingFollowUp extends Controller
            $status = $request->input('status');
 
             if ($status !== null && $status !== '' && $status !== 'undefined') {
-               // echo "Status : " . $status;
                 // Status filter logic
                 if ($status == 0) {
                     $query->where('bookinginquiry.status', 'Active');
@@ -183,7 +182,6 @@ class BookingFollowUp extends Controller
             'remark' => 'required|string',
             'status' => 'required|in:0,1',
         ]);
-        //dd($validated);
 
         $enquiry = BookingInquiry::where('inqno', $validated['sn'])->first();
         //  $enquiry->status = $validated['status'];

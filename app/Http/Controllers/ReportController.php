@@ -431,7 +431,6 @@ class ReportController extends Controller
         $status = $request->input('status');     // ex: 'Active'
         $propertyId = $this->propertyid;
 
-        // print_r($status);
 
         $query = DB::table('bookinginquiry as B')
             ->join('bookingdetail as BD', 'B.inqno', '=', 'BD.inqno')
@@ -1150,8 +1149,6 @@ class ReportController extends Controller
         $company = Companyreg::where('propertyid', $this->propertyid)->first();
         $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
         $banquet   = banquetparameter();
-        // dd($banquet->toArray());
-        // dd($banquet);
         return view('property.taxreport', [
             'fromdate' => $fromdate,
             'statename' => $statename,

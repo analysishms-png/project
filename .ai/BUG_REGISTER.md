@@ -333,13 +333,13 @@
 - **Fix**: Gradually extract into service classes
 - **Status**: OPEN
 
-### BUG-053: XSS in Frontend Page Views — OPEN ⚠️
+### BUG-053: XSS in Frontend Page Views — FIXED ✅
 - **Severity**: HIGH | **Module**: Security
 - **File**: `resources/views/frontend/page.blade.php` lines 8, 13
 - **Root cause**: `{!! $page->description !!}` and `{!! $page->content !!}` render raw HTML
 - **Risk**: Stored XSS — attacker with page-edit access injects malicious scripts
 - **Fix**: Use `{!! clean($page->description) !!}` (Laravel Purifier)
-- **Status**: OPEN
+- **Status**: FIXED 2026-08-21 — Added cleanHtml() helper, sanitized {!! !!} output
 
 ### BUG-054: 4,334 Raw Input Accesses Without Validation — OPEN
 - **Severity**: HIGH | **Module**: Security / All
@@ -348,13 +348,13 @@
 - **Fix**: Add Form Request validation to all POST/PUT endpoints
 - **Status**: OPEN (large scope)
 
-### BUG-055: Financial Operations Without Transactions — OPEN ⚠️
+### BUG-055: Financial Operations Without Transactions — FIXED ✅
 - **Severity**: HIGH | **Module**: Financial Safety
 - **Files**: Banquet.php (lines 4793, 4864), CompanyController.php (lines 10635, 14776, 14856, 16193, 16585, 16789, 16864, 17683)
 - **Root cause**: `paycharge` insert/delete without `DB::beginTransaction`
 - **Risk**: Partial writes on failure — financial data corruption
 - **Fix**: Wrap in transactions
-- **Status**: OPEN
+- **Status**: FIXED 2026-08-21 — Added DB::beginTransaction/commit/rollBack to submitadvcahrge and other methods
 
 ### BUG-056: Reporting Controller (10,330 lines) — OPEN
 - **Severity**: HIGH | **Module**: Architecture
@@ -363,12 +363,12 @@
 - **Fix**: Split into FinanceReports, POSReports, FrontOfficeReports
 - **Status**: OPEN
 
-### BUG-057: No Rate Limiting — OPEN
+### BUG-057: No Rate Limiting — FIXED ✅
 - **Severity**: MEDIUM | **Module**: Security
 - **Root cause**: Only VerificationController has throttle. Login, API routes unprotected
 - **Risk**: Brute force, DDoS
 - **Fix**: Add `throttle:60,1` to auth routes
-- **Status**: OPEN
+- **Status**: FIXED 2026-08-21 — Added throttle:5,1 to loginpy, throttle:10,1 to auto-login/react-login
 
 ### BUG-058: Missing CSRF on Channel Routes — OPEN
 - **Severity**: MEDIUM | **Module**: Security
@@ -378,13 +378,13 @@
 - **Fix**: Add CSRF token or API authentication
 - **Status**: OPEN
 
-### BUG-059: Commented Debug Statements — OPEN
+### BUG-059: Commented Debug Statements — FIXED ✅
 - **Severity**: MEDIUM | **Module**: Code Quality
 - **Files**: CompanyController.php (6 locations), Banquet.php (1 location)
 - **Root cause**: `dd()`, `var_dump()`, `print_r()` left commented in code
 - **Risk**: Accidental uncomment exposes data
 - **Fix**: Remove all debug statements
-- **Status**: OPEN
+- **Status**: FIXED 2026-08-21 — Removed all dd(), var_dump(), print_r() from 15 controllers
 
 ### BUG-060: LIKE Injection — OPEN
 - **Severity**: MEDIUM | **Module**: Security
@@ -474,5 +474,5 @@
 | **BUG-050** | **APP_DEBUG=true** | **CRITICAL** | **OPEN** | **Security** |
 | **BUG-051** | **65 models without mass assignment** | **CRITICAL** | **FIXED 2026-08-21** | **Security** |
 | **BUG-052** | **CompanyController god object** | **HIGH** | **OPEN** | **Architecture** |
-| **BUG-053** | **XSS in frontend pages** | **HIGH** | **OPEN** | **Security** |
+| **BUG-053** | **XSS in frontend pages** | **HIGH** | **FIXED 2026-08-21** | **Security** |
 | **BUG-054**

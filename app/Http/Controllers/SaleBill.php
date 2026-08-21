@@ -907,7 +907,6 @@ class SaleBill extends Controller
                                 }
                             }
 
-                            // dd($colname, endsWith($colname, 'rw'));
                         } elseif ($res = splitByJoin($colname)) {
                             $left = $res['left'];
                             $right = $res['right'];
@@ -940,7 +939,6 @@ class SaleBill extends Controller
 
                     $whatsapp = new WhatsappSend();
                     // DB::rollBack();
-                    // dd($msgdata);
                     $whatsapp->MuzzTech($msgdata, $wpnum, 'Bill Message', 'billmsgguesttemplate');
                 }
             }

@@ -229,7 +229,6 @@ class RoomSettlement extends Controller
                     ->where('folionodocid', $request->input('docid'))
                     ->where('msno1', $leaderRoomOcc->sno1)
                     ->first();
-                // var_dump($chkrelatedgroup);
                 // exit;
 
                 $checkedrooms = RoomOcc::where('propertyid', $this->propertyid)
@@ -504,7 +503,6 @@ class RoomSettlement extends Controller
             if (!empty($chargeEntries)) {
                 DB::table('paycharge')->insert($chargeEntries);
             }
-            // dd($chargeEntries);
 
             // Verify inserted records match expected count
             $expectedRows = $request->input('countrows');

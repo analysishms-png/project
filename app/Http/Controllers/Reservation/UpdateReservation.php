@@ -230,7 +230,6 @@ class UpdateReservation extends Controller
         }
 
         // echo $maxsno1;
-        // var_dump($sns);
         // exit;
 
         $olddbrow = Bookings::where('Property_ID', $this->propertyid)->where('DocId', $docid)->first();

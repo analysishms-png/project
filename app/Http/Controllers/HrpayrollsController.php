@@ -252,7 +252,6 @@ class HrpayrollsController extends Controller
                     $designationName = ucwords(strtolower($data['Name']));
                     $status = $data['Activ'];
                     $u_ae = $data['u_ae'];
-                    // print_r($data);
                     $ifexit = Hrpayrolls::where('propertyid', $this->propertyid)
                         ->where('name', $designationName)
                         ->value('code');
@@ -530,7 +529,6 @@ class HrpayrollsController extends Controller
                     $categoryName = strtoupper($data['Name']);
                     $status = $data['Activ'];
                     $u_ae = $data['u_ae'];
-                    // print_r($data);
                     $ifexit = EmpCategory::where('propertyid', $this->propertyid)
                         ->where('name', $categoryName)
                         ->value('code');
@@ -773,7 +771,6 @@ class HrpayrollsController extends Controller
         $request->merge(['code' => $newEmployeeCode]);
 
         // echo "<pre>";
-        // print_r($request->all());
         // echo "</pre>";
         // die;
 

@@ -5,12 +5,12 @@
     <h1>{{ $page->title ?? $page->name }}</h1>
     @if($page->description)
         <div class="page-description">
-            {!! $page->description !!}
+            {!! cleanHtml($page->description) !!}
         </div>
     @endif
     @if($page->content)
         <div class="page-content">
-            {!! $page->content !!}
+            {!! cleanHtml($page->content) !!}
         </div>
     @endif
     </div>

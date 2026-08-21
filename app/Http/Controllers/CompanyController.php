@@ -1940,7 +1940,6 @@ class CompanyController extends Controller
         $advance = Paycharge::where('propertyid', $this->propertyid)->where('sno', 1)->where('refdocid', base64_decode($request->input('DocId')))->get() ?? '';
 
         // echo base64_decode($request->input('sno'));
-        // var_dump($advance);
         // exit;
 
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
@@ -2019,7 +2018,6 @@ class CompanyController extends Controller
             ->groupBy('grpbookingdetails.Sno')
             ->get();
 
-        // var_dump($updatedata);
         // exit;
 
         foreach ($updatedata as $row) {
@@ -2641,9 +2639,6 @@ class CompanyController extends Controller
             ->where('users.propertyid', $this->propertyid)
             ->get();
         // $loginUser = Auth::user();
-        //  echo "<pre>";
-        //   print_r($userdata);
-        //   print_r($loginUser);
         //  exit;
 
         $path = storage_path('app/public/menu.json');
@@ -3766,8 +3761,6 @@ class CompanyController extends Controller
             'u_ae'        => 'e',
         ];
 
-        // echo "<pre>";
-        // print_r($dataup);
         // die();
         UserPermission::where(['propertyid' => $this->propertyid, 'username' => $request->input('fullname')])->update([
             'system_name' => $systemname,
@@ -4609,7 +4602,6 @@ class CompanyController extends Controller
             return redirect('taxmaster')->with('success', 'Tax Updated successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Update Tax!');
-            // echo $e->getMessage();
         }
     }
 
@@ -4947,8 +4939,6 @@ class CompanyController extends Controller
             ];
 
             // if($this->propertyid == '105'){
-            //     echo "<pre>";
-            //     print_r($insertdata);
             //     die();
             // }   
 
@@ -6619,7 +6609,6 @@ class CompanyController extends Controller
         if (is_null($permission) || $permission->ins == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        // echo $request->totalrows;
         // exit;
         $tableName = 'revmast';
         $data = collect($request->except('_token'))->filter(function ($value, $key) {
@@ -7201,7 +7190,6 @@ class CompanyController extends Controller
             return back()->with('success', 'Room Category Inserted successfully!');
             // echo 'Room Category Inserted successfully!';
         } catch (Exception $e) {
-            // echo $e->getMessage();
             return back()->with('error', 'Unable to Insert Room Category! ' . $e->getMessage());
         }
     }
@@ -11285,7 +11273,6 @@ class CompanyController extends Controller
             'u_ae' => 'e',
         ];
 
-        // echo $request->input('greetingsguest');
         // exit;
 
         $guestfolio = [
@@ -13161,7 +13148,6 @@ class CompanyController extends Controller
     public function backendreservationcreate(Request $request)
     {
         $roomData = $request->all();
-        // var_dump($roomData);
         $roomnum = $roomData['resource'];
         $start = $roomData['start'];
         $end = $roomData['end'];
@@ -13314,7 +13300,6 @@ class CompanyController extends Controller
             ->get();
 
         // echo '<pre>';
-        // print_r($ipospost);
         // echo '</pre>';
         // exit;
 
@@ -14263,7 +14248,6 @@ class CompanyController extends Controller
 
         $ncurdate = $this->ncurdate;
         // return $request->charge;
-        // echo $request->docid;
         // exit;
         if ($request->charge == 'RMCH' . $this->propertyid) {
             $results = DB::table('roomocc')
@@ -14298,7 +14282,6 @@ class CompanyController extends Controller
                 // })
                 ->get();
 
-            // var_dump($results);
 
             $paycode = DB::table('revmast')->where('propertyid', $this->propertyid)->where('name', 'ROOM CHARGE')->value('rev_code');
             $tablename = 'paycharge';
@@ -14773,6 +14756,8 @@ class CompanyController extends Controller
             'u_ae' => 'a',
         ];
 
+        DB::beginTransaction();
+        try {
         DB::table('paycharge')->insert($insertdata);
 
         foreach ($checktaxstru as $taxstru) {
@@ -14861,6 +14846,12 @@ class CompanyController extends Controller
             ->where('v_type', $vtype)
             ->where('prefix', $vprefix)
             ->increment('start_srl_no');
+
+        DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Transaction failed: ' . $e->getMessage());
+        }
 
         return redirect('autorefreshmain');
     }
@@ -15675,7 +15666,6 @@ class CompanyController extends Controller
         $docid = $request->query('docid');
         $sno1 = $request->query('sno1');
         $sno = $request->query('sno');
-        // echo $sno;
         // exit;
 
         $rocc = Roomocc::where('propertyid', $this->propertyid)->where('docid', $docid)->where('leaderyn', 'Y')->first();
@@ -17181,7 +17171,6 @@ class CompanyController extends Controller
         $docid = $request->query('docid');
         $sno1 = $request->query('sno1');
         $sno = $request->query('sno');
-        // echo $sno1 . ' - ' . $docid;
         // exit;
         $roomoccdata = DB::table('roomocc')
             ->select('roomocc.*', 'guestprof.con_prefix')
@@ -17873,7 +17862,6 @@ class CompanyController extends Controller
             if ($leaderRoomOcc) {
                 $leaderId = $leaderRoomOcc->sno1;
                 // echo 'leader';
-                // echo $propertyId . ' - ' . $leaderRoomOcc->docid . ' - ' . $leaderId;
                 // exit;
                 $chkrelatedgroup1 = Paycharge::where('propertyid', $this->propertyid)
                     ->where('folionodocid', $leaderRoomOcc->docid)
@@ -17893,7 +17881,6 @@ class CompanyController extends Controller
                     ->where('folionodocid', $request->input('docid'))
                     ->where('msno1', $leaderRoomOcc->sno1)
                     ->first();
-                // var_dump($chkrelatedgroup);
                 // exit;
 
                 if (is_null($chkrelatedgroup)) {
@@ -19368,7 +19355,6 @@ class CompanyController extends Controller
                     // echo json_encode($postdata);
 
                     // echo '<pre>';pp
-                    // print_r($postdata);
                     // echo '</pre>';git 
 
                     // exit;

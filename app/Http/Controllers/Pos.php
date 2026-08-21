@@ -378,7 +378,6 @@ class Pos extends Controller
 
     public function colorfilldisp(Request $request, $dcode)
     {
-        // dd([
         //     'hit' => true,
         //     'propertyid' => $this->propertyid,
         //     'dcode' => $dcode,
@@ -721,7 +720,6 @@ class Pos extends Controller
         }
 
         // echo "<pre>";
-        // print_r($request->all());
         // die();
 
         $sale1docid = $request->input('sale1docid');
@@ -739,7 +737,6 @@ class Pos extends Controller
         // echo $rowcount;
 
         // echo '<pre>';
-        // print_r($chargetype);
         // echo '</pre>';
         // exit;
 
@@ -1156,7 +1153,6 @@ class Pos extends Controller
     //         }
 
     //         echo '<pre>';
-    //         print_r($insertRows);
     //         echo '</pre>';
     //         exit;
 

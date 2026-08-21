@@ -1400,7 +1400,6 @@ class InventoryController extends Controller
             ->get();
 
         // echo '<pre>';
-        // print_r($suntrandata);
         // echo '</pre>';
         // die();
 

@@ -3787,7 +3787,6 @@ class Banquet extends Controller
             'logo'      => !empty($banquetEnviro->logo)           ? $banquetEnviro->logo            : $company->logo,
         ];
 
-        // dd([
         //     'banquetEnviro' => $banquetEnviro,
         //     'companyname'   => $banquetEnviro->companyname ?? 'EMPTY',
         //     'gstin'         => $banquetEnviro->gstin ?? 'EMPTY',

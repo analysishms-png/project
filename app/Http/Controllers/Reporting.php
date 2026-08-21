@@ -1855,7 +1855,6 @@ class Reporting extends Controller
          return json_encode('Invalid');
       }
 
-      // dd($chkbilltrue);
 
       $resDocid = $chkbilltrue->restcode;
 
@@ -5313,7 +5312,6 @@ class Reporting extends Controller
    {
 
       //   echo "<pre>";
-      //     print_r( $request->all());
       //     die();
 
       $fromdate = $request->fromdate;

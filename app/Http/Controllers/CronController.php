@@ -249,7 +249,6 @@ class CronController extends Controller
                         ->get();
 
                     // echo '<pre>';
-                    // print_r($ipospost);
                     // echo '</pre>';
                     // exit;
 

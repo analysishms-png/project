@@ -259,7 +259,6 @@ class QuotationController extends Controller
     public function Quotationupdate(Request $request)
     {
 
-        //dd($request->all());
 
         $permission = revokeopen(161114); // 161114
         if (is_null($permission) || $permission->edit == 0) {

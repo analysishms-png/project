@@ -75,7 +75,7 @@ Route::get('loader', function () {
     return view('property.layouts.loader');
 });
 // Route::get('login', [HomeController::class, 'login']);
-Route::post('/loginpy', [PythonAuth::class, 'login']);
+Route::post('/loginpy', [PythonAuth::class, 'login'])->middleware('throttle:5,1');
 Auth::routes();
 
 Route::get('my-tickets', [CompanyController::class, 'myTickets'])->name('tools.myTickets');
@@ -111,7 +111,7 @@ Route::get('/storage/{path}', function ($path) {
 })->where('path', '.*');
 
 // routes/web.php
-Route::post('/auto-login', [AutoLoginController::class, 'loginUser'])->name('auto.login');
+Route::post('/auto-login', [AutoLoginController::class, 'loginUser'])->name('auto.login')->middleware('throttle:10,1');
 
 Route::get('application', [HomeController::class, 'application'])->name('application');
 // Open Api Usages Page
@@ -515,7 +515,7 @@ Route::get('creditreport/export', [ReportController::class, 'exportCreditReport'
 
 
 // React App Auto Login
-Route::post('/react-login', [AutoLoginController::class, 'reactLogin'])->name('react.login');
+Route::post('/react-login', [AutoLoginController::class, 'reactLogin'])->name('react.login')->middleware('throttle:10,1');
 
 // ── Housekeeping QR Scan Login ────────────────────────────────────────────────
 // QR code scan hone pe yahan aata hai: /hk-scan/{propertyid}/{roomno}

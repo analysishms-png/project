@@ -349,7 +349,6 @@ class PurchaseOrderController extends Controller
         // ];
 
         // echo "<pre>";
-        // print_r($value);
         // echo "</pre>";
         // die();
         return view('property.purchaseorder.updatepurchaseorder', compact('data',  'godown', 'itemmast', 'partydatamain', 'items', 'units'));

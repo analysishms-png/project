@@ -395,7 +395,6 @@ public function fetchChequeNotClearedData(Request $request)
             // Remove skipped codes
             $validCodes = array_values(array_diff($paycodes, $skip)); // reindexed
 
-            // print_r($validCodes );
 
             // RMCH code setup
             $roomservi = 'RMCH' . $this->propertyid;

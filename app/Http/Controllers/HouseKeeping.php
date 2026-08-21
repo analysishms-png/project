@@ -121,8 +121,6 @@ class HouseKeeping extends Controller
             ->orderBy('name', 'ASC')
             ->get();
 
-        // dd(get_included_files());
-        // dd(getNcurDate());
         // exit;
 
         // return $rooms;
