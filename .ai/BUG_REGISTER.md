@@ -23,7 +23,7 @@
 | BUG-011 | Default DB credentials | Medium | OPEN (deploy-time) | Security |
 | BUG-012 | N+1 query potential | Low | MONITORING | Performance |
 | BUG-013 | Large exports timeout | Low | MONITORING | Performance |
-| BUG-014 | Duplicate helper logic | Low | OPEN | Code quality |
+| BUG-014 | Duplicate helper logic | Low | FIXED 2026-08-21 | Code quality |
 | BUG-015 | Inconsistent naming | Low | OPEN | Code quality |
 | BUG-016 | Limited test coverage | Medium | OPEN (partially fixed) | Testing |
 | BUG-017 | No CI/CD | Medium | OPEN | DevOps |

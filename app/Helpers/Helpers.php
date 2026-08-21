@@ -570,16 +570,6 @@ if (!function_exists('oldbanqutbillnos')) {
     }
 }
 
-
-if (!function_exists('companydata')) {
-    function companydata()
-    {
-        $companydata = DB::table('company')->where('propertyid', Auth::user()->propertyid)->first();
-
-        return $companydata;
-    }
-}
-
 if (!function_exists('bookedroomslist')) {
     function bookedroomslist()
     {

@@ -2176,14 +2176,17 @@ class CompanyController extends Controller
                 unlink($folderPathi);
             }
         }
+        DB::beginTransaction();
         try {
             $roomocc = DB::table('roomocc')->where('docid', $docid)->where('propertyid', $this->propertyid)->delete();
             $guestproftable = DB::table('guestprof')->where('docid', $docid)->where('propertyid', $this->propertyid)->delete();
             $guestfolio = DB::table('guestfolio')->where('docid', $docid)->where('propertyid', $this->propertyid)->delete();
             $guestfolioprofdetail = DB::table('guestfolioprofdetail')->where('doc_id', $docid)->where('propertyid', $this->propertyid)->delete();
             \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
+            DB::commit();
             return back()->with('success', 'Walkin Deleted Successfully');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'Error! - ' . $e->getMessage());
         }
     }
@@ -2213,14 +2216,17 @@ class CompanyController extends Controller
                 unlink($folderPathi);
             }
         }
+        DB::beginTransaction();
         try {
             $roomocc = DB::table('booking')->where('DocId', $DocId)->where('Property_ID', $this->propertyid)->delete();
             $guestproftable = DB::table('guestprof')->where('docid', $DocId)->where('propertyid', $this->propertyid)->delete();
             $grpbookingdetails = DB::table('grpbookingdetails')->where('BookingDocid', $DocId)->where('Property_ID', $this->propertyid)->delete();
             $bookingplandetails = DB::table('bookingplandetails')->where('docid', $DocId)->where('propertyid', $this->propertyid)->delete();
             \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
+            DB::commit();
             return back()->with('success', 'Reservation Deleted Successfully');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'Error! - ' . $e->getMessage());
         }
     }
