@@ -42,3 +42,9 @@ Route::post('channelenvirosubmit', [ChannelPush::class, 'channelenvirosubmit'])-
 Route::post('/eglobetohms/{apiKey}/booking', [ChannelPublic::class, 'eglobetohms'])->name('eglobetohms');
 // Particular Booking Fetch
 Route::get('bookingfetch', [ChannelPush::class, 'bookingfetch'])->name('bookingfetch');
+
+// ═══════════════════════════════════════════════════════════════
+// CHANNEL MANAGER DASHBOARD — Centralized overview + availability calendar
+// ═══════════════════════════════════════════════════════════════
+Route::get('/dashboard', [ChannelPush::class, 'dashboard'])->name('channel.dashboard');
+Route::get('/availability', [ChannelPush::class, 'availabilityCalendar'])->name('channel.availability');

@@ -47,6 +47,113 @@ class ChannelPush extends Controller
         });
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHANNEL MANAGER DASHBOARD — Centralized overview of all channel activity
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function dashboard()
+    {
+        $propertyid = $this->propertyid;
+        $channelenviro = ChannelEnviro::where('propertyid', $propertyid)->first();
+
+        // Get channel status
+        $isConnected = $channelenviro && $channelenviro->checkyn === 'Y';
+        $apiKey = $channelenviro->apikey ?? '';
+
+        // Get room categories with mapping
+        $roomcat = RoomCat::where('propertyid', $propertyid)
+            ->select('cat_code', 'name', 'map_code')
+            ->orderBy('cat_code')
+            ->get();
+
+        // Get channel pushes (recent)
+        $pushes = ChannelPushes::where('propertyid', $propertyid)
+            ->orderBy('u_entdt', 'desc')
+            ->limit(20)
+            ->get();
+
+        // Get channel-derived pricing
+        $derived = ChannelDerived::where('propertyid', $propertyid)
+            ->orderBy('cat_code')
+            ->get();
+
+        // Get channel rates
+        $rates = ChannelRate::where('propertyid', $propertyid)
+            ->orderBy('cat_code')
+            ->get();
+
+        // Count today's channel bookings
+        $todayBookings = ChannelPushes::where('propertyid', $propertyid)
+            ->whereDate('u_entdt', $this->ncurdate)
+            ->count();
+
+        // Connection status
+        $connectionStatus = 'Disconnected';
+        $connectionColor = 'danger';
+        if ($isConnected && $apiKey) {
+            $connectionStatus = 'Connected';
+            $connectionColor = 'success';
+        }
+
+        return view('property.channeldashboard', compact(
+            'channelenviro', 'isConnected', 'roomcat', 'pushes',
+            'derived', 'rates', 'todayBookings', 'connectionStatus',
+            'connectionColor', 'ncurdate'
+        ));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AVAILABILITY CALENDAR — Visual grid of room availability per date
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function availabilityCalendar(Request $request)
+    {
+        $propertyid = $this->propertyid;
+        $startDate = $request->input('start', $this->ncurdate);
+        $endDate = date('Y-m-d', strtotime($startDate . ' +13 days'));
+
+        $roomcat = RoomCat::where('propertyid', $propertyid)
+            ->select('cat_code', 'name', 'map_code', 'totalroom')
+            ->orderBy('cat_code')
+            ->get();
+
+        // Get room occupancy for date range
+        $dates = [];
+        $current = new \Carbon\Carbon($startDate);
+        while ($current->toDateString() <= $endDate) {
+            $dates[] = $current->toDateString();
+            $current->addDay();
+        }
+
+        $availability = [];
+        foreach ($roomcat as $cat) {
+            $totalRooms = $cat->totalroom ?? 0;
+            foreach ($dates as $date) {
+                // Count occupied rooms for this category and date
+                $occupied = RoomOcc::where('propertyid', $propertyid)
+                    ->where('roomcat', $cat->cat_code)
+                    ->where('chkindate', '<=', $date)
+                    ->where(function ($q) use ($date) {
+                        $q->whereNull('chkoutdate')->orWhere('chkoutdate', '>', $date);
+                    })
+                    ->whereNull('Type')
+                    ->count();
+
+                $available = max(0, $totalRooms - $occupied);
+                $availability[$cat->cat_code][$date] = [
+                    'total' => $totalRooms,
+                    'occupied' => $occupied,
+                    'available' => $available,
+                    'pct' => $totalRooms > 0 ? round(($available / $totalRooms) * 100) : 0,
+                ];
+            }
+        }
+
+        return view('property.channelavailability', compact(
+            'roomcat', 'dates', 'availability', 'startDate', 'endDate'
+        ));
+    }
+
     public function showrooms(Request $request)
     {
         $permission = revokeopen(271111);
