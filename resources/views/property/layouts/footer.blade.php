@@ -172,6 +172,85 @@ function tryPopup() {
 <script src="{{ asset('admin/plugins/jquery-asColorPicker-master/libs/jquery-asGradient.js') }}"></script>
 <script src="{{ asset('admin/plugins/jquery-asColorPicker-master/dist/jquery-asColorPicker.min.js') }}"></script>
 
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PWA — Service Worker Registration + Push Notifications
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            console.log('[PWA] Service Worker registered:', reg.scope);
+
+            // Request push notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                // Don't auto-request — wait for user action
+            }
+
+            // Listen for updates
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated') {
+                        console.log('[PWA] New version available');
+                        if (typeof toastr !== 'undefined') {
+                            toastr.info('New version available. Refresh to update.');
+                        }
+                    }
+                });
+            });
+        } catch (err) {
+            console.log('[PWA] Service Worker registration failed:', err);
+        }
+    });
+}
+
+// PWA Push Notification Manager
+const pwaNotifications = {
+    async requestPermission() {
+        if (!('Notification' in window)) {
+            console.log('[PWA] Notifications not supported');
+            return false;
+        }
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+    },
+
+    async subscribe() {
+        if (!('serviceWorker' in navigator)) return null;
+        const reg = await navigator.serviceWorker.ready;
+        const subscription = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: '{{ env('VAPID_PUBLIC_KEY', '') }}'
+        });
+        return subscription;
+    },
+
+    async sendSubscription(subscription) {
+        await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+            },
+            body: JSON.stringify({ subscription })
+        });
+    },
+
+    show(title, body, url) {
+        if (Notification.permission === 'granted') {
+            new Notification(title, {
+                body: body,
+                icon: '/admin/images/pwa-192.png',
+                badge: '/admin/images/pwa-192.png',
+                data: { url: url || '/' }
+            });
+        }
+    }
+};
+</script>
+
 </body>
 
 </html>

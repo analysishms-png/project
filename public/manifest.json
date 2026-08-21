@@ -1,0 +1,59 @@
+{
+    "name": "Analysis HMS - Hotel Management System",
+    "short_name": "Analysis HMS",
+    "description": "Professional Hotel Management System - Front Office, POS, Accounts, Reports & More",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#3b82f6",
+    "orientation": "any",
+    "scope": "/",
+    "lang": "en",
+    "categories": ["business", "productivity"],
+    "icons": [
+        {
+            "src": "/admin/images/pwa-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/admin/images/pwa-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/admin/images/pwa-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "favicon"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/admin/images/pwa-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Analysis HMS Dashboard"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "url": "/",
+            "icons": [{ "src": "/admin/images/pwa-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Front Office",
+            "url": "/frontoffice",
+            "icons": [{ "src": "/admin/images/pwa-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Reports",
+            "url": "/reports",
+            "icons": [{ "src": "/admin/images/pwa-192.png", "sizes": "192x192" }]
+        }
+    ]
+}

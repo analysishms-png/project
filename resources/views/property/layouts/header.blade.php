@@ -9,6 +9,15 @@
     <title>Analysis</title>
     <!-- Favicon icon -->
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('admin/images/favicon.png') }}">
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Analysis HMS">
+    <link rel="apple-touch-icon" href="{{ asset('admin/images/pwa-192.png') }}">
+    <meta name="description" content="Professional Hotel Management System">
+    <meta name="mobile-web-app-capable" content="yes">
     <!-- Pignose Calender -->
     <link href="{{ asset('admin/plugins/pg-calendar/css/pignose.calendar.min.css') }}" rel="stylesheet">
     <!-- Chartist -->

@@ -651,3 +651,12 @@ Route::post('communication/test-email', [CommunicationController::class, 'sendTe
 use App\Http\Controllers\GuestRegistrationController;
 Route::get('guest-registration/{reservationNo}', [GuestRegistrationController::class, 'show'])->name('guestRegistration.show');
 Route::post('guest-registration/{reservationNo}', [GuestRegistrationController::class, 'submit'])->name('guestRegistration.submit');
+
+// ═══════════════════════════════════════════════════════════════
+// PWA PUSH NOTIFICATIONS — Subscription management
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\PushNotificationController;
+Route::post('/api/push/subscribe', [PushNotificationController::class, 'subscribe'])->name('push.subscribe');
+Route::post('/api/push/unsubscribe', [PushNotificationController::class, 'unsubscribe'])->name('push.unsubscribe');
+Route::post('/api/push/send', [PushNotificationController::class, 'send'])->name('push.send');
+Route::get('/api/push/status', [PushNotificationController::class, 'status'])->name('push.status');
