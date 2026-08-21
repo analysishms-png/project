@@ -311,7 +311,7 @@
 
 ## Detail — Comprehensive Scan (2026-08-21)
 
-### BUG-050: APP_DEBUG=true in Production — OPEN ⚠️
+### BUG-050: APP_DEBUG=true in Production — FIXED ✅ ⚠️
 - **Severity**: CRITICAL | **Module**: Security / Config
 - **Root cause**: `.env` has `APP_DEBUG=true` and `APP_ENV=local`
 - **Risk**: Exposes stack traces, SQL queries, environment variables to end users

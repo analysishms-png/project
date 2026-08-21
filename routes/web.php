@@ -595,3 +595,28 @@ Route::delete('/denomination/{sno}', 'App\Http\Controllers\DenominationControlle
 Route::get('/denomination/formats', 'App\Http\Controllers\DenominationController@getFormats')->name('denomination.formats');
 Route::post('/denomination/format/save', 'App\Http\Controllers\DenominationController@saveFormat')->name('denomination.format.save');
 Route::get('/denomination/print/{sno}', 'App\Http\Controllers\DenominationController@print')->name('denomination.print');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TELEPHONE / EPABX — Call Type & Call Code Masters
+// ═══════════════════════════════════════════════════════════════════════════
+use App\Http\Controllers\TelephoneController;
+
+Route::get('calltypelist', [TelephoneController::class, 'calltypelist'])->name('calltypelist');
+Route::post('calltype/store', [TelephoneController::class, 'calltypestore'])->name('calltype.store');
+Route::post('calltype/delete', [TelephoneController::class, 'calltypedelete'])->name('calltype.delete');
+
+Route::get('callcodelist', [TelephoneController::class, 'callcodelist'])->name('callcodelist');
+Route::post('callcode/store', [TelephoneController::class, 'callcodestore'])->name('callcode.store');
+Route::post('callcode/delete', [TelephoneController::class, 'callcodedelete'])->name('callcode.delete');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CASH CARD — Registration, Recharge, Refund, History
+// ═══════════════════════════════════════════════════════════════════════════
+Route::get('cashcard', [TelephoneController::class, 'cashcardlist'])->name('cashcard.list');
+Route::get('cashcard/register', [TelephoneController::class, 'cashcardregister'])->name('cashcard.register');
+Route::post('cashcard/store', [TelephoneController::class, 'cashcardstore'])->name('cashcard.store');
+Route::get('cashcard/recharge', [TelephoneController::class, 'cashcardrecharge'])->name('cashcard.recharge');
+Route::post('cashcard/recharge/store', [TelephoneController::class, 'cashcardrechargestore'])->name('cashcard.recharge.store');
+Route::get('cashcard/refund', [TelephoneController::class, 'cashcardrefund'])->name('cashcard.refund');
+Route::post('cashcard/refund/store', [TelephoneController::class, 'cashcardrefundstore'])->name('cashcard.refund.store');
+Route::get('cashcard/history', [TelephoneController::class, 'cashcardhistory'])->name('cashcard.history');

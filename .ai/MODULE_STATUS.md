@@ -42,9 +42,9 @@
 | 33 | Smart Card | ✅ REMOVED 2026-08-19 — 4 stub controllers + 4 views + 8 routes deleted (dead code). Reward Points replaces loyalty tracking. | — | REMOVED | Stubs removed 2026-08-19. No business need confirmed. |
 | 34 | Cash Card | ❌ ZERO implementation — no controllers, no routes, no models, no views, no migrations. Only reference: `refundcashcardamt` in UserPermission. | — | MISSING | Legacy had CashCardDebitAc/CreditAc/SecurityAc + SmartCardRegistration + 2 reports. Reward Points replaces loyalty. Recommend: remove unused UserPermission field or implement if hotel uses cash cards. |
 | 35 | Cashier | ✅ POS cashier flows | FrmUserPaymentCollection | COMPLETE | |
-| 36 | Denomination | ❌ | FrmDenomination (DenominationDetail) | MISSING | Verified 2026-08-16: no route/view/model/table — legacy POS Reports "Denomination Detail" cashier closeout |
-| 37 | Telephone | ❌ ZERO implementation — no controllers, routes, models, views. Legacy had EpabxCallRep report. | — | MISSING | Modern hotels use PMS-integrated phone logging or third-party EPABX. Low priority unless hotel has physical EPABX. |
-| 38 | EPABX | ❌ Same as Telephone — zero implementation. | — | MISSING | See Telephone above. |
+| 36 | Denomination | ✅ DenominationController + models + views + formats | FrmDenomination (DenominationDetail) | ✅ IMPLEMENTED 2026-08-21 | Full CRUD + print + denomination formats |
+| 37 | Telephone | ✅ TelephoneController (CallType/CallCode CRUD), telcalltype/telcallcode tables, 6 routes, 2 blade views | FrmCallTypeMaster / FrmCallCodesMaster | ✅ IMPLEMENTED 2026-08-21 | Call Type and Call Code masters fully implemented |
+| 38 | EPABX | ✅ Covered by Telephone module + existing EpabxCallRep report | FrmEpabxCallRep | COMPLETE | Reports already existed, now masters implemented |
 | 39 | SMS | ✅ whatsappparameter, SMS logs (whatsapp_logs) | FrmSMSEnviro, FrmSMSMultiType | COMPLETE | |
 | 40 | WhatsApp/Communication | ✅ whatsapp_logs, WhatsappSend helper | — | COMPLETE | |
 | 41 | HR | ✅ HrpayrollsController (designation, employee category, employee CRUD), ESSL attendance webhook | hr/ views | PARTIAL | Legacy had AttendanceRep, PayrollReg — MISSING reports. Core employee/designation CRUD EXISTS. |

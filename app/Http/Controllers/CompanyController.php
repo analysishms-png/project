@@ -2869,7 +2869,7 @@ class CompanyController extends Controller
     public function getsundrynames(Request $request)
     {
         $sundryname = $request->post('cid');
-        $listsundry = DB::table('sundrymast')->where('name', 'LIKE', "%$sundryname%")
+        $listsundry = DB::table('sundrymast')->where('name', 'LIKE', '%' . $sundryname . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';
@@ -2883,7 +2883,7 @@ class CompanyController extends Controller
     public function getledgernames(Request $request)
     {
         $ledgernames = $request->post('cid');
-        $listsundry = DB::table('subgroup')->where('name', 'LIKE', "%$ledgernames%")
+        $listsundry = DB::table('subgroup')->where('name', 'LIKE', '%' . $ledgernames . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';
@@ -2897,7 +2897,7 @@ class CompanyController extends Controller
     public function gettaxnames(Request $request)
     {
         $taxnames = $request->post('cid');
-        $data = DB::table('revmast')->where('name', 'LIKE', "%$taxnames%")
+        $data = DB::table('revmast')->where('name', 'LIKE', '%' . $taxnames . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';
@@ -2911,7 +2911,7 @@ class CompanyController extends Controller
     public function getbnames(Request $request)
     {
         $names = $request->post('cid');
-        $data = DB::table('busssource')->where('name', 'LIKE', "%$names%")
+        $data = DB::table('busssource')->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';
@@ -2926,7 +2926,7 @@ class CompanyController extends Controller
     {
         $names = $request->post('cid');
         $data = DB::table('unitmast')
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         if ($data->count() > 0) {
@@ -2965,7 +2965,7 @@ class CompanyController extends Controller
     {
         $names = $request->post('cid');
         $data = DB::table('room_mast')
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->where('type', 'TB')
             ->get();
@@ -2985,7 +2985,7 @@ class CompanyController extends Controller
     {
         $names = $request->post('cid');
         $data = DB::table('depart')
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->where('rest_type', 'Outlet')
             ->get();
@@ -3005,7 +3005,7 @@ class CompanyController extends Controller
     {
         $names = $request->post('cid');
         $data = DB::table('revmast')
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('field_type', 'P')
             ->where('propertyid', $this->propertyid)
             ->get();
@@ -3054,7 +3054,7 @@ class CompanyController extends Controller
     {
         $names = $request->post('cid');
         $data = DB::table('session_mast')
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         if ($data->count() > 0) {
@@ -3072,7 +3072,7 @@ class CompanyController extends Controller
     public function getrnames(Request $request)
     {
         $names = $request->post('cid');
-        $data = DB::table('roomfeature')->where('name', 'LIKE', "%$names%")
+        $data = DB::table('roomfeature')->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';
@@ -3086,7 +3086,7 @@ class CompanyController extends Controller
     public function getgnames(Request $request)
     {
         $names = $request->post('cid');
-        $data = DB::table('gueststats')->where('name', 'LIKE', "%$names%")
+        $data = DB::table('gueststats')->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';
@@ -3103,7 +3103,7 @@ class CompanyController extends Controller
         $data = DB::table('revmast')
             ->where('field_type', 'C')
             ->where('Desk_code', 'FOM' . $this->propertyid)
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto;">';
@@ -3118,7 +3118,7 @@ class CompanyController extends Controller
     {
         $names = $request->post('cid');
         $data = DB::table('plan_mast')
-            ->where('name', 'LIKE', "%$names%")
+            ->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
 
@@ -6467,7 +6467,7 @@ class CompanyController extends Controller
     public function getbookingsourcenames(Request $request)
     {
         $names = $request->post('cid');
-        $data = DB::table('bookingsource')->where('name', 'LIKE', "%$names%")
+        $data = DB::table('bookingsource')->where('name', 'LIKE', '%' . $names . '%')
             ->where('propertyid', $this->propertyid)
             ->get();
         $output = '<ul class="dropdown-menu" style="display:block; position:absolute; width:auto">';

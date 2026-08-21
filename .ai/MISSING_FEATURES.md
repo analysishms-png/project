@@ -10,7 +10,7 @@
 | # | Legacy feature (form) | Purpose | Laravel status | Class | Action |
 |---|----------------------|---------|----------------|-------|--------|
 | MF-01 | FrmLostFound | Lost & Found register | Not located | ⚠️ UNKNOWN | Scan routes/views for lost-found; else MISSING → build register module |
-| MF-02 | FrmDenomination | Cashier denomination count | Not located | ⚠️ UNKNOWN | Scan POS cashier flow; legacy helps cashier closeouts |
+| MF-02 | FrmDenomination | Cashier denomination count | ✅ DenominationController + views | ✅ IMPLEMENTED | Complete CRUD + print + formats |
 | MF-03 | FrmForExRec / FrmForeignExMast | Foreign exchange records | Not located | ⚠️ UNKNOWN | Scan; likely obsolete for domestic hotels — confirm with business |
 | MF-04 | FrmMeterReading | Utility meter readings | Not located | ⚠️ UNKNOWN | Scan maintenance module |
 | MF-05 | FrmGuestWakeUp | Wake-up call service | Not located | ⚠️ UNKNOWN | Scan front office |
@@ -33,6 +33,18 @@
 - **Advance/Folio reconciliation report** (mission §10) — REQUIRED by master mission. Not found in Laravel. → HIGH priority.
 - Automated **DB backup** job (mission §25) — only a directory exists.
 - **Eager-loading/perf hardening** — see PERFORMANCE_AUDIT.md.
+
+## Newly Implemented (2026-08-21)
+
+| # | Feature | Module | Status |
+|---|---------|--------|--------|
+| MF-02 | Denomination Module | Cashier/Denomination | ✅ FULLY IMPLEMENTED |
+| — | Call Type Master | Telephone/EPABX | ✅ FULLY IMPLEMENTED |
+| — | Call Code Master | Telephone/EPABX | ✅ FULLY IMPLEMENTED |
+| — | Cash Card Registration | Cash Card | ✅ FULLY IMPLEMENTED |
+| — | Cash Card Recharge | Cash Card | ✅ FULLY IMPLEMENTED |
+| — | Cash Card Refund | Cash Card | ✅ FULLY IMPLEMENTED |
+| — | Cash Card History | Cash Card | ✅ FULLY IMPLEMENTED |
 
 ## Rule reminder
 
