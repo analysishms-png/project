@@ -1289,3 +1289,46 @@ Reports / Guest Management
 ### Git
 - Commit: 77f2a45
 - Pushed: ✅ GitHub
+
+## 2026-08-21 — Channel Manager Enhancement
+
+### Existing Integration (Already Present)
+- eGlobe Solutions API integration (Booking.com, MakeMyTrip, Goibibo)
+- Room inventory push/pull
+- Rate management per channel
+- Derived pricing (auto-calculate from base rate)
+- Booking fetch from OTAs
+- Channel environment configuration
+- 4 existing views: channelrooms, channelrates, channelderivedpricing, channelenviro
+
+### New Features Added
+- TASK: Enhance Channel Manager with dashboard and availability calendar
+- FILES:
+  - app/Http/Controllers/ChannelPush.php (+107 lines)
+  - resources/views/property/channeldashboard.blade.php (NEW — 291 lines)
+  - resources/views/property/channelavailability.blade.php (NEW — 121 lines)
+  - routes/channel.php (+2 routes)
+- ROUTES:
+  - GET /dashboard — Channel Manager dashboard overview
+  - GET /availability — 14-day availability calendar grid
+- FEATURES:
+  - Connection status indicator (connected/disconnected)
+  - Room category mapping status
+  - Channel rates count
+  - Derived pricing rules count
+  - Today's channel bookings count
+  - Recent channel activity log
+  - 14-day availability grid with color coding
+  - Date navigation for browsing periods
+  - Quick action buttons for all channel operations
+
+### How to Test
+1. Login as sa/balaji/103
+2. Navigate to /dashboard (channel manager)
+3. View connection status, room mapping, activity
+4. Navigate to /availability for 14-day grid
+5. Use date navigation to browse periods
+
+### Git
+- Commit: 50e625c
+- Pushed: ✅ GitHub
