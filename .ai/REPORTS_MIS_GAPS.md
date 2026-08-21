@@ -383,3 +383,29 @@ All 7 P1 reports implemented. MovementList now implemented as dedicated report (
 | Room Change History (RoomChangeHistory) | 2026-08-20 | roomchangehistory.blade.php |
 | Guest Trial Balance (GuestTrialBalance) | 2026-08-20 | guesttrialbalance.blade.php |
 | Room Nights Analysis (RoomNights) | 2026-08-20 | roomnights.blade.php |
+
+## 2026-08-21 — HMS.bas Migration Batch Complete
+
+### Coverage Summary
+| Category | Count | Status |
+|----------|-------|--------|
+| Total HMS.bas Reports | 231 | ✅ |
+| Already in Laravel | 119 | ✅ EXISTED |
+| Implemented (all sessions) | 126 | ✅ NEW |
+| Obsolete (GST replaced) | 3 | ⬛ OBSOLETE |
+| Naming Difference (covered) | 2 | ✅ COVERED |
+| **Total Coverage** | **231/231** | **100%** ✅ |
+
+### Newly Implemented (Batch 2)
+| # | Report | Route | Category |
+|---|--------|-------|----------|
+| 1 | Arrival/Departure Register | /arrdepreg | Front Office |
+| 2 | Bank Clearance | /bankclg | Finance |
+| 3 | Bank Not Cleared | /bankclgnot | Finance |
+| 4 | Debit Ledger | /ledgerdeb | Finance |
+| 5 | Interest Ledger | /ledgerint | Finance |
+| 6 | Daily Cash Register (Roz Namcha) | /roznamcha | Finance |
+| 7 | Goods Receipt Challan | /grc | Inventory |
+| 8 | GSTR-1 Report | /gstr1report | Tax/GST |
+| 9 | PLU File Export | /plufile | POS |
+| 10 | General Ledger 2 | /generalledger2 | Finance |

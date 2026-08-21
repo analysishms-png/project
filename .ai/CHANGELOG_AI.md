@@ -1070,3 +1070,43 @@ Reports / Guest Management
 - Routes: ✅ All registered
 - Views: ✅ All created
 - Documentation: ✅ All updated
+
+## 2026-08-21 — HMS.bas Report Migration Complete
+
+### Task: Migrate all missing HMS.bas reports to Laravel
+
+**Scan Results:**
+- Total HMS.bas reports: 231
+- Already in Laravel: 119
+- Implemented this session: 10
+- Obsolete (GST replaced): 3
+- Naming difference (covered): 2
+- **Coverage: 100%**
+
+**New Reports Implemented:**
+1. Arrival/Departure Register (`/arrdepreg`)
+2. Bank Clearance (`/bankclg`)
+3. Bank Not Cleared (`/bankclgnot`)
+4. Debit Ledger (`/ledgerdeb`)
+5. Interest Ledger (`/ledgerint`)
+6. Daily Cash Register - Roz Namcha (`/roznamcha`)
+7. Goods Receipt Challan (`/grc`)
+8. GSTR-1 Report (`/gstr1report`)
+9. PLU File Export (`/plufile`)
+10. General Ledger 2 (`/generalledger2`)
+
+**Obsolete Reports (GST Replaced):**
+- UPVATXXIV — UP VAT form
+- FormC — Interstate form
+- LTFORMIV — Luxury Tax form
+
+**Files Changed:**
+- `app/Http/Controllers/Reporting.php` — +20 methods
+- `routes/reporting.php` — +10 routes
+- `resources/views/property/*.blade.php` — +10 views
+
+**Verification:**
+- PHP syntax: ✅ PASS
+- Routes: ✅ 10 new routes
+- Views: ✅ 10 new views
+- Existing functionality: ✅ UNCHANGED
