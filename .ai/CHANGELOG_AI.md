@@ -1427,3 +1427,43 @@ Reports / Guest Management
 ### Git
 - Commit: f4aeede
 - Pushed: ✅ GitHub
+
+## 2026-08-21 — Guest Feedback System
+
+### Architecture
+- **Database**: guest_feedback + feedback_templates tables
+- **Controller**: GuestFeedbackController (386 lines)
+- **Views**: 6 Blade views (dashboard, list, survey, thank-you, not-found, already-completed)
+- **Integration**: WhatsApp survey delivery via existing MuzzTech API
+
+### Features
+1. **Dashboard**: KPIs (avg rating, completion rate, response rate, recommend %)
+2. **Rating Breakdown**: 6 categories (overall, cleanliness, service, food, value, location)
+3. **Rating Distribution**: 5-star histogram
+4. **Recent Reviews**: Table with management response
+5. **Public Survey**: Mobile-friendly 6-category star rating form
+6. **Auto-Send Surveys**: Cron job for yesterday's checkouts via WhatsApp
+7. **Management Response**: Reply to guest feedback
+8. **Feedback List**: Filterable by status, rating, date
+
+### Routes
+- GET /feedback — Dashboard
+- GET /feedback/list — All feedback
+- GET /feedback/survey/{id} — Public survey form
+- POST /feedback/survey/{id} — Submit survey
+- POST /feedback/send — Send survey to guest
+- POST /feedback/respond/{id} — Management response
+- POST /feedback/auto-send — Auto-send to yesterday's checkouts
+
+### How to Test
+1. Login as sa/balaji/103
+2. Navigate to /feedback
+3. View dashboard with KPIs and recent reviews
+4. Click "Auto-Send Surveys" to send to yesterday's checkouts
+5. Visit /feedback/survey/{id} to see public form
+6. Submit feedback → see thank you page
+7. Respond to feedback from dashboard
+
+### Git
+- Commit: 1d91ca9
+- Pushed: ✅ GitHub
