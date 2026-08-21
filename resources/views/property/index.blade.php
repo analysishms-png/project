@@ -387,19 +387,28 @@
                 </div>
                 <div class="dash-card-body">
                     <div class="ri-label" style="font-size:12px;color:#94a3b8;">Gross Revenue</div>
-                    <div class="revenue-big">&#8377;0.00</div>
-                    <div class="revenue-sub">Total for selected period</div>
+                    @php
+                        $totalRev = collect($revenueData ?? [])->sum('totalRevenue');
+                        $totalRoomRev = collect($revenueData ?? [])->sum('roomRent');
+                        $totalPosRev = collect($revenueData ?? [])->sum('posRevenue');
+                        $totalBanqRev = collect($revenueData ?? [])->sum('banquetRevenue');
+                        $occCountForADR = $occCount ?? 0;
+                        $adr = $occCountForADR > 0 ? round($totalRoomRev / max($occCountForADR, 1), 2) : 0;
+                        $revpar = ($totalRooms ?? 1) > 0 ? round($totalRoomRev / max($totalRooms ?? 1, 1), 2) : 0;
+                    @endphp
+                    <div class="revenue-big">&#8377;{{ number_format($totalRev, 2) }}</div>
+                    <div class="revenue-sub">Total revenue (last 6 months)</div>
                     <div class="revenue-chart-wrap">
                         <canvas id="revenueLineChart"></canvas>
                     </div>
                     <div class="revenue-breakdown">
-                        <div class="revenue-item"><div class="ri-label">Room Rent</div><div class="ri-val">&#8377;0.00</div></div>
-                        <div class="revenue-item"><div class="ri-label">Transfer From Outlet</div><div class="ri-val">&#8377;0.00</div></div>
-                        <div class="revenue-item"><div class="ri-label">Tax</div><div class="ri-val">&#8377;0.00</div></div>
+                        <div class="revenue-item"><div class="ri-label">Room Rent</div><div class="ri-val">&#8377;{{ number_format($totalRoomRev, 2) }}</div></div>
+                        <div class="revenue-item"><div class="ri-label">POS Revenue</div><div class="ri-val">&#8377;{{ number_format($totalPosRev, 2) }}</div></div>
+                        <div class="revenue-item"><div class="ri-label">Banquet Revenue</div><div class="ri-val">&#8377;{{ number_format($totalBanqRev, 2) }}</div></div>
                     </div>
                     <div class="revenue-metrics">
-                        <div class="revenue-metric"><div class="rm-label">ADR</div><div class="rm-val">&#8377;0.00</div></div>
-                        <div class="revenue-metric"><div class="rm-label">RevPAR</div><div class="rm-val">&#8377;0.00</div></div>
+                        <div class="revenue-metric"><div class="rm-label">ADR</div><div class="rm-val">&#8377;{{ number_format($adr, 2) }}</div></div>
+                        <div class="revenue-metric"><div class="rm-label">RevPAR</div><div class="rm-val">&#8377;{{ number_format($revpar, 2) }}</div></div>
                     </div>
                 </div>
             </div>
@@ -556,30 +565,32 @@
                     }
                 });
             }
-            // Revenue Line Chart
+            // Revenue Line Chart (real data)
             var revCtx = document.getElementById('revenueLineChart');
             if(revCtx){
+                var revLabels = {!! json_encode(collect($revenueData ?? [])->pluck('label')->toArray()) !!};
+                var revRoomData = {!! json_encode(collect($revenueData ?? [])->pluck('roomRent')->toArray()) !!};
+                var revPosData = {!! json_encode(collect($revenueData ?? [])->pluck('posRevenue')->toArray()) !!};
+                var revBanqData = {!! json_encode(collect($revenueData ?? [])->pluck('banquetRevenue')->toArray()) !!};
                 new Chart(revCtx.getContext('2d'), {
-                    type: 'line',
+                    type: 'bar',
                     data: {
-                        labels: ['Apr','May','Jun','Jul','Aug'],
-                        datasets: [{
-                            data: [0,0,0,0,0],
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59,130,246,0.08)',
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 3,
-                            pointBackgroundColor: '#3b82f6'
-                        }]
+                        labels: revLabels,
+                        datasets: [
+                            { label: 'Room Rent', data: revRoomData, backgroundColor: 'rgba(59,130,246,0.8)', borderRadius: 4 },
+                            { label: 'POS', data: revPosData, backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4 },
+                            { label: 'Banquet', data: revBanqData, backgroundColor: 'rgba(139,92,246,0.8)', borderRadius: 4 }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
+                        plugins: {
+                            legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                        },
                         scales: {
-                            x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
-                            y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8', callback: function(v){ return '\u20B9' + (v/1000) + 'K'; } } }
+                            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+                            y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8', callback: function(v){ return '\u20B9' + (v/1000) + 'K'; } } }
                         }
                     }
                 });

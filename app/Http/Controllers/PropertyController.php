@@ -161,11 +161,18 @@ class PropertyController extends Controller
                     // 'PendingKotRooms' => $roomstatusview == 'Y' ? $this->getPendingKotRooms(Depart::where('propertyid', $prpid)->where('rest_type', 'Outlet')->value('dcode')) : [],
                     'OutletSalesWithRunningKots' => $this->getOutletSalesWithRunningKots($prpid, $ncurdate)
                 ];
+
+                // Revenue chart data (last 6 months)
+                $revenueData = $this->getMonthlyRevenue($prpid, $ncurdate);
+                $totalRooms = DB::table('roommast')->where('propertyid', $prpid)->count();
+
                 return view('property.index', [
                     'user' => $company,
                     'menus' => $menus,
                     'datearr' => $datearr,
                     'status' => $status,
+                    'revenueData' => $revenueData,
+                    'totalRooms' => $totalRooms,
                 ]);
             } else {
                 return back()->with('logerror', 'Invalid Password');
@@ -463,6 +470,57 @@ class PropertyController extends Controller
             ]);
 
         return back()->with('success', 'Expiry date & amount updated successfully.');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Monthly Revenue Data for Dashboard Chart
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    protected function getMonthlyRevenue($propertyid, $currentDate)
+    {
+        $months = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthDate = date('Y-m-01', strtotime("-$i months", strtotime($currentDate)));
+            $monthEnd = date('Y-m-t', strtotime($monthDate));
+            $monthLabel = date('M', strtotime($monthDate));
+
+            // Room rent from PayCharge (credit entries = room rent + tax)
+            $roomRent = DB::table('paycharge')
+                ->where('propertyid', $propertyid)
+                ->where('vtype', '!=', 'ADV')
+                ->whereBetween('vdate', [$monthDate, $monthEnd])
+                ->sum('dramt');
+
+            // POS revenue from Sale1
+            $posRevenue = DB::table('sale1')
+                ->where('propertyid', $propertyid)
+                ->whereBetween('vdate', [$monthDate, $monthEnd])
+                ->sum('netamt');
+
+            // Banquet revenue from HallSale1
+            $banquetRevenue = DB::table('hallsale1')
+                ->where('propertyid', $propertyid)
+                ->whereBetween('vdate', [$monthDate, $monthEnd])
+                ->sum('netamt');
+
+            // Payments received
+            $payments = DB::table('paycharge')
+                ->where('propertyid', $propertyid)
+                ->where('vtype', '!=', 'ADV')
+                ->whereBetween('vdate', [$monthDate, $monthEnd])
+                ->sum('cramt');
+
+            $months[] = [
+                'label' => $monthLabel,
+                'roomRent' => round($roomRent, 2),
+                'posRevenue' => round($posRevenue, 2),
+                'banquetRevenue' => round($banquetRevenue, 2),
+                'payments' => round($payments, 2),
+                'totalRevenue' => round($roomRent + $posRevenue + $banquetRevenue, 2),
+            ];
+        }
+
+        return $months;
     }
 }
 
