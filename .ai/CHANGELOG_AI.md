@@ -1249,3 +1249,43 @@ Reports / Guest Management
 ### Git
 - Commit: 2cd1ad8
 - Pushed: ✅ GitHub
+
+## 2026-08-21 — Real-Time Dashboard with WebSocket (Laravel Reverb)
+
+### Architecture
+- **Broadcasting Driver**: Laravel Reverb (already configured in .env)
+- **Client Library**: Laravel Echo (CDN) + Reverb WebSocket
+- **Channels**: 5 property-scoped channels with auth
+
+### Broadcast Events Created
+| Event | Channel | Trigger |
+|-------|---------|---------|
+| RoomStatusChanged | property.{id}.room-status | Check-in, check-out, room change, housekeeping |
+| GuestCheckInOut | property.{id}.guest-activity | Walk-in submit, checkout |
+| PosActivity | property.{id}.pos-activity | KOT submit, POS settlement |
+| DashboardRevenueUpdate | property.{id}.dashboard | Any financial transaction |
+| DashboardNotification | property.{id}.notifications | Alerts, warnings |
+
+### Controller Hooks
+| Controller | Method | Event Dispatched |
+|------------|--------|-----------------|
+| CompanyController | submitwalkin | RoomStatusChanged + GuestCheckInOut |
+| Pos.php | possalebillsettle | PosActivity + DashboardRevenueUpdate |
+| Kot.php | submitkotentry | PosActivity |
+
+### Dashboard Features
+- **Live Activity Feed**: Real-time check-in/out notifications
+- **Room Status Donut**: Updates live when rooms change status
+- **Revenue Counter**: Updates live when transactions occur
+- **Toast Notifications**: Real-time alerts for all events
+
+### How to Test
+1. Start Reverb: `php artisan reverb:start`
+2. Open dashboard in two browser tabs
+3. Check in a guest in one tab → see live update in other tab
+4. Submit KOT → see POS activity notification
+5. Settle bill → see revenue counter update
+
+### Git
+- Commit: 77f2a45
+- Pushed: ✅ GitHub
