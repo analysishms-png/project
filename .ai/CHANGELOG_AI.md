@@ -1332,3 +1332,44 @@ Reports / Guest Management
 ### Git
 - Commit: 50e625c
 - Pushed: ✅ GitHub
+
+## 2026-08-21 — Revenue Management with AI Dynamic Pricing
+
+### Architecture
+- **AI Engine**: 5-factor demand scoring algorithm
+- **Factors**: Occupancy, Day-of-week, Advance booking, Historical, Season
+- **Rate Range**: 50%-200% of base rate
+- **Real-time**: WebSocket notifications on rate updates
+
+### AI Pricing Factors
+| Factor | Weight | Logic |
+|--------|--------|-------|
+| Current Occupancy | ±35% | 90%+ → +35%, <20% → -20% |
+| Day of Week | ±15% | Fri/Sat → +15%, Wed/Thu → +8% |
+| Advance Booking | ±10% | Last minute → +10%, 30+ days → -5% |
+| Historical | ±8% | Same date last year occupancy |
+| Season | ±12% | Peak (Oct-Dec, Mar-Apr) → +12%, Monsoon → -8% |
+
+### Files Created
+- app/Http/Controllers/RevenueManagementController.php (387 lines)
+- resources/views/property/revenuedashboard.blade.php (329 lines)
+- resources/views/property/revenuehistory.blade.php (176 lines)
+- resources/views/property/revenueratecomparison.blade.php (134 lines)
+
+### Routes
+- GET /revenue — Revenue Management dashboard
+- POST /revenue/apply-ai-rates — Apply AI recommended rates
+- GET /revenue/history — Pricing history with charts
+- GET /revenue/rate-comparison — Current vs AI vs Channel rates
+
+### How to Test
+1. Login as sa/balaji/103
+2. Navigate to /revenue
+3. View AI recommendations per room category
+4. Click "Apply AI Rates" to update
+5. Check /revenue/history for trends
+6. Check /revenue/rate-comparison for rate analysis
+
+### Git
+- Commit: 4f38daa
+- Pushed: ✅ GitHub
