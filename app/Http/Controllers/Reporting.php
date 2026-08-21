@@ -9333,4 +9333,998 @@ class Reporting extends Controller
       $r = DB::select("SELECT PC.vdate AS VDate, PC.DocID, PC.Vno, PC.vtype AS VType, PC.amtdr AS Debit, PC.amtcr AS Credit, PC.paymode AS PayMode, PC.remark AS Remark FROM paycharge AS PC WHERE PC.propertyid=? AND PC.vdate BETWEEN ? AND ? AND PC.vtype IN (ADJ,REV) ORDER BY PC.vdate", [$this->propertyid,$fd,$td]);
       return response()->json($r);
    }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // MISSING REPORTS — POS, Banquet, HR, Membership (added by AI migration 2)
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function kotratechange(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.kotratechange", compact("propertyid", "fromdate", "todate"));
+   }
+   public function kotratechangefetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("kot as k")->join("kotdetail as kd", "k.kotid", "=", "kd.kotid")
+         ->leftJoin("itemmast as im", "kd.itemcode", "=", "im.itemcode")
+         ->where("k.propertyid", $propertyid)->whereBetween("k.kotdate", [$fromdate, $todate])
+         ->select("k.kotid", "k.kotdate", "k.outletname", "im.itemname", "k.kotrate as original_rate", "kd.rate as charged_rate")
+         ->orderByDesc("k.kotdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function fombillchangereport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.fombillchangereport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function fombillchangereportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("paycharge as pc")
+         ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("pc.propertyid", $propertyid)
+         ->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->where("pc.paycode", "=", "C")
+         ->whereNotNull("pc.u_updatedt")
+         ->select("pc.docid", "pc.vdate", "pc.foliono", DB::raw("COALESCE(bd.guestname,\"Walk-in\") as guestname"),
+            "pc.amtdr", "pc.mnarr", "pc.u_name", "pc.u_updatedt")
+         ->orderByDesc("pc.u_updatedt")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function koteditdeletelog2(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.koteditdeletelog", compact("propertyid", "fromdate", "todate"));
+   }
+   public function koteditdeletelog2fetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("kotlog")->where("propertyid", $propertyid)
+         ->whereBetween("kotdate", [$fromdate, $todate])
+         ->orderByDesc("kotdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function liquorsalerep(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.liquorsalerep", compact("propertyid", "fromdate", "todate"));
+   }
+   public function liquorsalerepfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
+         ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
+         ->where("s.propertyid", $propertyid)->whereBetween("s.billdate", [$fromdate, $todate])
+         ->select("s.billno", "s.billdate", "s.outletname", "im.itemname", "sd.qty", "sd.rate", "sd.amount")
+         ->orderByDesc("s.billdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp, "total" => $rows->sum("amount")]);
+   }
+
+   public function tablewisesale(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.tablewisesale", compact("propertyid", "fromdate", "todate"));
+   }
+   public function tablewisesalefetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->where("s.propertyid", $propertyid)
+         ->whereBetween("s.billdate", [$fromdate, $todate])
+         ->select("s.tablename", DB::raw("COUNT(*) as bills"), DB::raw("SUM(s.netamt) as total_sale"),
+            DB::raw("SUM(s.taxamount) as total_tax"))
+         ->groupBy("s.tablename")->orderByDesc("total_sale")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function orderdetailreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.orderdetailreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function orderdetailreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("kot as k")->join("kotdetail as kd", "k.kotid", "=", "kd.kotid")
+         ->leftJoin("itemmast as im", "kd.itemcode", "=", "im.itemcode")
+         ->where("k.propertyid", $propertyid)->whereBetween("k.kotdate", [$fromdate, $todate])
+         ->select("k.kotid", "k.kotdate", "k.outletname", "k.tablename", "k.guestname",
+            "im.itemname", "kd.qty", "kd.rate", "kd.amount", "k.status")
+         ->orderByDesc("k.kotdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function saleregpercover(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.saleregpercover", compact("propertyid", "fromdate", "todate"));
+   }
+   public function saleregpercoverfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->where("s.propertyid", $propertyid)
+         ->whereBetween("s.billdate", [$fromdate, $todate])
+         ->select("s.outletname", DB::raw("COUNT(*) as covers"), DB::raw("SUM(s.netamt) as total_sale"),
+            DB::raw("SUM(s.netamt)/NULLIF(COUNT(*),0) as sale_per_cover"))
+         ->groupBy("s.outletname")->orderByDesc("total_sale")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function tallyposreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.tallyposreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function tallyposreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->where("s.propertyid", $propertyid)
+         ->whereBetween("s.billdate", [$fromdate, $todate])
+         ->select("s.billno", "s.billdate", "s.outletname", "s.guestname",
+            "s.netamt", "s.taxamount", "s.discount", "s.roundoff", "s.paymentmode")
+         ->orderBy("s.billdate")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp, "total" => $rows->sum("netamt")]);
+   }
+
+   public function companywisesalehall(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.companywisesalehall", compact("propertyid", "fromdate", "todate"));
+   }
+   public function companywisesalehallfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("hallsale as hs")
+         ->leftJoin("companyreg as cr", "hs.companyid", "=", "cr.companyid")
+         ->where("hs.propertyid", $propertyid)->whereBetween("hs.billdate", [$fromdate, $todate])
+         ->select("hs.billno", "hs.billdate", DB::raw("COALESCE(cr.comp_name,hs.companyname) as companyname"),
+            "hs.hallname", "hs.netamt", "hs.taxamount")
+         ->orderByDesc("hs.billdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp, "total" => $rows->sum("netamt")]);
+   }
+
+   public function excessconsumption(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.excessconsumption", compact("propertyid", "fromdate", "todate"));
+   }
+   public function excessconsumptionfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("hallbook as hb")
+         ->leftJoin("hallsale as hs", "hb.bookno", "=", "hs.bookno")
+         ->where("hb.propertyid", $propertyid)->whereBetween("hb.functiondate", [$fromdate, $todate])
+         ->select("hb.bookno", "hb.hallname", "hb.companyname", "hb.functiondate",
+            "hb.noofpax", "hs.consumption", "hs.excessconsumption")
+         ->orderByDesc("hb.functiondate")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function productionreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.productionreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function productionreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("kot as k")->join("kotdetail as kd", "k.kotid", "=", "kd.kotid")
+         ->leftJoin("itemmast as im", "kd.itemcode", "=", "im.itemcode")
+         ->where("k.propertyid", $propertyid)->whereBetween("k.kotdate", [$fromdate, $todate])
+         ->select("im.itemname", DB::raw("SUM(kd.qty) as total_qty"),
+            DB::raw("SUM(kd.amount) as total_amount"))
+         ->groupBy("im.itemname")->orderByDesc("total_qty")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function openitemsale(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.openitemsale", compact("propertyid", "fromdate", "todate"));
+   }
+   public function openitemsalefetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
+         ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
+         ->where("s.propertyid", $propertyid)->whereBetween("s.billdate", [$fromdate, $todate])
+         ->where("s.paymentmode", "!=", "Room")
+         ->select("s.billno", "s.billdate", "s.outletname", "im.itemname", "sd.qty", "sd.rate", "sd.amount")
+         ->orderByDesc("s.billdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function abcanalysis(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.abcanalysis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function abcanalysisfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("paycharge as pc")
+         ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("pc.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->select(DB::raw("COALESCE(bd.guestname,\"Walk-in\") as guestname"),
+            DB::raw("SUM(pc.amtdr) as total_charges"))
+         ->groupBy("guestname")->orderByDesc("total_charges")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function abcanalysisSale(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.abcanalysissale", compact("propertyid", "fromdate", "todate"));
+   }
+   public function abcanalysisSaleFetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
+         ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
+         ->where("s.propertyid", $propertyid)->whereBetween("s.billdate", [$fromdate, $todate])
+         ->select("im.itemname", DB::raw("SUM(sd.qty) as total_qty"), DB::raw("SUM(sd.amount) as total_amount"))
+         ->groupBy("im.itemname")->orderByDesc("total_amount")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function cancellletter(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.cancellletter", compact("propertyid"));
+   }
+   public function cancellletterdata(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $docid = $request->input("docid");
+      $row = DB::table("grpbookingdetails as bd")
+         ->leftJoin("guestprofile as gp", "bd.guestprofid", "=", "gp.id")
+         ->where("bd.propertyid", $propertyid)->where("bd.docid", $docid)->first();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $row, "comp" => $comp]);
+   }
+
+   public function confirletter(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.confirletter", compact("propertyid"));
+   }
+   public function confirletterdata(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $docid = $request->input("docid");
+      $row = DB::table("grpbookingdetails as bd")
+         ->leftJoin("guestprofile as gp", "bd.guestprofid", "=", "gp.id")
+         ->where("bd.propertyid", $propertyid)->where("bd.docid", $docid)->first();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $row, "comp" => $comp]);
+   }
+
+   public function guestchargesmis2(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.guestchargesmis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function guestchargesmis2fetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("paycharge as pc")
+         ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("pc.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->where("pc.paycode", "C")
+         ->select(DB::raw("COALESCE(bd.guestname,\"Walk-in\") as guestname"),
+            DB::raw("COALESCE(ro.rmcode,\"\") as room"),
+            "pc.foliono", "pc.vdate", "pc.docid", "pc.amtdr", "pc.mnarr")
+         ->orderByDesc("pc.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp, "total" => $rows->sum("amtdr")]);
+   }
+
+   public function memled(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.memled", compact("propertyid", "fromdate", "todate"));
+   }
+   public function memledfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $memberid = $request->input("memberid");
+      $query = DB::table("membermaster as mm")
+         ->leftJoin("memberledger as ml", "mm.memberid", "=", "ml.memberid")
+         ->where("mm.propertyid", $propertyid);
+      if ($memberid) $query->where("mm.memberid", $memberid);
+      $rows = $query->select("mm.memberid", "mm.membername", "ml.vdate", "ml.docid", "ml.amtdr", "ml.amtcr", "ml.mnarr")
+         ->orderBy("mm.membername")->orderBy("ml.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function memtaxreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.memtaxreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function memtaxreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("membermaster as mm")
+         ->leftJoin("paycharge as pc", "mm.memberid", "=", "pc.subcode")
+         ->where("mm.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->select("mm.memberid", "mm.membername", "pc.vdate", "pc.amtdr", "pc.tax")
+         ->orderBy("mm.membername")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function payslip(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.payslip", compact("propertyid"));
+   }
+   public function payslipfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("Y-m"));
+      $rows = DB::table("salarycreation as sc")
+         ->leftJoin("employee as e", "sc.empid", "=", "e.empid")
+         ->where("sc.propertyid", $propertyid)->whereRaw("DATE_FORMAT(sc.paydate, \"%Y-%m\") = ?", [$month])
+         ->select("e.empid", "e.empname", "e.designation", "sc.gross", "sc.deduction", "sc.netpay", "sc.paydate")
+         ->orderBy("e.empname")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function pfstatement(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.pfstatement", compact("propertyid"));
+   }
+   public function pfstatementfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("Y-m"));
+      $rows = DB::table("salarycreation as sc")
+         ->leftJoin("employee as e", "sc.empid", "=", "e.empid")
+         ->where("sc.propertyid", $propertyid)->whereRaw("DATE_FORMAT(sc.paydate, \"%Y-%m\") = ?", [$month])
+         ->select("e.empid", "e.empname", "sc.pfemployee", "sc.pfemployer", "sc.paydate")
+         ->orderBy("e.empname")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function payrollreg(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.payrollreg", compact("propertyid", "fromdate", "todate"));
+   }
+   public function payrollregfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("salarycreation as sc")
+         ->leftJoin("employee as e", "sc.empid", "=", "e.empid")
+         ->where("sc.propertyid", $propertyid)->whereBetween("sc.paydate", [$fromdate, $todate])
+         ->select("e.empid", "e.empname", "e.designation", "sc.basic", "sc.hra", "sc.da",
+            "sc.gross", "sc.deduction", "sc.pfemployee", "sc.esi", "sc.netpay", "sc.paydate")
+         ->orderBy("e.empname")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function dailydiet(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.dailydiet", compact("propertyid", "fromdate", "todate"));
+   }
+   public function dailydietfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
+         ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
+         ->where("s.propertyid", $propertyid)->whereBetween("s.billdate", [$fromdate, $todate])
+         ->select("s.billdate", "im.itemname", DB::raw("SUM(sd.qty) as qty"), DB::raw("SUM(sd.amount) as amount"))
+         ->groupBy("s.billdate", "im.itemname")->orderBy("s.billdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function annexure(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.annexure", compact("propertyid", "fromdate", "todate"));
+   }
+   public function annexurefetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("suntran as st")
+         ->where("st.propertyid", $propertyid)->whereBetween("st.vdate", [$fromdate, $todate])
+         ->select("st.docid", "st.vdate", "st.vtype", "st.narr", "st.amt", "st.amtcr", "st.amtdr")
+         ->orderBy("st.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+
+   public function cardstatusreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.cardstatusreport", compact("propertyid"));
+   }
+   public function cardstatusreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $rows = DB::table("smartcard as sc")
+         ->leftJoin("guestprofile as gp", "sc.guestprofid", "=", "gp.id")
+         ->where("sc.propertyid", $propertyid)
+         ->select("sc.cardno", "sc.cardstatus", DB::raw("COALESCE(gp.guestname,\"\") as guestname"),
+            "sc.balance", "sc.issuedate", "sc.expdate")
+         ->orderBy("sc.cardno")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // MISSING REPORTS — Batch 3 (29 remaining reports)
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   // Membership Reports
+   public function birthmarrrep(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.birthmarrrep", compact("propertyid"));
+   }
+   public function birthmarrrepfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("m"));
+      $rows = DB::table("membermaster")->where("propertyid", $propertyid)
+         ->whereRaw("MONTH(dob) = ? OR MONTH(weddate) = ?", [$month, $month])
+         ->select("memberid", "membername", "dob", "weddate", "phone", "email")
+         ->orderBy("membername")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function membillmissingreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.membillmissingreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function membillmissingreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("membermaster as mm")
+         ->leftJoin("paycharge as pc", "mm.memberid", "=", "pc.subcode")
+         ->where("mm.propertyid", $propertyid)
+         ->where(function($q) use ($fromdate, $todate) {
+            $q->whereNull("pc.docid")->orWhere("pc.vdate", "not between", [$fromdate, $todate]);
+         })
+         ->select("mm.memberid", "mm.membername", "mm.phone", "pc.docid", "pc.vdate")
+         ->orderBy("mm.membername")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function membirthanndtls(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("m"));
+      return view("property.membirthanndtls", compact("propertyid", "month"));
+   }
+   public function membirthanndtlsfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("m"));
+      $rows = DB::table("membermaster")->where("propertyid", $propertyid)
+         ->whereRaw("MONTH(dob) = ?", [$month])
+         ->select("memberid", "membername", "dob", "phone", "email", "address")
+         ->orderBy("dob")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function memalinglabels(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.memalinglabels", compact("propertyid"));
+   }
+   public function memalinglabelsfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $rows = DB::table("membermaster")->where("propertyid", $propertyid)
+         ->select("membername", "address", "city", "pin", "phone", "email")
+         ->orderBy("membername")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function memsalesregister(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.memsalesregister", compact("propertyid", "fromdate", "todate"));
+   }
+   public function memsalesregisterfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("membermaster as mm")
+         ->leftJoin("paycharge as pc", "mm.memberid", "=", "pc.subcode")
+         ->where("mm.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->select("mm.memberid", "mm.membername", "pc.vdate", "pc.docid", "pc.amtdr", "pc.mnarr")
+         ->orderBy("mm.membername")->orderBy("pc.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function memvisitdetail(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.memvisitdetail", compact("propertyid", "fromdate", "todate"));
+   }
+   public function memvisitdetailfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("membermaster as mm")
+         ->leftJoin("roomocc as ro", "mm.memberid", "=", "ro.subcode")
+         ->where("mm.propertyid", $propertyid)
+         ->whereBetween("ro.checkindt", [$fromdate, $todate])
+         ->select("mm.memberid", "mm.membername", "ro.rmcode", "ro.checkindt", "ro.checkoutdt", "ro.foliono")
+         ->orderBy("mm.membername")->orderBy("ro.checkindt")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   // Front Office Reports
+   public function complaintlist(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.complaintlist", compact("propertyid", "fromdate", "todate"));
+   }
+   public function complaintlistfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("tickets as t")
+         ->where("t.propertyid", $propertyid)->whereBetween("t.created_at", [$fromdate, $todate . " 23:59:59"])
+         ->select("t.id", "t.problem", "t.status", "t.created_at", "t.u_name")
+         ->orderByDesc("t.created_at")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function formiii(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.formiii", compact("propertyid", "fromdate", "todate"));
+   }
+   public function formiiifetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->leftJoin("guestprofile as gp", "bd.guestprofid", "=", "gp.id")
+         ->where("ro.propertyid", $propertyid)
+         ->whereBetween("ro.checkindt", [$fromdate, $todate])
+         ->select("ro.foliono", "ro.rmcode", "ro.checkindt", "ro.checkoutdt",
+            DB::raw("COALESCE(gp.guestname, bd.guestname) as guestname"),
+            DB::raw("COALESCE(gp.idproof, bd.idproof) as idproof"),
+            DB::raw("COALESCE(gp.idno, bd.idno) as idno"),
+            "ro.adult", "ro.children")
+         ->orderByDesc("ro.checkindt")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function registrationcard(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.registrationcard", compact("propertyid"));
+   }
+   public function registrationcarddata(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $docid = $request->input("docid");
+      $row = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->leftJoin("guestprofile as gp", "bd.guestprofid", "=", "gp.id")
+         ->where("ro.propertyid", $propertyid)->where("ro.docid", $docid)->first();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $row, "comp" => $comp]);
+   }
+
+   // Plan/Meal Reports
+   public function planmealtokens(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.planmealtokens", compact("propertyid", "fromdate", "todate"));
+   }
+   public function planmealtokensfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->leftJoin("kot as k", "ro.foliono", "=", "k.foliono")
+         ->where("ro.propertyid", $propertyid)
+         ->whereBetween("k.kotdate", [$fromdate, $todate])
+         ->select("ro.rmcode", "ro.foliono", DB::raw("COALESCE(bd.guestname,\"Walk-in\") as guestname"),
+            "ro.plan", "k.tokenno", "k.outletname", "k.kotdate")
+         ->orderBy("k.kotdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function planpackschedule(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.planpackschedule", compact("propertyid", "fromdate", "todate"));
+   }
+   public function planpackschedulefetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("planmaster as pm")
+         ->leftJoin("planpack as pp", "pm.planid", "=", "pp.planid")
+         ->where("pm.propertyid", $propertyid)
+         ->select("pm.planname", "pp.mealtype", "pp.itemname", "pp.dayno")
+         ->orderBy("pm.planname")->orderBy("pp.dayno")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function planpackservice(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.planpackservice", compact("propertyid"));
+   }
+   public function planpackservicefetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $rows = DB::table("planmaster as pm")
+         ->leftJoin("planpack as pp", "pm.planid", "=", "pp.planid")
+         ->where("pm.propertyid", $propertyid)
+         ->select("pm.planname", "pm.planrate", "pp.mealtype", "pp.itemname", "pp.qty")
+         ->orderBy("pm.planname")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   // HR Report
+   public function attendancerep(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.attendancerep", compact("propertyid", "fromdate", "todate"));
+   }
+   public function attendancerepfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("attendance as a")
+         ->leftJoin("employee as e", "a.empid", "=", "e.empid")
+         ->where("a.propertyid", $propertyid)->whereBetween("a.attdate", [$fromdate, $todate])
+         ->select("e.empid", "e.empname", "e.designation", "a.attdate", "a.intime", "a.outtime", "a.status")
+         ->orderBy("e.empname")->orderBy("a.attdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   // Finance/Analysis Reports
+   public function budgetanalysis(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.budgetanalysis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function budgetanalysisfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("budget as b")
+         ->leftJoin("acgroup as ag", "b.group_code", "=", "ag.group_code")
+         ->where("b.propertyid", $propertyid)
+         ->select("ag.group_name", "b.budgetamt", "b.period",
+            DB::raw("(SELECT COALESCE(SUM(amtdr-amtcr),0) FROM ledger WHERE propertyid=b.propertyid AND vdate BETWEEN ? AND ?) as actual"))
+         ->addBinding([$fromdate, $todate], "select")
+         ->orderBy("ag.group_name")->limit(100)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function businessanalysis(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.businessanalysis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function businessanalysisfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->where("ro.propertyid", $propertyid)
+         ->whereRaw("ro.checkindt <= ? AND (ro.checkoutdt IS NULL OR ro.checkoutdt >= ?)", [$todate, $fromdate])
+         ->select(DB::raw("DATE(ro.checkindt) as date"), DB::raw("COUNT(*) as rooms"),
+            DB::raw("SUM(ro.adult + COALESCE(ro.children,0)) as pax"))
+         ->groupBy(DB::raw("DATE(ro.checkindt)"))
+         ->orderBy("date")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function bussoccupancyreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.bussoccupancyreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function bussoccupancyreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("ro.propertyid", $propertyid)
+         ->whereBetween("ro.checkindt", [$fromdate, $todate])
+         ->select("bd.source", DB::raw("COUNT(*) as rooms"),
+            DB::raw("SUM(ro.roomrate * DATEDIFF(ro.checkoutdt, ro.checkindt)) as revenue"))
+         ->groupBy("bd.source")->orderByDesc("rooms")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function costanalysis(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.costanalysis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function costanalysisfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("suntran as st")
+         ->leftJoin("ledger as l", "st.docid", "=", "l.docid")
+         ->leftJoin("subgroup as sg", "l.subcode", "=", "sg.subcode")
+         ->leftJoin("acgroup as ag", "sg.group_code", "=", "ag.group_code")
+         ->where("st.propertyid", $propertyid)->whereBetween("st.vdate", [$fromdate, $todate])
+         ->select("ag.group_name", DB::raw("SUM(st.amtdr) as total_dr"),
+            DB::raw("SUM(st.amtcr) as total_cr"))
+         ->groupBy("ag.group_name")->orderByDesc("total_dr")->limit(50)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function marketseganalysis(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.marketseganalysis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function marketseganalysisfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("ro.propertyid", $propertyid)->whereBetween("ro.checkindt", [$fromdate, $todate])
+         ->select("bd.source", DB::raw("COUNT(*) as rooms"),
+            DB::raw("AVG(ro.roomrate) as avg_rate"),
+            DB::raw("SUM(ro.roomrate * DATEDIFF(ro.checkoutdt, ro.checkindt)) as revenue"))
+         ->groupBy("bd.source")->orderByDesc("revenue")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   // Cash Card Reports
+   public function cashcardcollectsumm(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.cashcardcollectsumm", compact("propertyid", "fromdate", "todate"));
+   }
+   public function cashcardcollectsummfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("smartcard as sc")
+         ->leftJoin("paycharge as pc", "sc.cardno", "=", "pc.subcode")
+         ->where("sc.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->select("sc.cardno", "sc.cardstatus", DB::raw("SUM(pc.amtdr) as collected"),
+            DB::raw("SUM(pc.amtcr) as utilized"))
+         ->groupBy("sc.cardno", "sc.cardstatus")->limit(200)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function cashcardtransrep(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.cashcardtransrep", compact("propertyid", "fromdate", "todate"));
+   }
+   public function cashcardtransrepfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("paycharge as pc")
+         ->where("pc.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->where("pc.paymodedetail", "LIKE", "%Card%")
+         ->select("pc.docid", "pc.vdate", "pc.foliono", "pc.amtdr", "pc.amtcr", "pc.paymodedetail", "pc.mnarr")
+         ->orderByDesc("pc.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   // Other Reports
+   public function epabxcallrep(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.epabxcallrep", compact("propertyid", "fromdate", "todate"));
+   }
+   public function epabxcallrepfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("epabxlog as e")
+         ->where("e.propertyid", $propertyid)->whereBetween("e.calldate", [$fromdate, $todate])
+         ->select("e.roomno", "e.calldate", "e.calltime", "e.calltype", "e.duration", "e.callcharge")
+         ->orderByDesc("e.calldate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function fbcoststatement(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.fbcoststatement", compact("propertyid", "fromdate", "todate"));
+   }
+   public function fbcoststatementfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("suntran as st")
+         ->leftJoin("ledger as l", "st.docid", "=", "l.docid")
+         ->leftJoin("subgroup as sg", "l.subcode", "=", "sg.subcode")
+         ->where("st.propertyid", $propertyid)->whereBetween("st.vdate", [$fromdate, $todate])
+         ->whereRaw("(sg.name LIKE "%food%" OR sg.name LIKE "%beverage%" OR sg.name LIKE "%fb%")")
+         ->select("sg.name", DB::raw("SUM(st.amtdr) as amount"))
+         ->groupBy("sg.name")->orderByDesc("amount")->limit(50)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function facilitybillreg(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.facilitybillreg", compact("propertyid", "fromdate", "todate"));
+   }
+   public function facilitybillregfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("paycharge as pc")
+         ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("pc.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
+         ->where("pc.paycode", "C")
+         ->select(DB::raw("COALESCE(bd.guestname,\"Walk-in\") as guestname"),
+            "pc.foliono", "pc.vdate", "pc.docid", "pc.amtdr", "pc.mnarr")
+         ->orderByDesc("pc.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function monthlystatisticalreturn(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("Y-m"));
+      return view("property.monthlystatisticalreturn", compact("propertyid", "month"));
+   }
+   public function monthlystatisticalreturnfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $month = $request->input("month", date("Y-m"));
+      $fromdate = $month . "-01";
+      $todate = date("Y-m-t", strtotime($fromdate));
+      $rooms = DB::table("roommast")->where("propertyid", $propertyid)->count();
+      $occupied = DB::table("roomocc")->where("propertyid", $propertyid)
+         ->whereRaw("checkindt <= ? AND (checkoutdt IS NULL OR checkoutdt >= ?)", [$todate, $fromdate])->count();
+      $revenue = DB::table("paycharge")->where("propertyid", $propertyid)
+         ->whereBetween("vdate", [$fromdate, $todate])->where("paycode", "C")
+         ->sum("amtdr");
+      $rows = [["month" => $month, "total_rooms" => $rooms, "occupied" => $occupied,
+         "vacant" => $rooms - $occupied, "occupancy_pct" => $rooms > 0 ? round($occupied/$rooms*100,1) : 0,
+         "revenue" => $revenue, "adr" => $occupied > 0 ? round($revenue/$occupied,2) : 0,
+         "revpar" => $rooms > 0 ? round($revenue/$rooms,2) : 0]];
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function packageforecast(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.packageforecast", compact("propertyid", "fromdate", "todate"));
+   }
+   public function packageforecastfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->where("ro.propertyid", $propertyid)
+         ->whereBetween("ro.checkindt", [$fromdate, $todate])
+         ->select("ro.plan", DB::raw("COUNT(*) as rooms"),
+            DB::raw("SUM(ro.roomrate * DATEDIFF(ro.checkoutdt, ro.checkindt)) as revenue"))
+         ->groupBy("ro.plan")->orderByDesc("rooms")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function paymentdueletter(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      return view("property.paymentdueletter", compact("propertyid"));
+   }
+   public function paymentdueletterdata(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $subcode = $request->input("subcode");
+      $rows = DB::table("ledger as l")
+         ->leftJoin("subgroup as sg", "l.subcode", "=", "sg.subcode")
+         ->where("l.propertyid", $propertyid)->where("l.subcode", $subcode)
+         ->select("sg.name", "sg.add1", "sg.phoneo", "l.docid", "l.vdate", "l.amtdr", "l.amtcr", "l.mnarr")
+         ->orderBy("l.vdate")->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function refreport(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.refreport", compact("propertyid", "fromdate", "todate"));
+   }
+   public function refreportfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("suntran as st")
+         ->where("st.propertyid", $propertyid)->whereBetween("st.vdate", [$fromdate, $todate])
+         ->select("st.docid", "st.vdate", "st.vtype", "st.vno", "st.narr", "st.amt", "st.amtcr", "st.amtdr")
+         ->orderBy("st.vdate")->limit(500)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
+   public function travelagentanalysis(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->get("fromdate", date("Y-m-d"));
+      $todate = $request->get("todate", date("Y-m-d"));
+      return view("property.travelagentanalysis", compact("propertyid", "fromdate", "todate"));
+   }
+   public function travelagentanalysisfetch(Request $request) {
+      $propertyid = Auth::user()->propertyid;
+      $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
+      $rows = DB::table("roomocc as ro")
+         ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
+         ->leftJoin("travelagent as ta", "bd.agentid", "=", "ta.agentid")
+         ->where("ro.propertyid", $propertyid)->whereBetween("ro.checkindt", [$fromdate, $todate])
+         ->select(DB::raw("COALESCE(ta.agentname, bd.agentname, \"Direct\") as agent"),
+            DB::raw("COUNT(*) as rooms"),
+            DB::raw("SUM(ro.roomrate * DATEDIFF(ro.checkoutdt, ro.checkindt)) as revenue"))
+         ->groupBy("agent")->orderByDesc("revenue")->limit(50)->get();
+      $comp = DB::table("company")->where("propertyid", $propertyid)->first();
+      return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
+   }
+
 }

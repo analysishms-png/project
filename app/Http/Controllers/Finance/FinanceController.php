@@ -2062,4 +2062,605 @@ class FinanceController extends Controller
             'todate' => $todate
         ]);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MISSING REPORTS — Aging, DueList, GuestPayments (added by AI migration)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Aging Report — Debtors (summary: party-wise outstanding with aging buckets)
+     * Legacy: AgingDr — groups by SubGroup where Nature='Customer', calculates days outstanding
+     * Buckets: 0-30, 31-60, 61-90, 91-180, 180+
+     */
+    public function agingDr(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.agingdr', compact('propertyid', 'todate'));
+    }
+
+    public function agingDrFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->input('todate', date('Y-m-d'));
+        $groupCode = $request->input('group_code');
+
+        $query = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')
+                     ->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->where('sg.nature', 'Customer')
+            ->where('l.vdate', '<=', $todate)
+            ->select(
+                'sg.subcode',
+                'sg.name',
+                'sg.add1',
+                'sg.phoneo',
+                'sg.email',
+                DB::raw('SUM(l.amtdr) as total_dr'),
+                DB::raw('SUM(l.amtcr) as total_cr'),
+                DB::raw('GREATEST(SUM(l.amtdr) - SUM(l.amtcr), 0) as outstanding'),
+                DB::raw('DATEDIFF(?, MAX(l.vdate)) as days_outstanding'),
+                DB::raw('MAX(l.vdate) as last_vdate')
+            )
+            ->addBinding([$todate], 'select')
+            ->groupBy('sg.subcode', 'sg.name', 'sg.add1', 'sg.phoneo', 'sg.email');
+
+        if ($groupCode) {
+            $query->where('sg.group_code', $groupCode);
+        }
+
+        $rows = $query->get()->filter(function ($row) {
+            return $row->outstanding > 0;
+        })->values();
+
+        $data = $rows->map(function ($row) use ($todate) {
+            $days = $row->days_outstanding ?? 0;
+            $row->bucket_0_30 = 0;
+            $row->bucket_31_60 = 0;
+            $row->bucket_61_90 = 0;
+            $row->bucket_91_180 = 0;
+            $row->bucket_180_plus = 0;
+
+            if ($days <= 30) $row->bucket_0_30 = $row->outstanding;
+            elseif ($days <= 60) $row->bucket_31_60 = $row->outstanding;
+            elseif ($days <= 90) $row->bucket_61_90 = $row->outstanding;
+            elseif ($days <= 180) $row->bucket_91_180 = $row->outstanding;
+            else $row->bucket_180_plus = $row->outstanding;
+
+            return $row;
+        });
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'comp' => $comp,
+            'todate' => $todate,
+            'total' => $data->sum('outstanding'),
+        ]);
+    }
+
+    /**
+     * Aging Report — Creditors
+     */
+    public function agingCr(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.agingcr', compact('propertyid', 'todate'));
+    }
+
+    public function agingCrFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->input('todate', date('Y-m-d'));
+        $groupCode = $request->input('group_code');
+
+        $query = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')
+                     ->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->where('sg.nature', 'Supplier')
+            ->where('l.vdate', '<=', $todate)
+            ->select(
+                'sg.subcode',
+                'sg.name',
+                'sg.add1',
+                'sg.phoneo',
+                'sg.email',
+                DB::raw('SUM(l.amtdr) as total_dr'),
+                DB::raw('SUM(l.amtcr) as total_cr'),
+                DB::raw('GREATEST(SUM(l.amtcr) - SUM(l.amtdr), 0) as outstanding'),
+                DB::raw('DATEDIFF(?, MAX(l.vdate)) as days_outstanding'),
+                DB::raw('MAX(l.vdate) as last_vdate')
+            )
+            ->addBinding([$todate], 'select')
+            ->groupBy('sg.subcode', 'sg.name', 'sg.add1', 'sg.phoneo', 'sg.email');
+
+        if ($groupCode) {
+            $query->where('sg.group_code', $groupCode);
+        }
+
+        $rows = $query->get()->filter(function ($row) {
+            return $row->outstanding > 0;
+        })->values();
+
+        $data = $rows->map(function ($row) use ($todate) {
+            $days = $row->days_outstanding ?? 0;
+            $row->bucket_0_30 = 0;
+            $row->bucket_31_60 = 0;
+            $row->bucket_61_90 = 0;
+            $row->bucket_91_180 = 0;
+            $row->bucket_180_plus = 0;
+
+            if ($days <= 30) $row->bucket_0_30 = $row->outstanding;
+            elseif ($days <= 60) $row->bucket_31_60 = $row->outstanding;
+            elseif ($days <= 90) $row->bucket_61_90 = $row->outstanding;
+            elseif ($days <= 180) $row->bucket_91_180 = $row->outstanding;
+            else $row->bucket_180_plus = $row->outstanding;
+
+            return $row;
+        });
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'comp' => $comp,
+            'todate' => $todate,
+            'total' => $data->sum('outstanding'),
+        ]);
+    }
+
+    /**
+     * Aging Report — Debtors (detailed with per-transaction bucket allocation)
+     */
+    public function agingRepDr(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.agingrepdr', compact('propertyid', 'todate'));
+    }
+
+    public function agingRepDrFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->input('todate', date('Y-m-d'));
+
+        $rows = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')
+                     ->where('sg.propertyid', $propertyid);
+            })
+            ->where('l.propertyid', $propertyid)
+            ->where('sg.nature', 'Customer')
+            ->where('l.vdate', '<=', $todate)
+            ->whereRaw('(l.amtdr - l.amtcr) > 0')
+            ->select(
+                'sg.subcode',
+                'sg.name',
+                'l.docid',
+                'l.vsno',
+                'l.vtype',
+                'l.vno',
+                'l.vdate',
+                'l.amtdr',
+                'l.amtcr',
+                'l.mnarr',
+                'l.contrasub',
+                DB::raw('(l.amtdr - l.amtcr) as net_dr'),
+                DB::raw('DATEDIFF(?, l.vdate) as days_outstanding')
+            )
+            ->addBinding([$todate], 'select')
+            ->orderBy('sg.name')
+            ->orderBy('l.vdate')
+            ->get()
+            ->map(function ($row) use ($todate) {
+                $days = $row->days_outstanding ?? 0;
+                $row->bucket_0_30 = ($days <= 30) ? $row->net_dr : 0;
+                $row->bucket_31_60 = ($days > 30 && $days <= 60) ? $row->net_dr : 0;
+                $row->bucket_61_90 = ($days > 60 && $days <= 90) ? $row->net_dr : 0;
+                $row->bucket_91_180 = ($days > 90 && $days <= 180) ? $row->net_dr : 0;
+                $row->bucket_180_plus = ($days > 180) ? $row->net_dr : 0;
+                return $row;
+            });
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $rows,
+            'comp' => $comp,
+            'todate' => $todate,
+            'total' => $rows->sum('net_dr'),
+        ]);
+    }
+
+    /**
+     * Aging Report — Creditors (detailed)
+     */
+    public function agingRepCr(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.agingrepcr', compact('propertyid', 'todate'));
+    }
+
+    public function agingRepCrFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->input('todate', date('Y-m-d'));
+
+        $rows = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')
+                     ->where('sg.propertyid', $propertyid);
+            })
+            ->where('l.propertyid', $propertyid)
+            ->where('sg.nature', 'Supplier')
+            ->where('l.vdate', '<=', $todate)
+            ->whereRaw('(l.amtcr - l.amtdr) > 0')
+            ->select(
+                'sg.subcode',
+                'sg.name',
+                'l.docid',
+                'l.vsno',
+                'l.vtype',
+                'l.vno',
+                'l.vdate',
+                'l.amtdr',
+                'l.amtcr',
+                'l.mnarr',
+                'l.contrasub',
+                DB::raw('(l.amtcr - l.amtdr) as net_cr'),
+                DB::raw('DATEDIFF(?, l.vdate) as days_outstanding')
+            )
+            ->addBinding([$todate], 'select')
+            ->orderBy('sg.name')
+            ->orderBy('l.vdate')
+            ->get()
+            ->map(function ($row) use ($todate) {
+                $days = $row->days_outstanding ?? 0;
+                $row->bucket_0_30 = ($days <= 30) ? $row->net_cr : 0;
+                $row->bucket_31_60 = ($days > 30 && $days <= 60) ? $row->net_cr : 0;
+                $row->bucket_61_90 = ($days > 60 && $days <= 90) ? $row->net_cr : 0;
+                $row->bucket_91_180 = ($days > 90 && $days <= 180) ? $row->net_cr : 0;
+                $row->bucket_180_plus = ($days > 180) ? $row->net_cr : 0;
+                return $row;
+            });
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $rows,
+            'comp' => $comp,
+            'todate' => $todate,
+            'total' => $rows->sum('net_cr'),
+        ]);
+    }
+
+    /**
+     * Due List — Customer/Debtor outstanding with transaction detail
+     */
+    public function dueList(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.duelist', compact('propertyid', 'todate'));
+    }
+
+    public function dueListFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->input('todate', date('Y-m-d'));
+        $subcode = $request->input('subcode');
+
+        $query = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')
+                     ->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('city as c', 'sg.citycode', '=', 'c.citycode')
+            ->where('l.propertyid', $propertyid)
+            ->where('sg.nature', 'Customer')
+            ->where('l.vdate', '<=', $todate)
+            ->select(
+                'sg.subcode', 'sg.name', 'sg.add1', 'sg.add2', 'c.cityname',
+                'sg.conperson', 'sg.pin', 'sg.email', 'sg.phoneo',
+                'l.docid', 'l.vsno', 'l.vtype', 'l.vno', 'l.vdate',
+                'l.amtdr', 'l.amtcr', 'l.mnarr', 'l.narr', 'l.contrasub'
+            );
+
+        if ($subcode) {
+            $query->where('l.subcode', $subcode);
+        }
+
+        $rows = $query->orderBy('sg.name')->orderBy('l.vdate')->orderBy('l.docid')->get();
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json(['success' => true, 'data' => $rows, 'comp' => $comp, 'todate' => $todate]);
+    }
+
+    /**
+     * Due List — Creditor Overlay
+     */
+    public function dueListCreditorOverlay(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.duelistcreditoroverlay', compact('propertyid', 'todate'));
+    }
+
+    public function dueListCreditorOverlayFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $todate = $request->input('todate', date('Y-m-d'));
+        $subcode = $request->input('subcode');
+
+        $query = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')
+                     ->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('city as c', 'sg.citycode', '=', 'c.citycode')
+            ->where('l.propertyid', $propertyid)
+            ->where('sg.nature', 'Supplier')
+            ->where('l.vdate', '<=', $todate)
+            ->select(
+                'sg.subcode', 'sg.name', 'sg.add1', 'sg.add2', 'c.cityname',
+                'sg.conperson', 'sg.pin', 'sg.email', 'sg.phoneo',
+                'l.docid', 'l.vsno', 'l.vtype', 'l.vno', 'l.vdate',
+                'l.amtdr', 'l.amtcr', 'l.mnarr', 'l.narr', 'l.contrasub'
+            );
+
+        if ($subcode) {
+            $query->where('l.subcode', $subcode);
+        }
+
+        $rows = $query->orderBy('sg.name')->orderBy('l.vdate')->orderBy('l.docid')->get();
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json(['success' => true, 'data' => $rows, 'comp' => $comp, 'todate' => $todate]);
+    }
+
+    /**
+     * Guest Payments — all payment transactions per guest
+     */
+    public function guestPayments(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $fromdate = $request->get('fromdate', date('Y-m-d'));
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.guestpayments', compact('propertyid', 'fromdate', 'todate'));
+    }
+
+    public function guestPaymentsFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $fromdate = $request->input('fromdate', date('Y-m-d'));
+        $todate = $request->input('todate', date('Y-m-d'));
+
+        $rows = DB::table('paycharge as pc')
+            ->leftJoin('roomocc as ro', function ($join) use ($propertyid) {
+                $join->on('pc.foliono', '=', 'ro.foliono')->where('ro.propertyid', $propertyid);
+            })
+            ->leftJoin('grpbookingdetails as bd', function ($join) use ($propertyid) {
+                $join->on('ro.docid', '=', 'bd.docid')->where('bd.propertyid', $propertyid);
+            })
+            ->leftJoin('guestprofile as gp', 'bd.guestprofid', '=', 'gp.id')
+            ->where('pc.propertyid', $propertyid)
+            ->where('pc.vdate', '>=', $fromdate)
+            ->where('pc.vdate', '<=', $todate)
+            ->where('pc.paycode', 'P')
+            ->select(
+                'pc.docid', 'pc.vsno', 'pc.vdate', 'pc.foliono',
+                'pc.amtdr as amount', 'pc.mnarr as narration', 'pc.paymodedetail',
+                DB::raw('COALESCE(gp.guestname, bd.guestname, "Walk-in") as guestname'),
+                DB::raw('COALESCE(ro.rmcode, bd.rmcode, "") as room')
+            )
+            ->orderBy('pc.vdate')
+            ->get();
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+
+        return response()->json([
+            'success' => true, 'data' => $rows, 'comp' => $comp,
+            'fromdate' => $fromdate, 'todate' => $todate,
+            'total' => $rows->sum('amount'),
+        ]);
+    }
+
+    /**
+     * Non-Transferable Accounts
+     */
+    public function nonTrans(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        return view('property.finance.nontrans', compact('propertyid'));
+    }
+
+    public function nonTransFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $rows = DB::table('subgroup as sg')
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('sg.propertyid', $propertyid)
+            ->where('sg.nontrans', 'Y')
+            ->select('sg.subcode', 'sg.name', 'sg.nature', 'ag.group_name')
+            ->orderBy('sg.name')
+            ->get();
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+        return response()->json(['success' => true, 'data' => $rows, 'comp' => $comp]);
+    }
+
+    /**
+     * Loan Advance Summary
+     */
+    public function loanAdvSumm(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $fromdate = $request->get('fromdate', date('Y-m-d'));
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.loanadvsumm', compact('propertyid', 'fromdate', 'todate'));
+    }
+
+    public function loanAdvSummFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $fromdate = $request->input('fromdate', date('Y-m-d'));
+        $todate = $request->input('todate', date('Y-m-d'));
+
+        $rows = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->where('l.vdate', '>=', $fromdate)
+            ->where('l.vdate', '<=', $todate)
+            ->whereRaw("(ag.group_name LIKE '%loan%' OR ag.group_name LIKE '%advance%')")
+            ->select(
+                'sg.subcode', 'sg.name', 'sg.nature',
+                DB::raw('SUM(l.amtdr) as total_dr'),
+                DB::raw('SUM(l.amtcr) as total_cr'),
+                DB::raw('SUM(l.amtdr) - SUM(l.amtcr) as net')
+            )
+            ->groupBy('sg.subcode', 'sg.name', 'sg.nature')
+            ->havingRaw('ABS(SUM(l.amtdr) - SUM(l.amtcr)) > 0')
+            ->orderBy('sg.name')
+            ->get();
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+        return response()->json([
+            'success' => true, 'data' => $rows, 'comp' => $comp,
+            'fromdate' => $fromdate, 'todate' => $todate,
+        ]);
+    }
+
+    /**
+     * Loan Ledger
+     */
+    public function loanLedg(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $fromdate = $request->get('fromdate', date('Y-m-d'));
+        $todate = $request->get('todate', date('Y-m-d'));
+        return view('property.finance.loanledger', compact('propertyid', 'fromdate', 'todate'));
+    }
+
+    public function loanLedgFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $fromdate = $request->input('fromdate', date('Y-m-d'));
+        $todate = $request->input('todate', date('Y-m-d'));
+        $subcode = $request->input('subcode');
+
+        $query = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->where('l.vdate', '>=', $fromdate)
+            ->where('l.vdate', '<=', $todate)
+            ->whereRaw("(ag.group_name LIKE '%loan%' OR ag.group_name LIKE '%advance%')")
+            ->select('sg.subcode', 'sg.name', 'l.docid', 'l.vsno', 'l.vdate', 'l.vtype', 'l.vno', 'l.amtdr', 'l.amtcr', 'l.mnarr', 'l.narr');
+
+        if ($subcode) {
+            $query->where('l.subcode', $subcode);
+        }
+
+        $rows = $query->orderBy('sg.name')->orderBy('l.vdate')->get();
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+        return response()->json([
+            'success' => true, 'data' => $rows, 'comp' => $comp,
+            'fromdate' => $fromdate, 'todate' => $todate,
+        ]);
+    }
+
+    /**
+     * Loan Register
+     */
+    public function loanReg(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        return view('property.finance.loanregister', compact('propertyid'));
+    }
+
+    public function loanRegFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+
+        $rows = DB::table('ledger as l')
+            ->join('subgroup as sg', function ($join) use ($propertyid) {
+                $join->on('l.subcode', '=', 'sg.subcode')->where('sg.propertyid', $propertyid);
+            })
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('l.propertyid', $propertyid)
+            ->whereRaw("(ag.group_name LIKE '%loan%' OR ag.group_name LIKE '%advance%')")
+            ->select(
+                'sg.subcode', 'sg.name', 'sg.phoneo', 'sg.email', 'sg.add1',
+                DB::raw('SUM(l.amtdr) as total_disbursed'),
+                DB::raw('SUM(l.amtcr) as total_repaid'),
+                DB::raw('SUM(l.amtdr) - SUM(l.amtcr) as balance'),
+                DB::raw('MAX(l.vdate) as last_transaction'),
+                DB::raw('MIN(l.vdate) as first_transaction')
+            )
+            ->groupBy('sg.subcode', 'sg.name', 'sg.phoneo', 'sg.email', 'sg.add1')
+            ->havingRaw('SUM(l.amtdr) > SUM(l.amtcr)')
+            ->orderBy('sg.name')
+            ->get();
+
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+        return response()->json([
+            'success' => true, 'data' => $rows, 'comp' => $comp,
+            'total_balance' => $rows->sum('balance'),
+        ]);
+    }
+
+    /**
+     * Customer Detail
+     */
+    public function customerDetail(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        return view('property.finance.customerdetail', compact('propertyid'));
+    }
+
+    public function customerDetailFetch(Request $request)
+    {
+        $propertyid = Auth::user()->propertyid;
+        $search = $request->input('search');
+
+        $query = DB::table('subgroup as sg')
+            ->leftJoin('city as c', 'sg.citycode', '=', 'c.citycode')
+            ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
+            ->where('sg.propertyid', $propertyid)
+            ->where('sg.nature', 'Customer')
+            ->select('sg.subcode', 'sg.name', 'sg.add1', 'sg.add2', 'c.cityname', 'sg.conperson', 'sg.pin', 'sg.email', 'sg.phoneo', 'sg.phoner', 'sg.gstin', 'sg.pan', 'ag.group_name');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('sg.name', 'LIKE', "%{$search}%")
+                  ->orWhere('sg.subcode', 'LIKE', "%{$search}%")
+                  ->orWhere('sg.phoneo', 'LIKE', "%{$search}%")
+                  ->orWhere('sg.email', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $rows = $query->orderBy('sg.name')->limit(500)->get();
+        $comp = DB::table('company')->where('propertyid', $propertyid)->first();
+        return response()->json(['success' => true, 'data' => $rows, 'comp' => $comp]);
+    }
+
 }

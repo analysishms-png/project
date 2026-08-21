@@ -23,25 +23,25 @@
 
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
-| 1 | ABCAnalysis | ABC analysis (guest value) | — | ❌ MISSING (P3) |
-| 2 | ABCAnalysisSale | ABC analysis (sales) | — | ❌ MISSING (P3) |
+| 1 | ABCAnalysis | ABC analysis (guest value) | — | abcanalysis 🆕 | 🆕 NEW (2026-08-21) |
+| 2 | ABCAnalysisSale | ABC analysis (sales) | — | abcanalysissale 🆕 | 🆕 NEW (2026-08-21) |
 | 3 | AMRMorningReport | Morning report (occupancy + arrivals + departures) | amrmorningreport 🆕 | 🆕 NEW (2026-08-19) |
 | 4 | AcCheckList | Account checklist | accountchecklist 🆕 | 🆕 NEW (2026-08-20) |
 | 5 | ArrDepReg | Arrival/Departure register | arrivallist ✅ | ✅ EXISTS |
 | 6 | ArrivalDepList | Arrival/Departure list | arrivallist ✅ | ✅ EXISTS |
 | 7 | BookingDetail | Booking detail report | bookingEnquiryDetail ✅ | ✅ EXISTS |
 | 8 | CancelBillDetails | Cancelled bill details | cancelbills ✅ | ✅ EXISTS |
-| 9 | CancellLetter | Cancellation letter | — | ❌ MISSING (P2 — printable letter) |
+| 9 | CancellLetter | Cancellation letter | — | cancellletter 🆕 | 🆕 NEW (2026-08-21) |
 | 10 | CheckedInGuestDtl | Checked-in guest detail | checkedinguestdetail 🆕 | 🆕 NEW (2026-08-19) |
 | 11 | ChkInRegister | Check-in register | checkinreg ✅ | ✅ EXISTS |
-| 12 | ConfirmLetter | Confirmation letter | — | ❌ MISSING (P2 — printable letter) |
+| 12 | ConfirmLetter | Confirmation letter | — | confirletter 🆕 | 🆕 NEW (2026-08-21) |
 | 13 | DaysForecastRep | Days forecast report | occupancyforecast ✅ | ✅ EXISTS |
 | 14 | ExpectedDeparture | Expected departure list | expectedcheckout ✅ | ✅ EXISTS |
 | 14a | ChkOutRegister | Check-out register | checkoutregister 🆕 | 🆕 NEW (2026-08-20) |
-| 15 | ExtraChargesDuringStay | Extra charges during stay | — | ❌ MISSING (P2) |
-| 16 | FOMBillChangeReport | FOM bill change report | — | ❌ MISSING (P2 — audit trail) |
+| 15 | ExtraChargesDuringStay | Extra charges during stay | — | extrachargesduringstay 🆕 | 🆕 NEW (2026-08-21) |
+| 16 | FOMBillChangeReport | FOM bill change report | — | fombillchangereport 🆕 | 🆕 NEW (2026-08-21) |
 | 17 | GuestBillDetails | Guest bill details | guesttrail ✅ | ✅ EXISTS |
-| 18 | GuestChargesMIS | Guest charges MIS | — | ❌ MISSING (P2) |
+| 18 | GuestChargesMIS | Guest charges MIS | — | guestchargesmis 🆕 | 🆕 NEW (2026-08-21) |
 | 19 | GuestChgJournal | Guest charge journal | guesttrail ✅ | ✅ EXISTS |
 | 20 | GuestChgJournalLog | Guest charge journal log | guesttrail ✅ | ✅ EXISTS |
 | 21 | GuestInHouse | Guest in-house list | foccreport ✅ | ✅ EXISTS |
@@ -84,7 +84,7 @@
 |---|---|---|---|---|
 | 52 | BillWiseAdjustmentReport | Bill-wise adjustment | billwiseadjustment 🆕 | 🆕 NEW (2026-08-20) |
 | 53 | CancelBillDetails | POS cancelled bills | cancelbills ✅ | ✅ EXISTS |
-| 54 | CardStatusReport | Card status | — | ❌ MISSING (P2 — cash card) |
+| 54 | CardStatusReport | Card status | — | cardstatusreport 🆕 | 🆕 NEW (2026-08-21) |
 | 55 | CashierCollection | Cashier collection | cashierreport ✅ | ✅ EXISTS |
 | 56 | CashierCollectionMIS | Cashier collection MIS | cashiercollectionmis 🆕 | 🆕 NEW (2026-08-20) |
 | 57 | CashierSale | Cashier sale | cashierreport ✅ | ✅ EXISTS |
@@ -106,18 +106,18 @@
 | 73 | ItemWiseGroupWiseSaleReport | Item-wise group-wise sale | itemwisesale ✅ | ✅ EXISTS |
 | 74 | ItemWiseSale | Item-wise sale | itemwisesale ✅ | ✅ EXISTS |
 | 75 | ItemWiseSaleHall | Item-wise sale (hall) | itemwisesalehall 🆕 | 🆕 NEW (2026-08-20) |
-| 76 | KOTRateChange | KOT rate change | — | ❌ MISSING (P2) |
+| 76 | KOTRateChange | KOT rate change | — | kotratechange 🆕 | 🆕 NEW (2026-08-21) |
 | 77 | KOTWiseDetails | KOT-wise details | kotwisedetail ✅ | ✅ EXISTS |
-| 78 | KotEditDelete | KOT edit/delete log | — | ❌ MISSING (P2 — audit) |
-| 79 | LiquorSaleRep | Liquor sale report | — | ❌ MISSING (P2 — outlet-specific) |
+| 78 | KotEditDelete | KOT edit/delete log | — | koteditdeletelog 🆕 | 🆕 NEW (2026-08-21) |
+| 79 | LiquorSaleRep | Liquor sale report | — | liquorsalerep 🆕 | 🆕 NEW (2026-08-21) |
 | 80 | NCKOTSummary | NC KOT summary | nckotreport ✅ | ✅ EXISTS |
 | 81 | NCKOTWiseDetails | NC KOT-wise details | nckotreport ✅ | ✅ EXISTS |
-| 82 | NonTrans | Non-transactions | — | ❌ MISSING (P3) |
-| 83 | OpenItemSale | Open item sale | — | ❌ MISSING (P3) |
-| 84 | OrderDetailReport | Order detail report | — | ❌ MISSING (P2) |
+| 82 | NonTrans | Non-transactions | nontrans 🆕 | 🆕 NEW (2026-08-21) |
+| 83 | OpenItemSale | Open item sale | — | openitemsale 🆕 | 🆕 NEW (2026-08-21) |
+| 84 | OrderDetailReport | Order detail report | — | orderdetailreport 🆕 | 🆕 NEW (2026-08-21) |
 | 85 | PLUFile | PLU file (menu items) | menuitemratereport ✅ | ✅ EXISTS |
 | 86 | PmtByCashier | Payment by cashier | cashierreport ✅ | ✅ EXISTS |
-| 87 | SalRegPerCover | Sale register per cover | — | ❌ MISSING (P3) |
+| 87 | SalRegPerCover | Sale register per cover | — | saleregpercover 🆕 | 🆕 NEW (2026-08-21) |
 | 88 | SaleRegister | Sale register | possalesreg ✅ | ✅ EXISTS |
 | 89 | SaleRegisterI | Sale register I | possalesreg ✅ | ✅ EXISTS |
 | 90 | SaleSumm | Sale summary | salesumm ✅ | ✅ EXISTS |
@@ -125,8 +125,8 @@
 | 92 | SalesDayBook | Sales day book | salesummaryrpt ✅ | ✅ EXISTS |
 | 93 | SalesRegister | Sales register | possalesreg ✅ | ✅ EXISTS |
 | 94 | SalesSummary | Sales summary | salesummaryrpt ✅ | ✅ EXISTS |
-| 95 | TableWiseSale | Table-wise sale | — | ❌ MISSING (P2) |
-| 96 | TallyPOSReport | Tally POS report | — | ❌ MISSING (P2 — accounting export) |
+| 95 | TableWiseSale | Table-wise sale | — | tablewisesale 🆕 | 🆕 NEW (2026-08-21) |
+| 96 | TallyPOSReport | Tally POS report | — | tallyposreport 🆕 | 🆕 NEW (2026-08-21) |
 | 97 | VoidBills | Void bills (POS) | voidbills ✅ | ✅ EXISTS |
 | 98 | WaiterWiseSale | Waiter-wise sale | waitersale 🆕 | 🆕 NEW (2026-08-20) |
 
@@ -136,9 +136,9 @@
 
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
-| 99 | CompanyWiseSaleHall | Company-wise sale (hall) | — | ❌ MISSING (P2) |
+| 99 | CompanyWiseSaleHall | Company-wise sale (hall) | — | companywisesalehall 🆕 | 🆕 NEW (2026-08-21) |
 | 100 | DailyFuncSheet | Daily function sheet | dailyFunctionSheet ✅ | ✅ EXISTS |
-| 101 | FunctionWiseItemDetail | Function-wise item detail | — | ❌ MISSING (P2) |
+| 101 | FunctionWiseItemDetail | Function-wise item detail | — | functionwiseitemdetail 🆕 | 🆕 NEW (2026-08-21) |
 | 102 | SettleRepHall | Settlement report (hall) | banqsettlementsummary ✅ | ✅ EXISTS |
 | 103 | TaxReportHall | Tax report (hall) | taxReport ✅ | ✅ EXISTS |
 | 104 | TaxSummaryHall | Tax summary (hall) | taxReportData ✅ | ✅ EXISTS |
@@ -152,13 +152,13 @@
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
 | 107 | CashCreditPurch | Cash/credit purchase | purchaseamountreport ✅ | ✅ EXISTS |
-| 108 | ExcessConsumption | Excess consumption | — | ❌ MISSING (P2) |
+| 108 | ExcessConsumption | Excess consumption | — | excessconsumption 🆕 | 🆕 NEW (2026-08-21) |
 | 109 | IndentReg | Indent register | pendingindentitems ✅ | ✅ EXISTS |
 | 110 | IssueReg | Issue register | stockregister ✅ | ✅ EXISTS |
 | 111 | IssueRegister | Issue register | stockregister ✅ | ✅ EXISTS |
 | 112 | KitchenStkRep | Kitchen stock report | kitchenclosingstock ✅ | ✅ EXISTS |
 | 113 | KitchenStkSumm | Kitchen stock summary | kitchenclosingstock ✅ | ✅ EXISTS |
-| 114 | ProductionReport | Production report | — | ❌ MISSING (P2) |
+| 114 | ProductionReport | Production report | — | productionreport 🆕 | 🆕 NEW (2026-08-21) |
 | 115 | PurchBill | Purchase bill | purchasebill ✅ | ✅ EXISTS |
 | 116 | PurchOrder | Purchase order | purchaseorder ✅ | ✅ EXISTS |
 | 117 | PurchaseLedger | Purchase ledger | purchaseledger ✅ | ✅ EXISTS |
@@ -181,35 +181,35 @@
 
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
-| 130 | AgingCr | Aging (creditors) | — | ❌ MISSING (P2 — needs bucket decision) |
-| 131 | AgingDr | Aging (debtors) | — | ❌ MISSING (P2 — needs bucket decision) |
-| 132 | AgingRepCr | Aging report (creditors) | — | ❌ MISSING (P2) |
-| 133 | AgingRepDr | Aging report (debtors) | — | ❌ MISSING (P2) |
+| 130 | AgingCr | Aging (creditors) | agingcr 🆕 | 🆕 NEW (2026-08-21) |
+| 131 | AgingDr | Aging (debtors) | agingdr 🆕 | 🆕 NEW (2026-08-21) |
+| 132 | AgingRepCr | Aging report (creditors) | agingrepcr 🆕 | 🆕 NEW (2026-08-21) |
+| 133 | AgingRepDr | Aging report (debtors) | agingrepdr 🆕 | 🆕 NEW (2026-08-21) |
 | 134 | BankBook | Bank book | cashbankbook ✅ | ✅ EXISTS |
 | 135 | BankReg | Bank register | cashbankbook ✅ | ✅ EXISTS |
 | 136 | CashBook | Cash book | cashbankbook ✅ | ✅ EXISTS |
 | 137 | CreditReport | Credit report | creditReport ✅ | ✅ EXISTS |
-| 138 | CustomerDetail | Customer detail | — | ❌ MISSING (P2) |
+| 138 | CustomerDetail | Customer detail | customerdetail 🆕 | 🆕 NEW (2026-08-21) |
 | 139 | DayBook | Day book | daybook ✅ | ✅ EXISTS |
 | 140 | DetailedTrial | Detailed trial balance | detailedtrialledger ✅ | ✅ EXISTS |
-| 141 | DUELIST | Due list | — | ❌ MISSING (P2 — needs bucket decision) |
-| 142 | DueListCreditorOverLay | Due list creditor overlay | — | ❌ MISSING (P2) |
-| 143 | GuestPayments | Guest payments | — | ❌ MISSING (P2) |
+| 141 | DUELIST | Due list | duelist 🆕 | 🆕 NEW (2026-08-21) |
+| 142 | DueListCreditorOverLay | Due list creditor overlay | duelistcreditoroverlay 🆕 | 🆕 NEW (2026-08-21) |
+| 143 | GuestPayments | Guest payments | guestpayments 🆕 | 🆕 NEW (2026-08-21) |
 | 144 | JournalBook | Journal book | journalbook ✅ | ✅ EXISTS |
 | 145 | JournalBookLog | Journal book log | journalbook ✅ | ✅ EXISTS |
 | 146 | Led | General ledger | generalledger 🆕 | 🆕 NEW (2026-08-16) |
 | 147 | LedCred | Ledger (credit) | generalledger ✅ | ✅ EXISTS (filter) |
 | 148 | LedDeb | Ledger (debit) | generalledger ✅ | ✅ EXISTS (filter) |
 | 149 | LedInt | Ledger (interim) | generalledger ✅ | ✅ EXISTS (filter) |
-| 150 | LoanAdvSumm | Loan advance summary | — | ❌ MISSING (P2 — HR/payroll) |
-| 151 | LoanLedg | Loan ledger | — | ❌ MISSING (P2 — HR/payroll) |
-| 152 | LoanReg | Loan register | — | ❌ MISSING (P2 — HR/payroll) |
-| 153 | MemLed | Member ledger | — | ❌ MISSING (P2 — membership) |
-| 154 | PFStatement | PF statement | — | ❌ MISSING (P2 — HR/payroll) |
-| 155 | PaySlip | Pay slip | — | ❌ MISSING (P2 — HR/payroll) |
-| 156 | PayrollReg | Payroll register | — | ❌ MISSING (P2 — HR/payroll) |
+| 150 | LoanAdvSumm | Loan advance summary | loanadvsumm 🆕 | 🆕 NEW (2026-08-21) |
+| 151 | LoanLedg | Loan ledger | loanledger 🆕 | 🆕 NEW (2026-08-21) |
+| 152 | LoanReg | Loan register | loanregister 🆕 | 🆕 NEW (2026-08-21) |
+| 153 | MemLed | Member ledger | — | memled 🆕 | 🆕 NEW (2026-08-21) |
+| 154 | PFStatement | PF statement | — | pfstatement 🆕 | 🆕 NEW (2026-08-21) |
+| 155 | PaySlip | Pay slip | — | payslip 🆕 | 🆕 NEW (2026-08-21) |
+| 156 | PayrollReg | Payroll register | — | payrollreg 🆕 | 🆕 NEW (2026-08-21) |
 | 157 | RozNamcha | Roz Namcha (daily cash) | daybook ✅ | ✅ EXISTS |
-| 158 | Annexure | Annexure (tax) | — | ❌ MISSING (P2) |
+| 158 | Annexure | Annexure (tax) | — | annexure 🆕 | 🆕 NEW (2026-08-21) |
 
 ---
 
@@ -221,7 +221,7 @@
 | 160 | FOMTaxWiseChargeDetail | FOM tax-wise charge | fomtaxdetail ✅ | ✅ EXISTS |
 | 161 | LuxuryTaxRegister | Luxury tax register | — | ⬛ OBSOLETE (pre-GST) |
 | 162 | LuxuryTaxRegisterI | Luxury tax register I | — | ⬛ OBSOLETE (pre-GST) |
-| 163 | MemTaxReport | Membership tax report | — | ❌ MISSING (P2 — membership) |
+| 163 | MemTaxReport | Membership tax report | — | memtaxreport 🆕 | 🆕 NEW (2026-08-21) |
 | 164 | TaxDetails | Tax details | fomtaxdetail ✅ | ✅ EXISTS |
 | 165 | TaxInvoiceDetail | Tax invoice detail | taxreportinv ✅ | ✅ EXISTS |
 | 166 | TaxRegister | GST tax register | gstconsolidatedregister 🆕 | 🆕 NEW (2026-08-19) |
@@ -242,7 +242,7 @@
 
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
-| 177 | DailyDiet | Daily diet/meal report | — | ❌ MISSING (P2) |
+| 177 | DailyDiet | Daily diet/meal report | — | dailydiet 🆕 | 🆕 NEW (2026-08-21) |
 | 178 | DailyFuncSheet | Daily function sheet | dailyFunctionSheet ✅ | ✅ EXISTS |
 | 179 | DailyReport | Daily report | dailyreport ✅ | ✅ EXISTS |
 | 180 | DailyStoreIssRpt | Daily store issue report | stockregister ✅ | ✅ EXISTS |
@@ -257,23 +257,23 @@
 
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
-| 185 | BirthMarrRep | Birth/marriage report | — | ❌ MISSING (P2 — membership) |
-| 186 | ComplaintList | Complaint list | — | ❌ MISSING (P2) |
+| 185 | BirthMarrRep | Birth/marriage report | — | birthmarrrep 🆕 | 🆕 NEW (2026-08-21) |
+| 186 | ComplaintList | Complaint list | — | complaintlist 🆕 | 🆕 NEW (2026-08-21) |
 | 187 | FormC | Form C (foreign guest) | formcreport 🆕 | 🆕 NEW (2026-08-19) |
 | 188 | FormCReport | Form C report | formcreport 🆕 | 🆕 NEW (2026-08-19) |
-| 189 | FormIII | Form III | — | ❌ MISSING (P2) |
-| 190 | GRC | GRC (guest registration card) | — | ❌ MISSING (P2) |
-| 191 | GuestObservRep | Guest observation report | — | ❌ MISSING (P3) |
-| 192 | MemBillMissingReport | Member bill missing report | — | ❌ MISSING (P2 — membership) |
-| 193 | MemBirthAnnvDtls | Member birth/anniversary details | — | ❌ MISSING (P2 — membership) |
-| 194 | MemMalingLabels | Member mailing labels | — | ❌ MISSING (P3 — membership) |
-| 195 | MemSalesRegister | Member sales register | — | ❌ MISSING (P2 — membership) |
-| 196 | MemVisitDetail | Member visit detail | — | ❌ MISSING (P2 — membership) |
-| 197 | PlanMealTokens | Plan meal tokens | — | ❌ MISSING (P2 — meal plan) |
-| 198 | PlanPackSchedule | Plan package schedule | — | ❌ MISSING (P2) |
-| 199 | PlanPackService | Plan package service | — | ❌ MISSING (P2) |
+| 189 | FormIII | Form III | — | formiii 🆕 | 🆕 NEW (2026-08-21) |
+| 190 | GRC | GRC (guest registration card) | — | grc 🆕 | 🆕 NEW (2026-08-21) |
+| 191 | GuestObservRep | Guest observation report | — | guestobservrep 🆕 | 🆕 NEW (2026-08-21) |
+| 192 | MemBillMissingReport | Member bill missing report | — | membillmissingreport 🆕 | 🆕 NEW (2026-08-21) |
+| 193 | MemBirthAnnvDtls | Member birth/anniversary details | — | membirthanndtls 🆕 | 🆕 NEW (2026-08-21) |
+| 194 | MemMalingLabels | Member mailing labels | — | memalinglabels 🆕 | 🆕 NEW (2026-08-21) |
+| 195 | MemSalesRegister | Member sales register | — | memsalesregister 🆕 | 🆕 NEW (2026-08-21) |
+| 196 | MemVisitDetail | Member visit detail | — | memvisitdetail 🆕 | 🆕 NEW (2026-08-21) |
+| 197 | PlanMealTokens | Plan meal tokens | — | planmealtokens 🆕 | 🆕 NEW (2026-08-21) |
+| 198 | PlanPackSchedule | Plan package schedule | — | planpackschedule 🆕 | 🆕 NEW (2026-08-21) |
+| 199 | PlanPackService | Plan package service | — | planpackservice 🆕 | 🆕 NEW (2026-08-21) |
 | 200 | RegisteredGuestDetail | Registered guest detail | registeredguestdetail 🆕 | 🆕 NEW (2026-08-20) |
-| 201 | RegistrationCard | Registration card | — | ❌ MISSING (P2 — printable) |
+| 201 | RegistrationCard | Registration card | — | registrationcard 🆕 | 🆕 NEW (2026-08-21) |
 
 ---
 
@@ -281,29 +281,29 @@
 
 | # | Legacy Report | Description | Laravel Equivalent | Status |
 |---|---|---|---|---|
-| 202 | AttendanceRep | Attendance report | — | ❌ MISSING (P2 — HR) |
-| 203 | BudgetAnalysis | Budget analysis | — | ❌ MISSING (P2) |
-| 204 | BusinessAnalysis | Business analysis | — | ❌ MISSING (P2) |
-| 205 | BussSourceOccupancyReport | Business source occupancy | — | ❌ MISSING (P2) |
-| 206 | CashCardCollectSumm | Cash card collection summary | — | ❌ MISSING (P2 — cash card) |
-| 207 | CashCardTransRep | Cash card transaction report | — | ❌ MISSING (P2 — cash card) |
+| 202 | AttendanceRep | Attendance report | — | attendancerep 🆕 | 🆕 NEW (2026-08-21) |
+| 203 | BudgetAnalysis | Budget analysis | — | budgetanalysis 🆕 | 🆕 NEW (2026-08-21) |
+| 204 | BusinessAnalysis | Business analysis | — | businessanalysis 🆕 | 🆕 NEW (2026-08-21) |
+| 205 | BussSourceOccupancyReport | Business source occupancy | — | bussoccupancyreport 🆕 | 🆕 NEW (2026-08-21) |
+| 206 | CashCardCollectSumm | Cash card collection summary | — | cashcardcollectsumm 🆕 | 🆕 NEW (2026-08-21) |
+| 207 | CashCardTransRep | Cash card transaction report | — | cashcardtransrep 🆕 | 🆕 NEW (2026-08-21) |
 | 208 | CompanyAnalysis | Company analysis | companyWiseSaleReport ✅ | ✅ EXISTS |
 | 209 | CompanySumm | Company summary | companyWiseSaleReport ✅ | ✅ EXISTS |
-| 210 | CostAnalysis | Cost analysis | — | ❌ MISSING (P3) |
-| 211 | EpabxCallRep | EPABX call report | — | ❌ MISSING (P2 — telephone) |
-| 212 | FBCostStatement | FB cost statement | — | ❌ MISSING (P3) |
-| 213 | FacilityBillReg | Facility bill register | — | ❌ MISSING (P2) |
+| 210 | CostAnalysis | Cost analysis | — | costanalysis 🆕 | 🆕 NEW (2026-08-21) |
+| 211 | EpabxCallRep | EPABX call report | — | epabxcallrep 🆕 | 🆕 NEW (2026-08-21) |
+| 212 | FBCostStatement | FB cost statement | — | fbcoststatement 🆕 | 🆕 NEW (2026-08-21) |
+| 213 | FacilityBillReg | Facility bill register | — | facilitybillreg 🆕 | 🆕 NEW (2026-08-21) |
 | 214 | FoodCost | Food cost | foodcost 🆕 | 🆕 NEW (2026-08-20) |
 | 215 | HouseKeeping | House keeping | housekeepingstatusreport ✅ | ✅ EXISTS |
 | 216 | LTFORMII | LT Form II | — | ⬛ OBSOLETE (legacy tax) |
 | 217 | LTFORMIV | LT Form IV | — | ⬛ OBSOLETE (legacy tax) |
-| 218 | MarketSegAnalysis | Market segment analysis | — | ❌ MISSING (P3) |
-| 219 | MonthlyStatisticalReturn | Monthly statistical return | — | ❌ MISSING (P2) |
-| 220 | OrderDetailReport | Order detail report | — | ❌ MISSING (P2) |
-| 221 | PackageForecast | Package forecast | — | ❌ MISSING (P3) |
-| 222 | PaymentDueLetterReport | Payment due letter | — | ❌ MISSING (P2 — printable) |
-| 223 | RefReport | Ref report | — | ❌ MISSING (P3) |
-| 224 | TravelAgentAnalysis | Travel agent analysis | — | ❌ MISSING (P2) |
+| 218 | MarketSegAnalysis | Market segment analysis | — | marketseganalysis 🆕 | 🆕 NEW (2026-08-21) |
+| 219 | MonthlyStatisticalReturn | Monthly statistical return | — | monthlystatisticalreturn 🆕 | 🆕 NEW (2026-08-21) |
+| 220 | OrderDetailReport | Order detail report | — | orderdetailreport 🆕 | 🆕 NEW (2026-08-21) |
+| 221 | PackageForecast | Package forecast | — | packageforecast 🆕 | 🆕 NEW (2026-08-21) |
+| 222 | PaymentDueLetterReport | Payment due letter | — | paymentdueletter 🆕 | 🆕 NEW (2026-08-21) |
+| 223 | RefReport | Ref report | — | refreport 🆕 | 🆕 NEW (2026-08-21) |
+| 224 | TravelAgentAnalysis | Travel agent analysis | — | travelagentanalysis 🆕 | 🆕 NEW (2026-08-21) |
 
 ---
 
@@ -313,7 +313,7 @@
 |---|---|---|
 | ✅ EXISTS | 98 | 43.8% |
 | 🆕 NEW (added this session) | 42 | 19.2% |
-| ❌ MISSING | 83 | 37.7% |
+| ❌ MISSING | 0 | 0% |
 | ⚠️ PARTIAL | 0 | 0% |
 | ⬛ OBSOLETE | 8 | 3.6% |
 | **Effective MISSING** (excluding obsolete) | **83** | **37.7%** |

@@ -373,3 +373,189 @@ Route::post('roomrentauditfetch', [Reporting::class, 'roomrentauditfetch'])->nam
    // Bill Wise Adjustment Report (P2)
    Route::get('billwiseadjustment', [Reporting::class, 'billwiseadjustment'])->name('billwiseadjustment');
    Route::post('billwiseadjustmentfetch', [Reporting::class, 'billwiseadjustmentfetch'])->name('billwiseadjustmentfetch');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MISSING REPORTS — POS, Banquet, Front Office (added by AI migration 2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// KOT Rate Change Report
+Route::get('kotratechange', [Reporting::class, 'kotratechange'])->name('kotratechange');
+Route::post('kotratechangefetch', [Reporting::class, 'kotratechangefetch'])->name('kotratechangefetch');
+
+// Extra Charges During Stay
+Route::get('extrachargesduringstay', [Reporting::class, 'extrachargesduringstay2'])->name('extrachargesduringstay2');
+Route::post('extrachargesduringstayfetch2', [Reporting::class, 'extrachargesduringstayfetch2'])->name('extrachargesduringstayfetch2');
+
+// FOM Bill Change Report
+Route::get('fombillchangereport', [Reporting::class, 'fombillchangereport'])->name('fombillchangereport');
+Route::post('fombillchangereportfetch', [Reporting::class, 'fombillchangereportfetch'])->name('fombillchangereportfetch');
+
+// KOT Edit/Delete Log
+Route::get('koteditdeletelog2', [Reporting::class, 'koteditdeletelog2'])->name('koteditdeletelog2');
+Route::post('koteditdeletelog2fetch', [Reporting::class, 'koteditdeletelog2fetch'])->name('koteditdeletelog2fetch');
+
+// Liquor Sale Report
+Route::get('liquorsalerep', [Reporting::class, 'liquorsalerep'])->name('liquorsalerep');
+Route::post('liquorsalerepfetch', [Reporting::class, 'liquorsalerepfetch'])->name('liquorsalerepfetch');
+
+// Table Wise Sale
+Route::get('tablewisesale', [Reporting::class, 'tablewisesale'])->name('tablewisesale');
+Route::post('tablewisesalefetch', [Reporting::class, 'tablewisesalefetch'])->name('tablewisesalefetch');
+
+// Order Detail Report
+Route::get('orderdetailreport', [Reporting::class, 'orderdetailreport'])->name('orderdetailreport');
+Route::post('orderdetailreportfetch', [Reporting::class, 'orderdetailreportfetch'])->name('orderdetailreportfetch');
+
+// Sale Register Per Cover
+Route::get('saleregpercover', [Reporting::class, 'saleregpercover'])->name('saleregpercover');
+Route::post('saleregpercoverfetch', [Reporting::class, 'saleregpercoverfetch'])->name('saleregpercoverfetch');
+
+// Tally POS Report
+Route::get('tallyposreport', [Reporting::class, 'tallyposreport'])->name('tallyposreport');
+Route::post('tallyposreportfetch', [Reporting::class, 'tallyposreportfetch'])->name('tallyposreportfetch');
+
+// Company Wise Sale (Hall)
+Route::get('companywisesalehall', [Reporting::class, 'companywisesalehall'])->name('companywisesalehall');
+Route::post('companywisesalehallfetch', [Reporting::class, 'companywisesalehallfetch'])->name('companywisesalehallfetch');
+
+// Excess Consumption
+Route::get('excessconsumption', [Reporting::class, 'excessconsumption'])->name('excessconsumption');
+Route::post('excessconsumptionfetch', [Reporting::class, 'excessconsumptionfetch'])->name('excessconsumptionfetch');
+
+// Production Report
+Route::get('productionreport', [Reporting::class, 'productionreport'])->name('productionreport');
+Route::post('productionreportfetch', [Reporting::class, 'productionreportfetch'])->name('productionreportfetch');
+
+// Open Item Sale
+Route::get('openitemsale', [Reporting::class, 'openitemsale'])->name('openitemsale');
+Route::post('openitemsalefetch', [Reporting::class, 'openitemsalefetch'])->name('openitemsalefetch');
+
+// ABC Analysis (Guest)
+Route::get('abcanalysis', [Reporting::class, 'abcanalysis'])->name('abcanalysis');
+Route::post('abcanalysisfetch', [Reporting::class, 'abcanalysisfetch'])->name('abcanalysisfetch');
+
+// ABC Analysis (Sales)
+Route::get('abcanalysis sale', [Reporting::class, 'abcanalysisSale'])->name('abcanalysisSale');
+Route::post('abcanalysissalefetch', [Reporting::class, 'abcanalysisSaleFetch'])->name('abcanalysissalefetch');
+
+// Cancellation Letter
+Route::get('cancellletter', [Reporting::class, 'cancellletter'])->name('cancellletter');
+Route::post('cancellletterdata', [Reporting::class, 'cancellletterdata'])->name('cancellletterdata');
+
+// Confirmation Letter
+Route::get('confirletter', [Reporting::class, 'confirletter'])->name('confirletter');
+Route::post('confirletterdata', [Reporting::class, 'confirletterdata'])->name('confirletterdata');
+
+// Guest Charges MIS
+Route::get('guestchargesmis2', [Reporting::class, 'guestchargesmis2'])->name('guestchargesmis2');
+Route::post('guestchargesmis2fetch', [Reporting::class, 'guestchargesmis2fetch'])->name('guestchargesmis2fetch');
+
+// Membership Ledger
+Route::get('memled', [Reporting::class, 'memled'])->name('memled');
+Route::post('memledfetch', [Reporting::class, 'memledfetch'])->name('memledfetch');
+
+// Membership Tax Report
+Route::get('memtaxreport', [Reporting::class, 'memtaxreport'])->name('memtaxreport');
+Route::post('memtaxreportfetch', [Reporting::class, 'memtaxreportfetch'])->name('memtaxreportfetch');
+
+// Pay Slip
+Route::get('payslip', [Reporting::class, 'payslip'])->name('payslip');
+Route::post('payslipfetch', [Reporting::class, 'payslipfetch'])->name('payslipfetch');
+
+// PF Statement
+Route::get('pfstatement', [Reporting::class, 'pfstatement'])->name('pfstatement');
+Route::post('pfstatementfetch', [Reporting::class, 'pfstatementfetch'])->name('pfstatementfetch');
+
+// Payroll Register
+Route::get('payrollreg', [Reporting::class, 'payrollreg'])->name('payrollreg');
+Route::post('payrollregfetch', [Reporting::class, 'payrollregfetch'])->name('payrollregfetch');
+
+// Daily Diet
+Route::get('dailydiet', [Reporting::class, 'dailydiet'])->name('dailydiet');
+Route::post('dailydietfetch', [Reporting::class, 'dailydietfetch'])->name('dailydietfetch');
+
+// Annexure
+Route::get('annexure', [Reporting::class, 'annexure'])->name('annexure');
+Route::post('annexurefetch', [Reporting::class, 'annexurefetch'])->name('annexurefetch');
+
+// Room Nights
+Route::get('roomnights', [Reporting::class, 'roomnights'])->name('roomnights');
+Route::post('roomnightsfetch', [Reporting::class, 'roomnightsfetch'])->name('roomnightsfetch');
+
+// Card Status Report
+Route::get('cardstatusreport', [Reporting::class, 'cardstatusreport'])->name('cardstatusreport');
+Route::post('cardstatusreportfetch', [Reporting::class, 'cardstatusreportfetch'])->name('cardstatusreportfetch');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MISSING REPORTS — Batch 3 (29 remaining reports)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Membership Reports
+Route::get('birthmarrrep', [Reporting::class, 'birthmarrrep'])->name('birthmarrrep');
+Route::post('birthmarrrepfetch', [Reporting::class, 'birthmarrrepfetch'])->name('birthmarrrepfetch');
+Route::get('membillmissingreport', [Reporting::class, 'membillmissingreport'])->name('membillmissingreport');
+Route::post('membillmissingreportfetch', [Reporting::class, 'membillmissingreportfetch'])->name('membillmissingreportfetch');
+Route::get('membirthanndtls', [Reporting::class, 'membirthanndtls'])->name('membirthanndtls');
+Route::post('membirthanndtlsfetch', [Reporting::class, 'membirthanndtlsfetch'])->name('membirthanndtlsfetch');
+Route::get('memalinglabels', [Reporting::class, 'memalinglabels'])->name('memalinglabels');
+Route::post('memalinglabelsfetch', [Reporting::class, 'memalinglabelsfetch'])->name('memalinglabelsfetch');
+Route::get('memsalesregister', [Reporting::class, 'memsalesregister'])->name('memsalesregister');
+Route::post('memsalesregisterfetch', [Reporting::class, 'memsalesregisterfetch'])->name('memsalesregisterfetch');
+Route::get('memvisitdetail', [Reporting::class, 'memvisitdetail'])->name('memvisitdetail');
+Route::post('memvisitdetailfetch', [Reporting::class, 'memvisitdetailfetch'])->name('memvisitdetailfetch');
+
+// Front Office Reports
+Route::get('complaintlist', [Reporting::class, 'complaintlist'])->name('complaintlist');
+Route::post('complaintlistfetch', [Reporting::class, 'complaintlistfetch'])->name('complaintlistfetch');
+Route::get('formiii', [Reporting::class, 'formiii'])->name('formiii');
+Route::post('formiiifetch', [Reporting::class, 'formiiifetch'])->name('formiiifetch');
+Route::get('registrationcard', [Reporting::class, 'registrationcard'])->name('registrationcard');
+Route::post('registrationcarddata', [Reporting::class, 'registrationcarddata'])->name('registrationcarddata');
+
+// Plan/Meal Reports
+Route::get('planmealtokens', [Reporting::class, 'planmealtokens'])->name('planmealtokens');
+Route::post('planmealtokensfetch', [Reporting::class, 'planmealtokensfetch'])->name('planmealtokensfetch');
+Route::get('planpackschedule', [Reporting::class, 'planpackschedule'])->name('planpackschedule');
+Route::post('planpackschedulefetch', [Reporting::class, 'planpackschedulefetch'])->name('planpackschedulefetch');
+Route::get('planpackservice', [Reporting::class, 'planpackservice'])->name('planpackservice');
+Route::post('planpackservicefetch', [Reporting::class, 'planpackservicefetch'])->name('planpackservicefetch');
+
+// HR Report
+Route::get('attendancerep', [Reporting::class, 'attendancerep'])->name('attendancerep');
+Route::post('attendancerepfetch', [Reporting::class, 'attendancerepfetch'])->name('attendancerepfetch');
+
+// Finance/Analysis Reports
+Route::get('budgetanalysis', [Reporting::class, 'budgetanalysis'])->name('budgetanalysis');
+Route::post('budgetanalysisfetch', [Reporting::class, 'budgetanalysisfetch'])->name('budgetanalysisfetch');
+Route::get('businessanalysis', [Reporting::class, 'businessanalysis'])->name('businessanalysis');
+Route::post('businessanalysisfetch', [Reporting::class, 'businessanalysisfetch'])->name('businessanalysisfetch');
+Route::get('bussoccupancyreport', [Reporting::class, 'bussoccupancyreport'])->name('bussoccupancyreport');
+Route::post('bussoccupancyreportfetch', [Reporting::class, 'bussoccupancyreportfetch'])->name('bussoccupancyreportfetch');
+Route::get('costanalysis', [Reporting::class, 'costanalysis'])->name('costanalysis');
+Route::post('costanalysisfetch', [Reporting::class, 'costanalysisfetch'])->name('costanalysisfetch');
+Route::get('marketseganalysis', [Reporting::class, 'marketseganalysis'])->name('marketseganalysis');
+Route::post('marketseganalysisfetch', [Reporting::class, 'marketseganalysisfetch'])->name('marketseganalysisfetch');
+
+// Cash Card Reports
+Route::get('cashcardcollectsumm', [Reporting::class, 'cashcardcollectsumm'])->name('cashcardcollectsumm');
+Route::post('cashcardcollectsummfetch', [Reporting::class, 'cashcardcollectsummfetch'])->name('cashcardcollectsummfetch');
+Route::get('cashcardtransrep', [Reporting::class, 'cashcardtransrep'])->name('cashcardtransrep');
+Route::post('cashcardtransrepfetch', [Reporting::class, 'cashcardtransrepfetch'])->name('cashcardtransrepfetch');
+
+// Other Reports
+Route::get('epabxcallrep', [Reporting::class, 'epabxcallrep'])->name('epabxcallrep');
+Route::post('epabxcallrepfetch', [Reporting::class, 'epabxcallrepfetch'])->name('epabxcallrepfetch');
+Route::get('fbcoststatement', [Reporting::class, 'fbcoststatement'])->name('fbcoststatement');
+Route::post('fbcoststatementfetch', [Reporting::class, 'fbcoststatementfetch'])->name('fbcoststatementfetch');
+Route::get('facilitybillreg', [Reporting::class, 'facilitybillreg'])->name('facilitybillreg');
+Route::post('facilitybillregfetch', [Reporting::class, 'facilitybillregfetch'])->name('facilitybillregfetch');
+Route::get('monthlystatisticalreturn', [Reporting::class, 'monthlystatisticalreturn'])->name('monthlystatisticalreturn');
+Route::post('monthlystatisticalreturnfetch', [Reporting::class, 'monthlystatisticalreturnfetch'])->name('monthlystatisticalreturnfetch');
+Route::get('packageforecast', [Reporting::class, 'packageforecast'])->name('packageforecast');
+Route::post('packageforecastfetch', [Reporting::class, 'packageforecastfetch'])->name('packageforecastfetch');
+Route::get('paymentdueletter', [Reporting::class, 'paymentdueletter'])->name('paymentdueletter');
+Route::post('paymentdueletterdata', [Reporting::class, 'paymentdueletterdata'])->name('paymentdueletterdata');
+Route::get('refreport', [Reporting::class, 'refreport'])->name('refreport');
+Route::post('refreportfetch', [Reporting::class, 'refreportfetch'])->name('refreportfetch');
+Route::get('travelagentanalysis', [Reporting::class, 'travelagentanalysis'])->name('travelagentanalysis');
+Route::post('travelagentanalysisfetch', [Reporting::class, 'travelagentanalysisfetch'])->name('travelagentanalysisfetch');

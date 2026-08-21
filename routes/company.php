@@ -2055,3 +2055,51 @@ Route::get('loadservicefacilities', [HouseKeeping::class, 'servicefacilitiesload
     Route::post('markmessagedelivered', [HouseKeeping::class, 'markmessagedelivered'])->name('markmessagedelivered');
     Route::post('deleteguestmessage', [HouseKeeping::class, 'deleteguestmessage'])->name('deleteguestmessage');
     Route::get('printguestmessagelist', [HouseKeeping::class, 'printguestmessagelist'])->name('printguestmessagelist');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MISSING REPORTS — Aging, DueList, GuestPayments (added by AI migration)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Aging Report — Debtors
+Route::get('agingdr', [FinanceController::class, 'agingDr'])->name('agingdr');
+Route::post('agingdr/fetch', [FinanceController::class, 'agingDrFetch'])->name('agingdr.fetch');
+
+// Aging Report — Creditors
+Route::get('agingcr', [FinanceController::class, 'agingCr'])->name('agingcr');
+Route::post('agingcr/fetch', [FinanceController::class, 'agingCrFetch'])->name('agingcr.fetch');
+
+// Aging Report — Debtors (detailed with bucket columns)
+Route::get('agingrepdr', [FinanceController::class, 'agingRepDr'])->name('agingrepdr');
+Route::post('agingrepdr/fetch', [FinanceController::class, 'agingRepDrFetch'])->name('agingrepdr.fetch');
+
+// Aging Report — Creditors (detailed with bucket columns)
+Route::get('agingrepcr', [FinanceController::class, 'agingRepCr'])->name('agingrepcr');
+Route::post('agingrepcr/fetch', [FinanceController::class, 'agingRepCrFetch'])->name('agingrepcr.fetch');
+
+// Due List — Customer/Debtor
+Route::get('duelist', [FinanceController::class, 'dueList'])->name('duelist');
+Route::post('duelist/fetch', [FinanceController::class, 'dueListFetch'])->name('duelist.fetch');
+
+// Due List — Creditor Overlay
+Route::get('duelistcreditoroverlay', [FinanceController::class, 'dueListCreditorOverlay'])->name('duelistcreditoroverlay');
+Route::post('duelistcreditoroverlay/fetch', [FinanceController::class, 'dueListCreditorOverlayFetch'])->name('duelistcreditoroverlay.fetch');
+
+// Guest Payments Report
+Route::get('guestpayments', [FinanceController::class, 'guestPayments'])->name('guestpayments');
+Route::post('guestpayments/fetch', [FinanceController::class, 'guestPaymentsFetch'])->name('guestpayments.fetch');
+
+// Non-Transferable Accounts
+Route::get('nontrans', [FinanceController::class, 'nonTrans'])->name('nontrans');
+Route::post('nontrans/fetch', [FinanceController::class, 'nonTransFetch'])->name('nontrans.fetch');
+
+// Loan Summary, Ledger, Register
+Route::get('loanadvsumm', [FinanceController::class, 'loanAdvSumm'])->name('loanadvsumm');
+Route::post('loanadvsumm/fetch', [FinanceController::class, 'loanAdvSummFetch'])->name('loanadvsumm.fetch');
+Route::get('loanledger', [FinanceController::class, 'loanLedg'])->name('loanledger');
+Route::post('loanledger/fetch', [FinanceController::class, 'loanLedgFetch'])->name('loanledger.fetch');
+Route::get('loanregister', [FinanceController::class, 'loanReg'])->name('loanregister');
+Route::post('loanregister/fetch', [FinanceController::class, 'loanRegFetch'])->name('loanregister.fetch');
+
+// Customer Detail
+Route::get('customerdetail', [FinanceController::class, 'customerDetail'])->name('customerdetail');
+Route::post('customerdetail/fetch', [FinanceController::class, 'customerDetailFetch'])->name('customerdetail.fetch');
