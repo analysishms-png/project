@@ -676,3 +676,12 @@ Route::get('revenue', [RevenueManagementController::class, 'dashboard'])->name('
 Route::post('revenue/apply-ai-rates', [RevenueManagementController::class, 'applyAIRates'])->name('revenue.applyAIRates');
 Route::get('revenue/history', [RevenueManagementController::class, 'pricingHistory'])->name('revenue.history');
 Route::get('revenue/rate-comparison', [RevenueManagementController::class, 'rateComparison'])->name('revenue.rateComparison');
+
+// ═══════════════════════════════════════════════════════════════
+// MULTI-PROPERTY CHAIN MANAGEMENT — Centralized dashboard
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\ChainController;
+Route::get('chain', [ChainController::class, 'dashboard'])->name('chain.dashboard');
+Route::get('chain/switch/{propertyid}', [ChainController::class, 'switchProperty'])->name('chain.switch');
+Route::get('chain/report', [ChainController::class, 'crossPropertyReport'])->name('chain.report');
+Route::get('chain/comparison', [ChainController::class, 'propertyComparison'])->name('chain.comparison');
