@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 
 class PaychargeLog extends Model
 {
+    protected $guarded = [];
+
     use HasFactory;
     const CREATED_AT = 'u_entdt';
     const UPDATED_AT = 'u_updatedt';

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class RateList extends Model
 {
+    protected $guarded = [];
+
     use HasFactory;
 
     const CREATED_AT = 'u_entdt';

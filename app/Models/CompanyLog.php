@@ -11,6 +11,8 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 class CompanyLog extends Model
 {
+    protected $guarded = [];
+
 
     protected $currenttime;
 

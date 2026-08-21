@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EnviroWhatsapp extends Model
 {
+    protected $guarded = [];
+
     use HasFactory;
 
     

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class RoomBlockout extends Model
 {
+    protected $guarded = [];
+
     use HasFactory;
     protected $primaryKey = 'sn';
     public $incrementing = false;

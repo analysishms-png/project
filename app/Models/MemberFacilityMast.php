@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MemberFacilityMast extends Model
 {
+    protected $guarded = [];
+
     use HasFactory;
 
     const CREATED_AT = 'u_entdt';

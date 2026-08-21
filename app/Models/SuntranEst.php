@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SuntranEst extends Model
 {
+    protected $guarded = [];
+
      const CREATED_AT = 'u_entdt';
     const UPDATED_AT = 'u_updatedt';
 

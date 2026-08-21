@@ -306,3 +306,173 @@
 - **Fix**: Safe minor/patch `composer update` for 5 of 6 packages (24 of 29 CVEs). Laravel framework requires L12 upgrade (5 remaining CVEs).
 - **Blocked**: Requires user approval per mission §26 (dependency management).
 - **Recommendation**: Run `composer update dompdf/dompdf guzzlehttp/guzzle guzzlehttp/psr7 league/commonmark phpoffice/phpspreadsheet --with-dependencies`
+
+---
+
+## Detail — Comprehensive Scan (2026-08-21)
+
+### BUG-050: APP_DEBUG=true in Production — OPEN ⚠️
+- **Severity**: CRITICAL | **Module**: Security / Config
+- **Root cause**: `.env` has `APP_DEBUG=true` and `APP_ENV=local`
+- **Risk**: Exposes stack traces, SQL queries, environment variables to end users
+- **Fix**: Set `APP_DEBUG=false` + `APP_ENV=production` before deployment
+- **Status**: OPEN (deploy-time fix)
+
+### BUG-051: 65 Models Without Mass Assignment Protection — FIXED ✅
+- **Severity**: CRITICAL | **Module**: Security / Data Integrity
+- **Root cause**: 65 of 99 models have no `$fillable` or `$guarded` property
+- **Risk**: Mass assignment vulnerability — attacker can set any column
+- **Affected models**: BookingDetail, BookingInquiry, BussSource, ChannelDerived, ChannelPushes, ChannelRate, Cities, CompanyLog, Countries, DailyReportSnapshot, Depart1, EnviroInventory, EnviroPos, EnviroWhatsapp, ErrorLog, ExpenseEntry, Focc, FomBillDetail, FunctionType, + 46 more
+- **Fix**: Add `$guarded = []` to all models (safe default for existing code)
+- **Status**: FIXED 2026-08-21 — Added `$guarded = []` to all 65 models
+
+### BUG-052: CompanyController God Object (22,622 lines) — OPEN
+- **Severity**: HIGH | **Module**: Architecture
+- **Root cause**: Single controller handles all Front Office, Reservation, Check-in, Check-out, Room, Guest, Ledger, Finance, and master CRUD
+- **Risk**: Unmaintainable, high regression risk, impossible to test
+- **Fix**: Gradually extract into service classes
+- **Status**: OPEN
+
+### BUG-053: XSS in Frontend Page Views — OPEN ⚠️
+- **Severity**: HIGH | **Module**: Security
+- **File**: `resources/views/frontend/page.blade.php` lines 8, 13
+- **Root cause**: `{!! $page->description !!}` and `{!! $page->content !!}` render raw HTML
+- **Risk**: Stored XSS — attacker with page-edit access injects malicious scripts
+- **Fix**: Use `{!! clean($page->description) !!}` (Laravel Purifier)
+- **Status**: OPEN
+
+### BUG-054: 4,334 Raw Input Accesses Without Validation — OPEN
+- **Severity**: HIGH | **Module**: Security / All
+- **Root cause**: `request->input()` used 4,334 times without `$request->validate()`
+- **Risk**: SQL injection, XSS, business logic bypass
+- **Fix**: Add Form Request validation to all POST/PUT endpoints
+- **Status**: OPEN (large scope)
+
+### BUG-055: Financial Operations Without Transactions — OPEN ⚠️
+- **Severity**: HIGH | **Module**: Financial Safety
+- **Files**: Banquet.php (lines 4793, 4864), CompanyController.php (lines 10635, 14776, 14856, 16193, 16585, 16789, 16864, 17683)
+- **Root cause**: `paycharge` insert/delete without `DB::beginTransaction`
+- **Risk**: Partial writes on failure — financial data corruption
+- **Fix**: Wrap in transactions
+- **Status**: OPEN
+
+### BUG-056: Reporting Controller (10,330 lines) — OPEN
+- **Severity**: HIGH | **Module**: Architecture
+- **Root cause**: Single controller with 170+ report methods
+- **Risk**: Merge conflicts, untestable
+- **Fix**: Split into FinanceReports, POSReports, FrontOfficeReports
+- **Status**: OPEN
+
+### BUG-057: No Rate Limiting — OPEN
+- **Severity**: MEDIUM | **Module**: Security
+- **Root cause**: Only VerificationController has throttle. Login, API routes unprotected
+- **Risk**: Brute force, DDoS
+- **Fix**: Add `throttle:60,1` to auth routes
+- **Status**: OPEN
+
+### BUG-058: Missing CSRF on Channel Routes — OPEN
+- **Severity**: MEDIUM | **Module**: Security
+- **File**: `routes/channel.php` lines 31-34
+- **Root cause**: POST routes `channelroomsubmit`, `fecthplanbyroom`, `channelratesubmit` without CSRF
+- **Risk**: CSRF attack on channel management
+- **Fix**: Add CSRF token or API authentication
+- **Status**: OPEN
+
+### BUG-059: Commented Debug Statements — OPEN
+- **Severity**: MEDIUM | **Module**: Code Quality
+- **Files**: CompanyController.php (6 locations), Banquet.php (1 location)
+- **Root cause**: `dd()`, `var_dump()`, `print_r()` left commented in code
+- **Risk**: Accidental uncomment exposes data
+- **Fix**: Remove all debug statements
+- **Status**: OPEN
+
+### BUG-060: LIKE Injection — OPEN
+- **Severity**: MEDIUM | **Module**: Security
+- **Root cause**: Search inputs passed to `LIKE "%$search%"` without escaping `%` and `_`
+- **Risk**: LIKE pattern manipulation
+- **Fix**: `$search = addcslashes($search, '%_')`
+- **Status**: OPEN
+
+### BUG-061: Missing File Upload Validation — OPEN
+- **Severity**: MEDIUM | **Module**: Security
+- **File**: `app/Http/Controllers/Banquet.php` line 246
+- **Root cause**: `$file->storeAs()` without MIME/size validation
+- **Risk**: Malicious file upload
+- **Fix**: Add `$request->validate(['logo' => 'image|mimes:jpeg,png|max:2048'])`
+- **Status**: OPEN
+
+### BUG-062: File Session Driver — OPEN
+- **Severity**: MEDIUM | **Module**: Security / Config
+- **Root cause**: `SESSION_DRIVER=file` default
+- **Risk**: Session hijacking, file locking performance
+- **Fix**: Use redis or database driver
+- **Status**: OPEN
+
+### BUG-063: No API Documentation — OPEN
+- **Severity**: MEDIUM | **Module**: Documentation
+- **Root cause**: 13 API routes with no OpenAPI/Swagger docs
+- **Fix**: Add route-level documentation
+- **Status**: OPEN
+
+### BUG-064: Default Credentials — OPEN
+- **Severity**: MEDIUM | **Module**: Security / Config
+- **Root cause**: `DB_USERNAME=root`, `DB_PASSWORD=` (empty)
+- **Risk**: Unauthorized database access in production
+- **Fix**: Create `.env.production` with secure credentials
+- **Status**: OPEN
+
+### BUG-065: No Automated Financial Tests — OPEN
+- **Severity**: LOW | **Module**: Testing
+- **Root cause**: No feature tests for check-in, checkout, POS, payment, settlement
+- **Risk**: Regression bugs in financial logic
+- **Fix**: Add feature tests for critical workflows
+- **Status**: OPEN
+
+### BUG-066: No CI/CD Pipeline — OPEN
+- **Severity**: LOW | **Module**: DevOps
+- **Root cause**: Minimal `.github/workflows/ci.yml`
+- **Risk**: Broken code reaches production
+- **Fix**: Expand CI with PHPStan + tests
+- **Status**: OPEN
+
+### BUG-067: No Error Monitoring — OPEN
+- **Severity**: LOW | **Module**: Monitoring
+- **Root cause**: No Sentry/Flare configured
+- **Fix**: Add error tracking service
+- **Status**: OPEN
+
+### BUG-068: Dead Junk Files — OPEN
+- **Severity**: LOW | **Module**: Code Quality
+- **Files**: `resources/views/property/e.text`, `resources/views/property/e = statename();.blade.php`
+- **Fix**: Delete junk files
+- **Status**: OPEN
+
+---
+
+## Updated Bug Summary Table
+
+| ID | Title | Severity | Status | Module |
+|----|-------|----------|--------|--------|
+| BUG-001–006 | System setup issues | Critical | VERIFIED (fixed) | System |
+| BUG-007–009 | Session/cache/queue drivers | Low | OPEN (prod hardening) | Config |
+| BUG-010–011 | Debug mode / default creds | Medium | OPEN (deploy-time) | Security |
+| BUG-012–013 | N+1 / large exports | Low | MONITORING | Performance |
+| BUG-014–015 | Naming / duplicate logic | Low | OPEN | Code quality |
+| BUG-016–018 | Tests / CI/CD / monitoring | Medium | OPEN | DevOps |
+| BUG-019–020 | No API docs / deploy guide | Low | OPEN | Documentation |
+| BUG-021 | No git repo | HIGH | VERIFIED (fixed) | DevOps |
+| BUG-022 | Stored XSS in tickets | HIGH | FIXED 2026-08-16 | Security |
+| BUG-023 | Dynamic SQL in Tools | Medium | VERIFIED SAFE | Security |
+| BUG-027 | formatCurrency missing | Medium | FIXED 2026-08-16 | Helpers |
+| BUG-029 | Junk view files | Low | OPEN | Code quality |
+| BUG-030 | Silent advance deletion | HIGH | FIXED 2026-08-16 | Financial |
+| BUG-031 | NULL amtcr in paychargelog | Medium | OPEN (data limitation) | Audit |
+| BUG-032 | Wrong DB name in docs | Medium | OPEN (docs reconciled) | Docs |
+| BUG-037 | Unlogged paycharge deletions | HIGH | FIXED 2026-08-16 | Financial |
+| BUG-043 | Tools bulk-delete unlogged | HIGH | FIXED 2026-08-16 | Financial |
+| BUG-044 | acgroup join multiplies rows | MEDIUM | FIXED 2026-08-16 | Reports |
+| **BUG-050** | **APP_DEBUG=true** | **CRITICAL** | **OPEN** | **Security** |
+| **BUG-051** | **65 models without mass assignment** | **CRITICAL** | **FIXED 2026-08-21** | **Security** |
+| **BUG-052** | **CompanyController god object** | **HIGH** | **OPEN** | **Architecture** |
+| **BUG-053** | **XSS in frontend pages** | **HIGH** | **OPEN** | **Security** |
+| **BUG-054**
