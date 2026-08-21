@@ -685,3 +685,15 @@ Route::get('chain', [ChainController::class, 'dashboard'])->name('chain.dashboar
 Route::get('chain/switch/{propertyid}', [ChainController::class, 'switchProperty'])->name('chain.switch');
 Route::get('chain/report', [ChainController::class, 'crossPropertyReport'])->name('chain.report');
 Route::get('chain/comparison', [ChainController::class, 'propertyComparison'])->name('chain.comparison');
+
+// ═══════════════════════════════════════════════════════════════
+// GUEST FEEDBACK — Surveys, reviews, analytics
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\GuestFeedbackController;
+Route::get('feedback', [GuestFeedbackController::class, 'dashboard'])->name('feedback.dashboard');
+Route::get('feedback/list', [GuestFeedbackController::class, 'list'])->name('feedback.list');
+Route::get('feedback/survey/{id}', [GuestFeedbackController::class, 'surveyForm'])->name('feedback.survey');
+Route::post('feedback/survey/{id}', [GuestFeedbackController::class, 'submitSurvey'])->name('feedback.submitSurvey');
+Route::post('feedback/send', [GuestFeedbackController::class, 'sendSurvey'])->name('feedback.send');
+Route::post('feedback/respond/{id}', [GuestFeedbackController::class, 'respond'])->name('feedback.respond');
+Route::post('feedback/auto-send', [GuestFeedbackController::class, 'autoSendSurveys'])->name('feedback.autoSend');
