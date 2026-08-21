@@ -644,3 +644,10 @@ Route::post('communication/pre-arrival', [CommunicationController::class, 'sendP
 Route::post('communication/checkout-followup', [CommunicationController::class, 'sendCheckoutFollowup'])->name('communication.checkoutFollowup');
 Route::get('communication/email-templates', [CommunicationController::class, 'emailTemplates'])->name('communication.emailTemplates');
 Route::post('communication/test-email', [CommunicationController::class, 'sendTestEmail'])->name('communication.testEmail');
+
+// ═══════════════════════════════════════════════════════════════
+// DIGITAL REGISTRATION CARD — Public mobile-friendly guest pre-registration
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\GuestRegistrationController;
+Route::get('guest-registration/{reservationNo}', [GuestRegistrationController::class, 'show'])->name('guestRegistration.show');
+Route::post('guest-registration/{reservationNo}', [GuestRegistrationController::class, 'submit'])->name('guestRegistration.submit');
