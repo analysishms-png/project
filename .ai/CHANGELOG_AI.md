@@ -1141,3 +1141,20 @@ Reports / Guest Management
 - 100% HMS.bas form coverage (232/232)
 - 100% Report parity (231/231)
 - All P0/P1 bugs fixed
+
+## 2026-08-21 — Communication Hub Implementation
+- TASK: Implement centralized Communication Hub for guest communications
+- MODULE: Communication/WhatsApp
+- FILES CHANGED:
+  - app/Http/Controllers/CommunicationController.php (NEW — 280 lines)
+  - routes/web.php (+8 routes)
+  - resources/views/property/communication/dashboard.blade.php (NEW)
+  - resources/views/property/communication/log.blade.php (NEW)
+  - resources/views/property/communication/emailtemplates.blade.php (NEW)
+  - .ai/MODULE_STATUS.md (updated)
+- CHANGE: Created Communication Hub with dashboard, log viewer, manual send, bulk send, pre-arrival automation, checkout follow-up, email templates
+- WHY: Centralize all guest communication management in one place
+- TEST: Routes verified (8/8), syntax verified, blade views created
+- RESULT: PASS
+- RISK: LOW — new feature, no existing functionality changed
+- ROLLBACK: Remove routes and controller

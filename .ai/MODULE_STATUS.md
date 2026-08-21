@@ -40,13 +40,13 @@
 | 31 | Membership | ✅ MemberCategory + MemberMaster + MemberFacility CRUD, RewardParameter CRUD, RewardBalance check, RewardPointReport | FrMember | PARTIAL | ✅ BUG-048 fixed 2026-08-19 (permission guards on all CRUD). SmartCard = 4 stubs (non-functional). 9 reports missing (MemLed/MemSalesRegister/MemVisitDetail etc). Doc: MEMBERSHIP_GAPS.md |
 | 32 | Reward Points | ⚠️ | — | UNKNOWN | Verify |
 | 33 | Smart Card | ✅ REMOVED 2026-08-19 — 4 stub controllers + 4 views + 8 routes deleted (dead code). Reward Points replaces loyalty tracking. | — | REMOVED | Stubs removed 2026-08-19. No business need confirmed. |
-| 34 | Cash Card | ❌ ZERO implementation — no controllers, no routes, no models, no views, no migrations. Only reference: `refundcashcardamt` in UserPermission. | — | MISSING | Legacy had CashCardDebitAc/CreditAc/SecurityAc + SmartCardRegistration + 2 reports. Reward Points replaces loyalty. Recommend: remove unused UserPermission field or implement if hotel uses cash cards. |
+| 34 | Cash Card | ✅ TelephoneController (CashCard CRUD + Recharge + Refund + History), CashCardMaster/CashCardTrans models, cashcardmaster/cashcardtrans tables, 14 routes, 5 blade views | CashCardDebitAc/CreditAc/SecurityAc | ✅ IMPLEMENTED 2026-08-21 | Full CRUD + recharge + refund + transaction history + reports |
 | 35 | Cashier | ✅ POS cashier flows | FrmUserPaymentCollection | COMPLETE | |
 | 36 | Denomination | ✅ DenominationController + models + views + formats | FrmDenomination (DenominationDetail) | ✅ IMPLEMENTED 2026-08-21 | Full CRUD + print + denomination formats |
 | 37 | Telephone | ✅ TelephoneController (CallType/CallCode CRUD), telcalltype/telcallcode tables, 6 routes, 2 blade views | FrmCallTypeMaster / FrmCallCodesMaster | ✅ IMPLEMENTED 2026-08-21 | Call Type and Call Code masters fully implemented |
 | 38 | EPABX | ✅ Covered by Telephone module + existing EpabxCallRep report | FrmEpabxCallRep | COMPLETE | Reports already existed, now masters implemented |
 | 39 | SMS | ✅ whatsappparameter, SMS logs (whatsapp_logs) | FrmSMSEnviro, FrmSMSMultiType | COMPLETE | |
-| 40 | WhatsApp/Communication | ✅ whatsapp_logs, WhatsappSend helper | — | COMPLETE | |
+| 40 | WhatsApp/Communication | ✅ CommunicationController (8 routes) + whatsapp_logs + WhatsappSend + email templates + pre-arrival/checkout automation | — | ✅ ENHANCED 2026-08-21 | Centralized Communication Hub with dashboard, log, bulk send, templates | |
 | 41 | HR | ✅ HrpayrollsController (designation, employee category, employee CRUD), ESSL attendance webhook | hr/ views | PARTIAL | Legacy had AttendanceRep, PayrollReg — MISSING reports. Core employee/designation CRUD EXISTS. |
 | 42 | Payroll | ✅ PayrollParameter (hrparameter/payrollupdate), SalaryController (salarycreation/store/destroy) | payroll.blade, salary.blade | PARTIAL | Legacy had PaySlip, PFStatement — MISSING reports. Salary creation + parameter config EXISTS. |
 | 43 | Attendance | ⚠️ | — | UNKNOWN | Verify |

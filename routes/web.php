@@ -631,3 +631,16 @@ Route::post('payment/create-order', [PaymentController::class, 'createOrder'])->
 Route::post('payment/verify', [PaymentController::class, 'verifyPayment'])->name('payment.verify');
 Route::post('payment/webhook', [PaymentController::class, 'webhook'])->name('payment.webhook');
 Route::post('payment/refund', [PaymentController::class, 'refund'])->name('payment.refund');
+
+// ═══════════════════════════════════════════════════════════════
+// COMMUNICATION HUB — Centralized guest communication management
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\CommunicationController;
+Route::get('communication', [CommunicationController::class, 'dashboard'])->name('communication.dashboard');
+Route::get('communication/log', [CommunicationController::class, 'log'])->name('communication.log');
+Route::post('communication/send', [CommunicationController::class, 'sendManualMessage'])->name('communication.send');
+Route::post('communication/bulk-send', [CommunicationController::class, 'bulkSend'])->name('communication.bulkSend');
+Route::post('communication/pre-arrival', [CommunicationController::class, 'sendPreArrival'])->name('communication.preArrival');
+Route::post('communication/checkout-followup', [CommunicationController::class, 'sendCheckoutFollowup'])->name('communication.checkoutFollowup');
+Route::get('communication/email-templates', [CommunicationController::class, 'emailTemplates'])->name('communication.emailTemplates');
+Route::post('communication/test-email', [CommunicationController::class, 'sendTestEmail'])->name('communication.testEmail');
