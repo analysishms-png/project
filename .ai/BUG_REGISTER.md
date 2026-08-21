@@ -33,12 +33,12 @@
 | BUG-021 | No git repo | HIGH | VERIFIED (fixed — 1 baseline commit) | DevOps |
 | BUG-022 | **Stored XSS in ticket views** | **HIGH** | **FIXED 2026-08-16** | Security |
 | BUG-023 | Dynamic SQL interpolation (Tools) | Medium | VERIFIED SAFE 2026-08-16 | Security |
-| BUG-024 | Debug mode enabled (dup of BUG-010) | Medium | OPEN | Security |
+| BUG-024 | Debug mode enabled (dup of BUG-010) | Medium | DUPLICATE (of BUG-010) | Security |
 | BUG-025 | God controllers / zero eager loading | Medium | OPEN | Architecture/Perf |
 | BUG-026 | Minimal caching + sync queues | Low | OPEN | Performance |
 | BUG-027 | **formatCurrency helper missing (docs ≠ code)** | **Medium** | **FIXED 2026-08-16** | Helpers/Tests |
-| BUG-028 | `.ai` docs overstate repo state (uncommitted work) | Low | OPEN (docs reconciliation) | Documentation |
-| BUG-029 | `e = statename();.blade.php` junk file in views | Low | OPEN (cleanup) | Code quality |
+| BUG-028 | `.ai` docs overstate repo state (uncommitted work) | Low | FIXED 2026-08-21 (docs reconciled) | Documentation |
+| BUG-029 | `e = statename();.blade.php` junk file in views | Low | FIXED 2026-08-21 | Code quality |
 | BUG-030 | **Silent advance deletion (no audit)** — `deleteadvancedeposit` + `deleteadvancebanquet` hard-deleted financial rows with no paychargelog entry, no reason, no reconciliation check (legacy blocked deletion when related records existed) | **HIGH** | **FIXED 2026-08-16** | Financial safety |
 | BUG-031 | **Historical paychargelog rows have amtcr=NULL** — old `deleteguestledger` copied only amtdr, so deleted advance *amounts* are unrecoverable from the log (trail exists: user/time/reason) | Medium | OPEN (data limitation — document, don't rewrite history) | Financial audit |
 | BUG-032 | **Live DB is `analysis`, not `db_analysishms`** — .ai docs referenced a DB that doesn't exist; .env points to `analysis` (live, 215 tables, 598K paycharge rows) | Medium | OPEN (docs reconciled in this register; verify backup target) | Infrastructure |
