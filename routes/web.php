@@ -584,3 +584,14 @@ Route::get('dashboard-modern', function() {
     // Redirect to existing loadProperty but with modern view
     return redirect()->route('company');
 })->name('dashboard.modern');
+
+
+// ═══ Denomination Module ═══
+Route::get('/denomination', 'App\Http\Controllers\DenominationController@index')->name('denomination.index');
+Route::get('/denomination/create', 'App\Http\Controllers\DenominationController@create')->name('denomination.create');
+Route::post('/denomination/store', 'App\Http\Controllers\DenominationController@store')->name('denomination.store');
+Route::get('/denomination/{sno}', 'App\Http\Controllers\DenominationController@show')->name('denomination.show');
+Route::delete('/denomination/{sno}', 'App\Http\Controllers\DenominationController@destroy')->name('denomination.destroy');
+Route::get('/denomination/formats', 'App\Http\Controllers\DenominationController@getFormats')->name('denomination.formats');
+Route::post('/denomination/format/save', 'App\Http\Controllers\DenominationController@saveFormat')->name('denomination.format.save');
+Route::get('/denomination/print/{sno}', 'App\Http\Controllers\DenominationController@print')->name('denomination.print');
