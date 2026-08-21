@@ -1373,3 +1373,57 @@ Reports / Guest Management
 ### Git
 - Commit: 4f38daa
 - Pushed: ✅ GitHub
+
+## 2026-08-21 — Multi-Property Chain Hotel Management
+
+### Architecture
+- **Properties**: 79 active properties across India
+- **States**: Uttar Pradesh, Uttarakhand, Madhya Pradesh, and more
+- **Rooms**: Aggregated across all properties
+- **Revenue**: Cross-property comparison and ranking
+
+### Features Implemented
+1. **Chain Dashboard**: Centralized view of all 79 properties
+   - Total properties, rooms, revenue, ADR, occupancy
+   - Top 5 by revenue and occupancy
+   - State-wise breakdown
+   - All properties table with DataTables
+
+2. **Property Switcher**: One-click switch between properties
+   - Updates session propertyid
+   - Updates ncurdate for new property
+   - Access control per user
+
+3. **Cross-Property Report**: Date-filtered revenue comparison
+   - Room revenue, POS revenue, total revenue
+   - Check-ins and room nights
+   - Chain-wide totals
+
+4. **Property Comparison**: Side-by-side metrics
+   - Rooms, occupied, occupancy %
+   - Revenue, ADR, RevPAR
+   - Visual cards with progress bars
+
+### Files Created
+- app/Http/Controllers/ChainController.php (248 lines)
+- resources/views/property/chaindashboard.blade.php (279 lines)
+- resources/views/property/chainreport.blade.php (140 lines)
+- resources/views/property/chaincomparison.blade.php (129 lines)
+
+### Routes
+- GET /chain — Chain management dashboard
+- GET /chain/switch/{propertyid} — Switch to property
+- GET /chain/report — Cross-property report
+- GET /chain/comparison — Property comparison
+
+### How to Test
+1. Login as sa/balaji/103
+2. Navigate to /chain
+3. View all 79 properties with metrics
+4. Click switch icon to change property
+5. Check /chain/report for date-filtered comparison
+6. Check /chain/comparison for side-by-side metrics
+
+### Git
+- Commit: f4aeede
+- Pushed: ✅ GitHub
