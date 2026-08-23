@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -42,7 +42,7 @@ $(document).ready(function() {
          if(res.error){alert(res.error);return;}
 var h='';var tot=0;$.each(res.data,function(i,r){
             
-            h+='<tr>'+'<td class="">'+'<b>'+(r.roomno||'')+'</b>'+'</td>'+'<td class="">'+(r.name||'')+'</td>'+'<td class="">'+(r.mobile_no||'')+'</td>'+'<td class="">'+fmtDate(r.chkindate)+'</td>'+'<td class="">'+fmtDate(r.depdate)+'</td>'+'<td class="text-right">'+fmt(r.roomrate)+'</td>'+'<td class="">'+(r.reasonrchange||'')+'</td>'+'<td class="">'+(r.guest_status||'')+'</td>'++'</tr>';});
+            h+='<tr>'+'<td class="">'+'<b>'+(r.roomno||'')+'</b>'+'</td>'+'<td class="">'+(r.name||'')+'</td>'+'<td class="">'+(r.mobile_no||'')+'</td>'+'<td class="">'+fmtDate(r.chkindate)+'</td>'+'<td class="">'+fmtDate(r.depdate)+'</td>'+'<td class="text-right">'+fmt(r.roomrate)+'</td>'+'<td class="">'+(r.reasonrchange||'')+'</td>'+'<td class="">'+(r.guest_status||'')+'</td>'+'</tr>';});
          $('#tableBody').html(h);
          
          if($.fn.DataTable.isDataTable('#rTable'))$('#rTable').DataTable().destroy();

@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -40,7 +40,7 @@ $(document).ready(function() {
          if(res.error){alert(res.error);return;}
 var h='';var tot=0;$.each(res.data,function(i,r){
             
-            h+='<tr>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+'<b>'+(r.paycode||'')+'</b>'+'</td>'+'<td class="">'+(r.paytype||'')+'</td>'+'<td class="text-right">'+(r.docs??0)+'</td>'+'<td class="text-right">'+fmt(r.debit)+'</td>'+'<td class="text-right">'+fmt(r.credit)+'</td>'++'</tr>';});
+            h+='<tr>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+'<b>'+(r.paycode||'')+'</b>'+'</td>'+'<td class="">'+(r.paytype||'')+'</td>'+'<td class="text-right">'+(r.docs??0)+'</td>'+'<td class="text-right">'+fmt(r.debit)+'</td>'+'<td class="text-right">'+fmt(r.credit)+'</td>'+'</tr>';});
          $('#tableBody').html(h);
          
          if($.fn.DataTable.isDataTable('#rTable'))$('#rTable').DataTable().destroy();

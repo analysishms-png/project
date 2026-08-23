@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -36,8 +36,8 @@ $(document).ready(function() {
          ,foliono:($('#foliono')?$('#foliono').val():'')}
       , function(res) {
          if(res.error){alert(res.error);return;}
-var hA='';$.each(res.unsettled,function(i,r){hA+='<tr>'+'<td>'+fmtDate(r.vd)+'</td>'+'<td>'+'<b>'+(r.foliono||'')+'</b>'+'</td>'+'<td>'+(r.docid||'')+'</td>'+'<td class="text-right">'+fmt(r.bal)+'</td>'++'</tr>';});$('#bodyA').html(hA);
-         var hB='';$.each(res.deleted,function(i,r){hB+='<tr>'+'<td>'+(r.u_entdt?new Date(r.u_entdt).toLocaleString('en-GB'):'')+'</td>'+'<td>'+fmtDate(r.vdate)+'</td>'+'<td>'+'<b>'+(r.docid||'')+'</b>'+'</td>'+'<td>'+(r.vtype||'')+'</td>'+'<td>'+(r.paycode||'')+'</td>'+'<td class="text-right">'+fmt(r.amtdr)+'</td>'+'<td>'+(r.u_name||'')+'</td>'++'</tr>';});$('#bodyB').html(hB);
+var hA='';$.each(res.unsettled,function(i,r){hA+='<tr>'+'<td>'+fmtDate(r.vd)+'</td>'+'<td>'+'<b>'+(r.foliono||'')+'</b>'+'</td>'+'<td>'+(r.docid||'')+'</td>'+'<td class="text-right">'+fmt(r.bal)+'</td>'+'</tr>';});$('#bodyA').html(hA);
+         var hB='';$.each(res.deleted,function(i,r){hB+='<tr>'+'<td>'+(r.u_entdt?new Date(r.u_entdt).toLocaleString('en-GB'):'')+'</td>'+'<td>'+fmtDate(r.vdate)+'</td>'+'<td>'+'<b>'+(r.docid||'')+'</b>'+'</td>'+'<td>'+(r.vtype||'')+'</td>'+'<td>'+(r.paycode||'')+'</td>'+'<td class="text-right">'+fmt(r.amtdr)+'</td>'+'<td>'+(r.u_name||'')+'</td>'+'</tr>';});$('#bodyB').html(hB);
       });
    });
    $('#fetchBtn').click();

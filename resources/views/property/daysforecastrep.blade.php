@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -39,7 +39,7 @@ $(document).ready(function() {
          if(res.error){alert(res.error);return;}
 var h='';var tot=0;$.each(res.data,function(i,r){
             
-            h+='<tr>'+'<td class="">'+fmtDate(r.fdate)+'</td>'+'<td class="text-right">'+(r.arrivals??0)+'</td>'+'<td class="text-right">'+(r.arrpax??0)+'</td>'+'<td class="text-right">'+(r.occupied??0)+'</td>'+'<td class="text-right">'+(r.bookings??0)+'</td>'++'</tr>';});
+            h+='<tr>'+'<td class="">'+fmtDate(r.fdate)+'</td>'+'<td class="text-right">'+(r.arrivals??0)+'</td>'+'<td class="text-right">'+(r.arrpax??0)+'</td>'+'<td class="text-right">'+(r.occupied??0)+'</td>'+'<td class="text-right">'+(r.bookings??0)+'</td>'+'</tr>';});
          $('#tableBody').html(h);
          
          if($.fn.DataTable.isDataTable('#rTable'))$('#rTable').DataTable().destroy();

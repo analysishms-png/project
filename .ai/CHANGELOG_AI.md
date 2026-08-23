@@ -1657,3 +1657,51 @@ Complete Smart Room IoT integration with:
 ### WHY: Controllers and views existed but had no routes — completely inaccessible
 ### TEST: PHP syntax verified for routes/web.php
 ### RISK: LOW — only adding missing routes, no existing code changed
+
+## DATE: 2026-08-24
+## TASK: Fix BOM bug + Add 12 missing report views + Route fixes
+## MODULE: Reporting / Routes
+## FILES:
+- app/Http/Controllers/Reporting.php (BOM fix)
+- routes/web.php (removed duplicates)
+- routes/reporting.php (added 24 routes)
+- resources/views/property/bookingdetail.blade.php (NEW)
+- resources/views/property/daysforecastrep.blade.php (NEW)
+- resources/views/property/delbillunsetbill.blade.php (NEW)
+- resources/views/property/guestbilldetails.blade.php (NEW)
+- resources/views/property/guestchgjournal.blade.php (NEW)
+- resources/views/property/guestchgjournallog.blade.php (NEW)
+- resources/views/property/guestinhousereport.blade.php (NEW)
+- resources/views/property/guestobservrep.blade.php (NEW)
+- resources/views/property/inhousecount.blade.php (NEW)
+- resources/views/property/resvadvrecd.blade.php (NEW)
+- resources/views/property/resvadvrecdarr.blade.php (NEW)
+- resources/views/property/resvadvrecdinhouse.blade.php (NEW)
+- .ai/menu_permissions_missing_reports.sql (NEW)
+## CHANGE: Fixed UTF-8 BOM in Reporting.php, removed duplicate routes from web.php, connected 24 new routes, added 12 report views
+## WHY: Reporting.php had UTF-8 BOM causing route:list crash; duplicate E-Invoice routes in web.php and company.php causing class not found error; 12 report blade views had no routes
+## TEST: php -l all files passed; php artisan route:list shows 1938 routes
+## RESULT: 0 errors, all routes working
+## RISK: LOW (only route/view additions)
+## ROLLBACK: git revert HEAD
+
+## 2026-08-23 | BATCH B ACCOUNTS + PROJECT DEBUG FIXES
+## CHANGE:
+- Added Batch B accounts reports (codes 131226-131230): /bankreg /ledgercred
+  /controlledaccounts /partywiseoutstanding /pmtbycashier with controller methods,
+  routes, radio-button+JS views; menuhelp permissions seeded for prop-103 users
+- Upgraded Batch A bookingdetail filters to radio toggle groups (auto-fetch on change)
+- Fixed JS double-plus bug (++'</tr>') in all 12 Batch A blades
+- FIXED stockledgerfetch: wrong table/columns (suntran.itemcode/sundate/suntypes)
+  -> now uses stock.item/qtyrec/qtyiss/vdate; permission 131225->131298 (collision fix)
+- FIXED bankclgnotfetch always-empty: whereNull(sunappdate) on NOT NULL column
+  -> zero-date aware (0000-00-00 sentinel); bankreg Pending/Cleared same convention
+- FIXED accountchecklistfetch: joined non-existent ledgeraccount table -> subgroup
+  via ledger.subcode = subgroup.sub_code
+- Seeded 4 demo bank transactions (SBI/ICICI/HDFC) in suntran for bankreg
+- ledgercred uses ledger table (party txns) instead of empty partycode suntran rows
+## TEST: php -l 838 files OK; blade compile 768/768 OK; route:list OK;
+Batch B fetches on prop-103: bankreg All=4/Cleared=2/Pending=2, ledgercred
+Supplier=1 Customer=1, controlledaccounts=10, partywiseoutstanding recv=15000,
+pmtbycashier cashier/mode/date groupings OK; stockledger 184 txns/34 items.
+## RISK: LOW-MEDIUM (new reports additive; fixes touch existing queries)

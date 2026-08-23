@@ -5,7 +5,6 @@
 -- Idempotent: safe to re-run (NOT EXISTS guard)
 -- Date: 2026-08-23
 -- ============================================================================
-
 INSERT INTO menuhelp
   (propertyid, compcode, username, opt1, opt2, opt3, code, route, module, module_name,
    view, ins, edit, del, print, flag, outletcode, u_name, u_entdt)
@@ -26,6 +25,33 @@ FROM (
   SELECT 131223, 'resvadvrecd',                'Reservation Advance Received',   'Reservation'  UNION ALL
   SELECT 131224, 'resvadvrecdarr',             'Advance Received - Arrivals',    'Reservation'  UNION ALL
   SELECT 131225, 'resvadvrecdinhouse',         'Advance Received - In-House',    'Reservation'
+) n
+CROSS JOIN (
+  SELECT mh.propertyid, mh.compcode, mh.username, mh.view, mh.print
+  FROM menuhelp mh
+  WHERE mh.propertyid = 103 AND mh.code = 131211
+) src
+WHERE NOT EXISTS (
+  SELECT 1 FROM menuhelp x
+  WHERE x.propertyid = 103 AND x.username = src.username AND x.code = n.code
+);
+
+-- ============================================================================
+-- BATCH B (ACCOUNTS) - codes 131226-131230 | Applied 2026-08-23 via script
+-- ============================================================================
+INSERT INTO menuhelp
+  (propertyid, compcode, username, opt1, opt2, opt3, code, route, module, module_name,
+   view, ins, edit, del, print, flag, outletcode, u_name, u_entdt)
+SELECT src.propertyid, src.compcode, src.username,
+       FLOOR(n.code/10000), FLOOR(n.code/100)%100, n.code%100,
+       n.code, n.route, n.module, n.module_name,
+       src.view, 0, 0, 0, src.print, 'R', '', 'sa', NOW()
+FROM (
+  SELECT 131226 AS code, 'bankreg'              AS route, 'Bank Register'               AS module, 'Accounts' AS module_name UNION ALL
+  SELECT 131227, 'ledgercred',           'Ledger - Creditors/Parties',   'Accounts' UNION ALL
+  SELECT 131228, 'controlledaccounts',   'Controlled Accounts',          'Accounts' UNION ALL
+  SELECT 131229, 'partywiseoutstanding', 'Party-wise Outstanding',       'Accounts' UNION ALL
+  SELECT 131230, 'pmtbycashier',         'Payments by Cashier',          'Accounts'
 ) n
 CROSS JOIN (
   SELECT mh.propertyid, mh.compcode, mh.username, mh.view, mh.print

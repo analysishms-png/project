@@ -33,30 +33,33 @@ confirletter, cancellletter, arrdepreg, movementlist, packageforecast,
 occupancyforecast, guestpayments, checkedinguestdetail, registeredguestdetail.
 
 Reports:
-1) BookingDetail        MISSING  Deps: booking, grpbookingdetails
-   Fix: /bookingdetail - bookno/guest/rooms/arr-dep/source/status, ResStatus filter
-2) DaysForecastRep      PARTIAL  occupancyforecast covers rooms only
-   Fix: /daysforecastrep - day-wise arrivals forecast (rooms+pax) from bookings
-3) GuestBillDetails     MISSING  Deps: paycharge+guestfolio+roomocc
-   Fix: /guestbilldetails - folio-wise charges/payments with running balance
-4) GuestChgJournal      MISSING  Deps: paycharge vtype CHG/RCP/ADV
-   Fix: /guestchgjournal - day-wise guest charges grouped by paycode
-5) GuestChgJournalLog   MISSING
-   Fix: /guestchgjournallog - same as #4 ordered by u_entdt showing entry user
-6) GuestObservRep       MISSING  Deps: roomocc.remarks
-   Fix: /guestobservrep - in-house guests having observations/VIP flag
-7) InsHouseCount        MISSING  Deps: roomocc activeYN='Y'
-   Fix: /inhousecount - occupied/vacant/blocked/OOO counts + pax at datetime
-8) GuestInHouse         MISSING  (roomstatusinhouse blade = status board only)
-   Fix: /guestinhousereport - printable in-house guest list w/ balance
-9) DelBillUnsetBill     MISSING  (posbilldelete covers POS only)
-   Fix: /delbillunsetbill - deleted & unsettled FO bills w/ user
+1) BookingDetail        DONE 2026-08-23  /bookingdetail (code 131214) - booking table,
+   ResStatus filter + cancelled toggle. Test: 151 rows on prop-103.
+2) DaysForecastRep      DONE 2026-08-23  /daysforecastrep (code 131215) - day-wise
+   arrivals/rooms/pax/bookings from booking. Test: 120 days.
+3) GuestBillDetails     DONE 2026-08-23  /guestbilldetails (code 131216) - paycharge
+   folio charges/payments w/ running balance. Test: 766 rows.
+4) GuestChgJournal      DONE 2026-08-23  /guestchgjournal (code 131217) - day+paycode
+   grouped CHG/RCP/ADV journal. Test: 485 rows.
+5) GuestChgJournalLog   DONE 2026-08-23  /guestchgjournallog (code 131218) - entry-log
+   order by u_entdt. Test: 726 rows.
+6) GuestObservRep       DONE 2026-08-23  /guestobservrep (code 131219) - in-house guests
+   w/ remark/extrabed/discount/VIP. Test: 1 row (MANOJ TIWARI VIP).
+7) InsHouseCount        DONE 2026-08-23  /inhousecount (code 131220) - occupied/vacant/
+   blocked/pax snapshot. NOTE: in-house = chkoutdate IS NULL (activeyn NOT used -
+   matches codebase convention). Test: occupied=3, pax=6.
+8) GuestInHouse         DONE 2026-08-23  /guestinhousereport (code 131221) - printable
+   in-house list w/ folio balance. Test: 3 in-house guests.
+9) DelBillUnsetBill     DONE 2026-08-23  /delbillunsetbill (code 131222) - two-section:
+   unsettled folios (paycharge bal<>0) + deleted entries (paychargeh). Test: 159 unsettled.
 
 Code refs: Controller app/Http/Controllers/Reporting.php (pattern:
-revokeopen(131211) guard -> view() ; *fetch returns response()->json);
+revokeopen(<unique code>) guard -> view() ; *fetch returns response()->json);
 routes/reporting.php; views resources/views/property/<name>.blade.php
 (layout property.layouts.main, dash-title-bar cards, $.post fetch).
-Priority: HIGH
+Priority: HIGH - BATCH A COMPLETE (12 reports, codes 131214-131222)
+Permissions: menuhelp seeded via .ai/menu_permissions_missing_reports.sql for all
+prop-103 users holding 131211 (view+print copied per-user). Idempotent SQL.
 Test: route:list + HTTP fetch on prop-103 Apr-Aug 2026 data vs direct SQL.
 
 ================================================================================
@@ -64,11 +67,14 @@ MODULE: 02 RESERVATION   (3 missing)
 ================================================================================
 Implemented: reservationstatus, reservstatusarrival, reservstatusinhouse.
 Reports:
-10) ResvAdvRecd         MISSING  Deps: paycharge vtype='ADV' + booking
-    Fix: /resvadvrecd - advances received in range (bookno/guest/mode/date)
-11) ResvAdvRecdArr      MISSING  Fix: /resvadvrecdarr - filtered to arrivals
-12) ResvAdvRecdInHouse  MISSING  Fix: /resvadvrecdinhouse - in-house only
-Priority: MEDIUM. Test data: ~60 ADV rows seeded prop-103.
+10) ResvAdvRecd         DONE 2026-08-23  /resvadvrecd (code 131223) - paycharge vtype
+    ADV joined booking. Test: 32 rows prop-103.
+11) ResvAdvRecdArr      DONE 2026-08-23  /resvadvrecdarr (code 131224) - filtered to
+    arrivals (roomocc chkindate in range). Test: 0 rows (no checked-in ADV - correct).
+12) ResvAdvRecdInHouse  DONE 2026-08-23  /resvadvrecdinhouse (code 131225) - in-house
+    only (chkoutdate IS NULL). Test: 0 rows (correct for current data).
+Priority: MEDIUM - BATCH A RESERVATION TRIO COMPLETE.
+Test data: ~60 ADV rows seeded prop-103 (32 distinct bookings).
 
 ================================================================================
 MODULE: 03 POS / RESTAURANT   (8 missing)
@@ -188,35 +194,44 @@ Priority: MEDIUM-HIGH. Tourism forms use guestprof.nationality (seed='Indian').
 ================================================================================
 IMPLEMENTATION ORDER (work queue)
 ================================================================================
-P1 Batch A FRONT OFFICE : items 1-9   (Reporting.php)
+P1 Batch A FRONT OFFICE : items 1-9   (Reporting.php) - **DONE 2026-08-23**
 P1 Batch B ACCOUNTS     : items 32-36
 P1 Batch C GST/TAX      : items 37-42
 P2 Batch D POS/BANQUET  : items 13-21
 P2 Batch E INVENTORY    : items 22-30
 P2 Batch F MIS/MEMBER   : items 43-48, 54
 P3 Batch G TOURISM      : items 49-53
-RESERVATION trio (10-12) rides with Batch A (same paycharge source).
+RESERVATION trio (10-12) rides with Batch A (same paycharge source) - **DONE 2026-08-23**
 
 Common conventions for ALL new reports:
 - routes/reporting.php : Route::get('<name>'...) + Route::post('<name>fetch'...)
-- Reporting.php        : <name>() view w/ revokeopen(131211); <name>fetch() json
+- Reporting.php        : <name>() view w/ revokeopen(<unique code from 131214+>);
+                         <name>fetch() json. Codes: Batch A = 131214-131225.
 - View                 : resources/views/property/<name>.blade.php following
   property.layouts.main + dash-title-bar + filter card + table + print btn
 - All queries scoped WHERE propertyid = $this->propertyid (session prop 103)
+- Permissions          : menuhelp INSERT for all users holding generic 131211 on the
+  property (view/print copied per-user, ins/edit/del=0). SQL in
+  .ai/menu_permissions_missing_reports.sql (idempotent).
 
 ================================================================================
 FINAL TALLY
 ================================================================================
 TOTAL MODULES ANALYZED .......... 18 legacy modules mapped to Laravel modules
 TOTAL FULLY IMPLEMENTED ......... 163 of 225 legacy reports (verified)
-TOTAL PARTIAL ................... 2   (DaysForecastRep, ItemSale->openitemsale)
-TOTAL MISSING ................... 52  (+3 variants inside same fetch)
+BATCH A IMPLEMENTED 2026-08-23 .. +12 (codes 131214-131225, Front Office 9 +
+                                  Reservation 3). Tested on prop-103: all pass.
+TOTAL PARTIAL ................... 1   (ItemSale->openitemsale)
+TOTAL MISSING ................... 40  (52 - 12 Batch A done) (+3 variants inside
+                                  same fetch)
 TOTAL BROKEN .................... 0 confirmed (accountchecklist joins missing
                                   ledgeraccount table -> flagged for BUG_REGISTER)
 TOTAL OBSOLETE .................. 8   (GST-replaced VAT/Luxury forms)
 TOP CRITICAL ISSUES ............. 1) accountchecklist SQL references non-existent
-                                'ledgeraccount' table  2) 52 report gaps above
-IMPLEMENTATION ORDER ............ Batches A -> G as listed above.
+                                'ledgeraccount' table  2) 40 remaining report gaps
+IMPLEMENTATION ORDER ............ Batches B -> G as listed above.
+NEXT BATCH ...................... B ACCOUNTS: /bankreg /ledgercred /controlledaccounts
+                                /partywiseoutstanding /pmtbycashier (codes 131226+)
 
 <!-- END -->
 

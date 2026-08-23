@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -43,7 +43,7 @@ $(document).ready(function() {
          if(res.error){alert(res.error);return;}
 var h='';var tot=0;$.each(res.data,function(i,r){
             
-            h+='<tr>'+'<td class="text-right">'+(r.foliono??0)+'</td>'+'<td class="">'+'<b>'+(r.name||'')+'</b>'+'</td>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+(r.vtype||'')+'</td>'+'<td class="">'+(r.particulars||'')+'</td>'+'<td class="text-right">'+fmt(r.dr)+'</td>'+'<td class="text-right">'+fmt(r.cr)+'</td>'+'<td class="text-right">'+fmt(r.balance)+'</td>'+'<td class="">'+(r.user||'')+'</td>'++'</tr>';});
+            h+='<tr>'+'<td class="text-right">'+(r.foliono??0)+'</td>'+'<td class="">'+'<b>'+(r.name||'')+'</b>'+'</td>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+(r.vtype||'')+'</td>'+'<td class="">'+(r.particulars||'')+'</td>'+'<td class="text-right">'+fmt(r.dr)+'</td>'+'<td class="text-right">'+fmt(r.cr)+'</td>'+'<td class="text-right">'+fmt(r.balance)+'</td>'+'<td class="">'+(r.user||'')+'</td>'+'</tr>';});
          $('#tableBody').html(h);
          
          if($.fn.DataTable.isDataTable('#rTable'))$('#rTable').DataTable().destroy();

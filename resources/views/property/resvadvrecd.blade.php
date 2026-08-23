@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -40,7 +40,7 @@ $(document).ready(function() {
          if(res.error){alert(res.error);return;}
 var h='';var tot=0;$.each(res.data,function(i,r){
             tot+=Number(r.amount||0);
-            h+='<tr>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+'<b>'+(r.BookNo||'')+'</b>'+'</td>'+'<td class="">'+'<b>'+(r.GuestName||'')+'</b>'+'</td>'+'<td class="text-right">'+fmt(r.amount)+'</td>'+'<td class="">'+(r.modeset||'')+'</td>'+'<td class="">'+(r.u_name||'')+'</td>'++'</tr>';});
+            h+='<tr>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+'<b>'+(r.BookNo||'')+'</b>'+'</td>'+'<td class="">'+'<b>'+(r.GuestName||'')+'</b>'+'</td>'+'<td class="text-right">'+fmt(r.amount)+'</td>'+'<td class="">'+(r.modeset||'')+'</td>'+'<td class="">'+(r.u_name||'')+'</td>'+'</tr>';});
          $('#tableBody').html(h);
          $('#footTotal').text(fmt(tot));$('#tFoot').show();
          if($.fn.DataTable.isDataTable('#rTable'))$('#rTable').DataTable().destroy();

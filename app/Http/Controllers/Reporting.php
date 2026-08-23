@@ -10373,7 +10373,9 @@ class Reporting extends Controller
          ->where('delflag', 'N')
          ->whereBetween('vdate', [$fd, $td])
          ->whereIn('suncode', ['16103','42103','455103','459103'])
-         ->whereNull('sunappdate')
+         ->where(function ($w) {
+            $w->whereNull('sunappdate')->orWhere('sunappdate', '0000-00-00');
+         })
          ->select('docid','vdate','suncode','dispname','amount','vno')
          ->orderBy('vdate')->get();
       return response()->json(['data' => $data]);
@@ -10895,8 +10897,14 @@ class Reporting extends Controller
          ->whereIn('ST.suncode', $bankCodes)
          ->whereBetween('ST.vdate', [$fd, $td]);
       if ($bank) { $q->where('ST.suncode', $bank); }
-      if ($status == 'C') { $q->whereNotNull('ST.sunappdate'); }
-      if ($status == 'P') { $q->whereNull('ST.sunappdate'); }
+      if ($status == 'C') {
+         $q->whereNotNull('ST.sunappdate')->where('ST.sunappdate', '<>', '0000-00-00');
+      }
+      if ($status == 'P') {
+         $q->where(function ($w) {
+            $w->whereNull('ST.sunappdate')->orWhere('ST.sunappdate', '0000-00-00');
+         });
+      }
       $rows = $q->orderBy('ST.vdate')->orderBy('ST.sn')
          ->select('ST.docid','ST.vdate','ST.vno','ST.vtype','ST.suncode',
                   DB::raw("IFNULL(SG.name,'') AS bankname"),
@@ -11123,62 +11131,69 @@ class Reporting extends Controller
 
    public function stockledgerfetch(Request $request)
    {
-      $p = revokeopen(131225);
+      $p = revokeopen(131298);
       if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
 
       $fromdate = $request->input('fromdate', $this->ncurdate);
       $todate = $request->input('todate', $this->ncurdate);
       $itemcode = $request->input('itemcode', '');
 
-      // Opening stock from suntran before fromdate
-      $opening = DB::table('suntran')
-         ->leftJoin('itemmast as IM', 'IM.itemcode', '=', 'suntran.itemcode')
-         ->where('suntran.propertyid', $this->propertyid)
-         ->where('suntran.sundate', '<', $fromdate)
-         ->when($itemcode, function ($q) use ($itemcode) { $q->where('suntran.itemcode', $itemcode); })
+      // Opening stock from `stock` before fromdate (qtyrec=receipt, qtyiss=issue)
+      $opening = DB::table('stock')
+         ->leftJoin('itemmast as IM', function ($j) {
+            $j->on('IM.Code', '=', 'stock.item')->on('IM.Property_ID', '=', 'stock.propertyid');
+         })
+         ->where('stock.propertyid', $this->propertyid)
+         ->where('stock.delflag', 'N')
+         ->where('stock.vdate', '<', $fromdate)
+         ->when($itemcode, function ($q) use ($itemcode) { $q->where('stock.item', $itemcode); })
          ->select(
-            'suntran.itemcode',
-            DB::raw('MAX(IM.itemname) AS itemname'),
-            DB::raw('MAX(IM.unit) AS unit'),
-            DB::raw("SUM(CASE WHEN suntran.suntypes = 'R' THEN suntran.qty ELSE 0 END) AS openingreceipt"),
-            DB::raw("SUM(CASE WHEN suntran.suntypes = 'I' THEN suntran.qty ELSE 0 END) AS openingissue")
+            'stock.item AS itemcode',
+            DB::raw('MAX(IM.Name) AS itemname'),
+            DB::raw('MAX(stock.unit) AS unit'),
+            DB::raw('SUM(stock.qtyrec) AS openingreceipt'),
+            DB::raw('SUM(stock.qtyiss) AS openingissue')
          )
-         ->groupBy('suntran.itemcode')
+         ->groupBy('stock.item')
          ->get();
 
       // Transactions in period
-      $transactions = DB::table('suntran')
-         ->leftJoin('itemmast as IM', 'IM.itemcode', '=', 'suntran.itemcode')
-         ->where('suntran.propertyid', $this->propertyid)
-         ->whereBetween('suntran.sundate', [$fromdate, $todate])
-         ->when($itemcode, function ($q) use ($itemcode) { $q->where('suntran.itemcode', $itemcode); })
+      $transactions = DB::table('stock')
+         ->leftJoin('itemmast as IM', function ($j) {
+            $j->on('IM.Code', '=', 'stock.item')->on('IM.Property_ID', '=', 'stock.propertyid');
+         })
+         ->where('stock.propertyid', $this->propertyid)
+         ->where('stock.delflag', 'N')
+         ->whereBetween('stock.vdate', [$fromdate, $todate])
+         ->when($itemcode, function ($q) use ($itemcode) { $q->where('stock.item', $itemcode); })
          ->select(
-            'suntran.itemcode',
-            DB::raw('MAX(IM.itemname) AS itemname'),
-            DB::raw('MAX(IM.unit) AS unit'),
-            'suntran.sundate',
-            'suntran.vtype',
-            'suntran.vno',
-            'suntran.suntypes',
-            DB::raw('SUM(suntran.qty) AS qty'),
-            DB::raw('SUM(suntran.rate * suntran.qty) AS amount')
+            'stock.item AS itemcode',
+            DB::raw('MAX(IM.Name) AS itemname'),
+            DB::raw('MAX(stock.unit) AS unit'),
+            'stock.vdate',
+            'stock.vtype',
+            'stock.vno',
+            DB::raw("CASE WHEN stock.qtyrec > 0 THEN 'R' ELSE 'I' END AS suntypes"),
+            DB::raw('IFNULL(stock.qtyrec,0)+IFNULL(stock.qtyiss,0) AS qty'),
+            DB::raw('IFNULL(stock.amount,0) AS amount')
          )
-         ->groupBy('suntran.itemcode', 'suntran.sundate', 'suntran.vtype', 'suntran.vno', 'suntran.suntypes')
-         ->orderBy('suntran.itemcode')
-         ->orderBy('suntran.sundate')
+         ->groupBy('stock.docid')
+         ->orderBy('stock.item')
+         ->orderBy('stock.vdate')
          ->get();
 
       // Group by item for summary
       $items = $transactions->groupBy('itemcode')->map(function ($rows, $code) {
+         $op = $rows->first();
          $receipt = $rows->where('suntypes', 'R')->sum('qty');
          $issue = $rows->where('suntypes', 'I')->sum('qty');
          return [
             'itemcode' => $code,
-            'itemname' => $rows->first()->itemname ?? '',
-            'unit' => $rows->first()->unit ?? '',
-            'receipt' => $receipt,
-            'issue' => $issue,
-            'balance' => $receipt - $issue,
+            'itemname' => $op->itemname ?? '',
+            'unit' => $op->unit ?? '',
+            'receipt' => round($receipt, 3),
+            'issue' => round($issue, 3),
+            'balance' => round($receipt - $issue, 3),
          ];
       })->values();
 

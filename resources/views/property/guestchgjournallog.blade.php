@@ -1,4 +1,4 @@
-@extends('property.layouts.main')
+﻿@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -43,7 +43,7 @@ $(document).ready(function() {
          if(res.error){alert(res.error);return;}
 var h='';var tot=0;$.each(res.data,function(i,r){
             
-            h+='<tr>'+'<td class="">'+(r.u_entdt?new Date(r.u_entdt).toLocaleString('en-GB'):'')+'</td>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+'<b>'+(r.docid||'')+'</b>'+'</td>'+'<td class="">'+(r.vtype||'')+'</td>'+'<td class="">'+(r.paycode||'')+'</td>'+'<td class="text-right">'+fmt(r.amtdr)+'</td>'+'<td class="text-right">'+fmt(r.amtcr)+'</td>'+'<td class="">'+(r.roomno||'')+'</td>'+'<td class="">'+(r.u_name||'')+'</td>'++'</tr>';});
+            h+='<tr>'+'<td class="">'+(r.u_entdt?new Date(r.u_entdt).toLocaleString('en-GB'):'')+'</td>'+'<td class="">'+fmtDate(r.vdate)+'</td>'+'<td class="">'+'<b>'+(r.docid||'')+'</b>'+'</td>'+'<td class="">'+(r.vtype||'')+'</td>'+'<td class="">'+(r.paycode||'')+'</td>'+'<td class="text-right">'+fmt(r.amtdr)+'</td>'+'<td class="text-right">'+fmt(r.amtcr)+'</td>'+'<td class="">'+(r.roomno||'')+'</td>'+'<td class="">'+(r.u_name||'')+'</td>'+'</tr>';});
          $('#tableBody').html(h);
          
          if($.fn.DataTable.isDataTable('#rTable'))$('#rTable').DataTable().destroy();
