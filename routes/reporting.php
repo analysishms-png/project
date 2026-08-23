@@ -660,3 +660,17 @@ Route::post('travelagentanalysisfetch', [Reporting::class, 'travelagentanalysisf
    Route::post('salesdaybookfetch', [Reporting::class, 'salesdaybookfetch'])->name('salesdaybookfetch');
    Route::get('stockledger', [Reporting::class, 'stockledger'])->name('stockledger');
    Route::post('stockledgerfetch', [Reporting::class, 'stockledgerfetch'])->name('stockledgerfetch');
+
+// ============ BATCH C: GST / TAX REPORTS (codes 131231-131236) ============
+Route::get('taxdetails', [Reporting::class, 'taxdetails'])->name('taxdetails');
+Route::post('taxdetailsfetch', [Reporting::class, 'taxdetailsfetch'])->name('taxdetailsfetch');
+Route::get('taxregister', [Reporting::class, 'taxregister'])->name('taxregister');
+Route::post('taxregisterfetch', [Reporting::class, 'taxregisterfetch'])->name('taxregisterfetch');
+Route::get('taxwisesale', [Reporting::class, 'taxwisesale'])->name('taxwisesale');
+Route::post('taxwisesalefetch', [Reporting::class, 'taxwisesalefetch'])->name('taxwisesalefetch');
+Route::get('taxreporthall', [Reporting::class, 'taxreporthall'])->name('taxreporthall');
+Route::post('taxreporthallfetch', [Reporting::class, 'taxreporthallfetch'])->name('taxreporthallfetch');
+Route::get('taxsummaryhall', [Reporting::class, 'taxsummaryhall'])->name('taxsummaryhall');
+Route::post('taxsummaryhallfetch', [Reporting::class, 'taxsummaryhallfetch'])->name('taxsummaryhallfetch');
+Route::get('taxwisedetailreporthall', [Reporting::class, 'taxwisedetailreporthall'])->name('taxwisedetailreporthall');
+Route::post('taxwisedetailreporthallfetch', [Reporting::class, 'taxwisedetailreporthallfetch'])->name('taxwisedetailreporthallfetch');
