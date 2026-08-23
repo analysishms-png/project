@@ -877,3 +877,72 @@ Route::post('memberfacilitystore', [MemberFacilityMasterController::class, 'stor
 Route::get('memberfacilityedit/{code}', [MemberFacilityMasterController::class, 'update'])->name('memberfacilityedit');
 Route::post('memberfacilityupdate/{code}', [MemberFacilityMasterController::class, 'updatestore'])->name('memberfacilityupdate');
 Route::post('memberfacilitydelete/{code}', [MemberFacilityMasterController::class, 'delete'])->name('memberfacilitydelete');
+
+// ═══════════════════════════════════════════════════════════════
+// INVENTORY — MR Entry, Purchase, Stock Transfer, Opening Stock, Indent, Reports
+// ═══════════════════════════════════════════════════════════════
+
+// MR Entry (Material Received)
+Route::get('openmrentry', [InventoryController::class, 'openmrentry'])->name('openmrentry');
+Route::post('mrentryparty', [InventoryController::class, 'mrentryparty'])->name('mrentryparty');
+Route::post('mrEntryData', [InventoryController::class, 'mrEntryData'])->name('mrEntryData');
+Route::post('mrentrysubmit', [InventoryController::class, 'mrentrysubmit'])->name('mrentrysubmit');
+Route::get('updatemrentry/{vno}', [InventoryController::class, 'updatemrentry'])->name('updatemrentry');
+Route::post('mrentryupdate', [InventoryController::class, 'mrentryupdate'])->name('mrentryupdate');
+Route::post('deletemrentry', [InventoryController::class, 'deletemrentry'])->name('deletemrentry');
+Route::post('checkduplicatechalan', [InventoryController::class, 'checkduplicatechalan'])->name('checkduplicatechalan');
+Route::post('checkduplicatememinvno', [InventoryController::class, 'checkduplicatememinvno'])->name('checkduplicatememinvno');
+
+// Purchase Bill
+Route::get('openpurchasebill', [InventoryController::class, 'openpurchasebill'])->name('openpurchasebill');
+Route::post('purchasebillno', [InventoryController::class, 'purchasebillno'])->name('purchasebillno');
+Route::post('partydata', [InventoryController::class, 'partydata'])->name('partydata');
+Route::post('getpurchvno', [InventoryController::class, 'getpurchvno'])->name('getpurchvno');
+Route::post('checkbillno', [InventoryController::class, 'checkbillno'])->name('checkbillno');
+Route::post('mritems', [InventoryController::class, 'mritems'])->name('mritems');
+Route::post('partywiserate', [InventoryController::class, 'partywiserate'])->name('partywiserate');
+Route::post('purchaseitems', [InventoryController::class, 'purchaseitems'])->name('purchaseitems');
+Route::post('purchasebillsubmit', [InventoryController::class, 'purchasebillsubmit'])->name('purchasebillsubmit');
+Route::get('updatepurchasebill/{vno}', [InventoryController::class, 'updatepurchasebill'])->name('updatepurchasebill');
+Route::post('purchasebillupdate', [InventoryController::class, 'purchasebillupdate'])->name('purchasebillupdate');
+Route::post('deletepurchbill', [InventoryController::class, 'deletepurchbill'])->name('deletepurchbill');
+
+// Stock Transfer
+Route::get('stocktransfer', [InventoryController::class, 'stocktransfer'])->name('stocktransfer');
+Route::post('stocktransfersubmit', [InventoryController::class, 'stocktransfersubmit'])->name('stocktransfersubmit');
+Route::get('updatestocktransfer/{vno}', [InventoryController::class, 'updatestocktransfer'])->name('updatestocktransfer');
+Route::post('stocktransferupdate', [InventoryController::class, 'stocktransferupdate'])->name('stocktransferupdate');
+Route::post('deletestocktransfer', [InventoryController::class, 'deletestocktransfer'])->name('deletestocktransfer');
+
+// Opening Stock
+Route::get('openingstock', [InventoryController::class, 'openingstock'])->name('openingstock');
+Route::post('openingstocksubmit', [InventoryController::class, 'openingstocksubmit'])->name('openingstocksubmit');
+Route::get('updateopeningstock/{vno}', [InventoryController::class, 'updateopeningstock'])->name('updateopeningstock');
+Route::post('openingstockupdatesubmit', [InventoryController::class, 'openingstockupdatesubmit'])->name('openingstockupdatesubmit');
+Route::post('deleteopeningstock', [InventoryController::class, 'deleteopeningstock'])->name('deleteopeningstock');
+
+// Indent / Requisition
+Route::get('indent', [InventoryController::class, 'indent'])->name('indent');
+Route::post('indentsubmit', [InventoryController::class, 'indentsubmit'])->name('indentsubmit');
+Route::get('updateindent/{vno}', [InventoryController::class, 'updateindent'])->name('updateindent');
+Route::post('indentupdate', [InventoryController::class, 'indentupdate'])->name('indentupdate');
+Route::post('deleteindent', [InventoryController::class, 'deleteindent'])->name('deleteindent');
+Route::get('requisitionslip', [InventoryController::class, 'requisitionslip'])->name('requisitionslip');
+Route::post('requisitionslipsubmit', [InventoryController::class, 'requisitionslipsubmit'])->name('requisitionslipsubmit');
+Route::get('stockissuerequisition', [InventoryController::class, 'stockissuerequisition'])->name('stockissuerequisition');
+
+// Inventory Parameter
+Route::get('invparameter', [InventoryController::class, 'invparameter'])->name('invparameter');
+Route::post('enviroentrysubmit', [InventoryController::class, 'enviroentrysubmit'])->name('enviroentrysubmit');
+
+// Pending PO
+Route::get('pendingpo', [InventoryController::class, 'pendingpo'])->name('pendingpo');
+Route::post('pendingpoitems', [InventoryController::class, 'pendingpoitems'])->name('pendingpoitems');
+Route::post('finalpendingmr', [InventoryController::class, 'finalpendingmr'])->name('finalpendingmr');
+
+// Reports
+Route::get('delaydeliveryreport', [InventoryController::class, 'delayDeliveryReport'])->name('delaydeliveryreport');
+Route::post('delaydeliveryreportfetch', [InventoryController::class, 'delayDeliveryReportFetch'])->name('delaydeliveryreportfetch');
+Route::get('receiverpendingmaterial', [InventoryController::class, 'receiverPendingMaterial'])->name('receiverpendingmaterial');
+Route::get('itemstockval', [InventoryController::class, 'itemstockval'])->name('itemstockval');
+Route::get('exportrecipemaster', [InventoryController::class, 'exportRecipeMaster'])->name('exportrecipemaster');
