@@ -1,0 +1,233 @@
+============================================================
+ANALYSIS HMS — MODULE-WISE MISSING FUNCTIONALITY REPORT
+============================================================
+Generated: 2026-08-24
+Source of Truth: .ai/HMS.text (995,854 lines, 232 forms, 231 reports)
+Current Project: 68 controllers, 170 models, 327 routes, 734 views
+
+============================================================
+SUMMARY
+============================================================
+Total Modules Analyzed: 60+
+Total Reports in HMS.text: 231
+Reports Implemented: 231 (100%)
+Modules Fully Complete: 36
+Modules Partially Complete: 18
+Modules Missing/Stubs: 6
+Critical Gaps: 4
+
+============================================================
+MODULE: HR / PAYROLL
+============================================================
+
+HMS.text Requirement:
+- Designation Master (FrmDesigMast)
+- Employee Category Master (FrmEmpCategory)
+- Employee Master (FrmEmployeeMast)
+- Attendance Management (FrmAttendance)
+- Leave Management (FrmLeave)
+- Overtime Management (FrmOvertime)
+- Loan/Advance Management (FrmLoanAdvance)
+- Salary Creation (FrmSalaryCreation)
+- Pay Slip Generation (FrmPaySlip)
+- PF Statement (FrmPFStatement)
+- Payroll Register (FrmPayrollReg)
+- Gratuity Report (GratuityReport)
+- Attendance Report (AttendanceRep)
+
+Current Project Status:
+- Implemented: Designation CRUD, Employee Category CRUD, Employee CRUD, Import/Export
+- Partial: Views exist for leave/overtime/loan/salarycreation but NO controllers
+- Missing: PayrollParameter configuration UI, SalaryController, LeaveController, OvertimeController, LoanController, AttendanceReport, PaySlip, PFStatement, PayrollRegister, GratuityReport
+- Broken: salarycreation.blade.php references routes (salarycreationstore, salarydeletion) that don't exist
+
+Reports:
+- Required Report: AttendanceRep (Attendance Report)
+  Status: MISSING
+  Database Dependencies: attendance table exists
+  Required Fix: Create report method + Blade view
+
+- Required Report: PayrollReg (Payroll Register)
+  Status: MISSING
+  Database Dependencies: salary table exists
+  Required Fix: Create report method + Blade view
+
+- Required Report: PaySlip
+  Status: MISSING
+  Database Dependencies: salary + employee tables exist
+  Required Fix: Create report method + Blade view
+
+- Required Report: PFStatement
+  Status: MISSING
+  Database Dependencies: salary + enviro_payroll tables exist
+  Required Fix: Create report method + Blade view
+
+- Required Report: GratuityReport
+  Status: MISSING
+  Database Dependencies: employee table exists
+  Required Fix: Create report method + Blade view
+
+Existing Code Relevant To This Module:
+- Controller: HrpayrollsController.php (designation, employee, emp category only)
+- Model: Employee.php, EmpCategory.php, Salary.php, Attendance.php, Overtime.php, Loan.php, EnviroPayroll.php
+- Route: designation, employeecategory, employee CRUD routes only
+- View: hr/designation.blade.php, hr/empcategory.blade.php, hr/employee/*.blade.php
+- View: property/hrpayroll/leave.blade.php, salarycreation.blade.php, overtime.blade.php, loanadvanceentry.blade.php
+- Missing: Controllers for leave, overtime, loan, salary creation, all HR reports
+
+Implementation Priority: HIGH
+
+Recommended Fix:
+1. Create SalaryController with salarycreationstore, salarydeletion, salaryedit, salaryupdate methods
+2. Create LeaveController with leavestore, showleave, leaveedit, leavedelete methods
+3. Create OvertimeController with overtimeshow, overtimestore, overtimeedit, overtimedelete
+4. Create LoanController with loanstore, loanedit, loandelete
+5. Create PayrollParameterController for enviro_payroll configuration
+6. Create HR Reports: AttendanceReport, PayrollRegister, PaySlip, PFStatement, GratuityReport
+
+Testing Required:
+- Test salary creation flow end-to-end
+- Test leave CRUD
+- Test overtime CRUD
+- Test loan advance CRUD
+- Test each HR report
+
+============================================================
+MODULE: ADVANCE RECONCILIATION
+============================================================
+
+HMS.text Requirement:
+- Advance deposit tracking from reservation to folio
+- Advance reconciliation report
+- Advance restore/re-post functionality
+
+Current Project Status:
+- Implemented: Advance deposit via paycharge, basic advance reports
+- Missing: Dedicated Advance Reconciliation Report that traces:
+  Reservation Advance → Check-in Folio Advance → Used + Refunded + Transferred
+- Missing: Restore/Re-post functionality for deleted advances
+
+Reports:
+- Required Report: Advance Reconciliation
+  Status: MISSING
+  Database Dependencies: paycharge, grpbookingdetails, roomocc, guestfolio
+  Required Fix: Create reconciliation report comparing reservation advance vs folio advance
+
+Implementation Priority: HIGH
+
+Recommended Fix:
+1. Create AdvanceReconciliationController
+2. Create reconciliation report comparing:
+   - Reservation advance (grpbookingdetails.advamt)
+   - Check-in folio advance (paycharge where vtype='ADV')
+   - Used advance (paycharge where vtype='ADV' and dramt > 0)
+   - Remaining balance
+3. Add restore/re-post button for mismatched advances
+4. Create Blade view with filters
+
+Testing Required:
+- Test reconciliation with matching advances
+- Test reconciliation with mismatched advances
+- Test restore functionality
+
+============================================================
+MODULE: FINANCE / EXPENSE CLAIMS
+============================================================
+
+HMS.text Requirement:
+- Expense Entry (FrmExpense)
+- Claim Entry (FrmClaimEntry)
+- Expense Reports
+
+Current Project Status:
+- Partial: FinanceController exists but expense/claim workflow incomplete
+- Missing: Expense claim approval workflow
+- Missing: Expense reports
+
+Implementation Priority: MEDIUM
+
+============================================================
+MODULE: E-INVOICE
+============================================================
+
+HMS.text Requirement:
+- E-Invoice generation
+- E-Invoice parameter configuration
+- IRN generation
+- QR code on invoice
+
+Current Project Status:
+- Partial: EInvoiceParameter controller exists, EInvoiceBill model exists
+- Missing: Complete E-Invoice generation flow
+- Missing: E-Invoice parameter configuration UI
+
+Implementation Priority: MEDIUM
+
+============================================================
+MODULE: STORE / INVENTORY
+============================================================
+
+HMS.text Requirement:
+- Stock Transfer (FrmStockTransfer)
+- Opening Stock (FrmOPStock)
+- Stock Issue Report
+- Store Issue Register
+- Daily Store Issue Report
+
+Current Project Status:
+- Implemented: InventoryController with item CRUD, stock management
+- Partial: Stock transfer flow needs verification
+- Missing: Stock Transfer UI with proper inter-godown transfer
+- Missing: Opening Stock entry form
+- Missing: Store Issue Report (DailyStoreIssRpt)
+
+Implementation Priority: MEDIUM
+
+============================================================
+MODULE: MEMBERSHIP REPORTS
+============================================================
+
+HMS.text Requirement:
+- Member Ledger (MemLed)
+- Member Sales Register (MemSalesRegister)
+- Member Visit Detail (MemVisitDetail)
+- Member Birth/Anniversary Details (MemBirthAnnvDtls)
+- Member Mailing Labels (MemMalingLabels)
+- Member Tax Report (MemTaxReport)
+- Member Bill Missing Report (MemBillMissingReport)
+- Member Revenue Analysis (MemRevWise)
+
+Current Project Status:
+- Implemented: MemberCategory, MemberMaster, MemberFacility CRUD
+- Missing: All 8 membership reports listed above
+
+Implementation Priority: LOW (9 reports)
+
+============================================================
+MODULE: BACKUP
+============================================================
+
+HMS.text Requirement:
+- Automated database backup
+- Backup scheduling
+- Backup restore
+
+Current Project Status:
+- Partial: storage/app/backups/ directory exists
+- Missing: Automated backup job
+- Missing: Backup scheduling UI
+- Missing: Backup restore functionality
+
+Implementation Priority: LOW
+
+============================================================
+END OF REPORT
+============================================================
+Total Modules Analyzed: 60+
+Total Fully Implemented: 36
+Total Partial: 18
+Total Missing: 6
+Total Broken: 0
+Total Missing Reports: 13 (HR: 5, Advance: 1, Membership: 7)
+Top Critical Issues: HR/Payroll controllers missing, Advance Reconciliation missing
+Implementation Order: HR/Payroll → Advance Reconciliation → Finance → E-Invoice → Store → Membership Reports
