@@ -720,3 +720,20 @@ Route::get('analytics/load/{id}', [AnalyticsController::class, 'loadReport'])->n
 Route::get('analytics/scheduled', [AnalyticsController::class, 'scheduledReports'])->name('analytics.scheduled-reports');
 Route::post('analytics/schedule', [AnalyticsController::class, 'scheduleReport'])->name('analytics.schedule-report');
 Route::post('analytics/schedule/unschedule/{id}', [AnalyticsController::class, 'unscheduleReport'])->name('analytics.unschedule-report');
+
+// ═══════════════════════════════════════════════════════════════
+// STAFF MOBILE APP — Housekeeping & Maintenance Task Tracking
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\StaffMobileController;
+
+Route::get('staff', [StaffMobileController::class, 'dashboard'])->name('staff.dashboard');
+Route::get('staff/tasks', [StaffMobileController::class, 'taskList'])->name('staff.tasks');
+Route::get('staff/task/{taskId}/{taskType?}', [StaffMobileController::class, 'taskDetail'])->name('staff.task-detail');
+Route::post('staff/checkin', [StaffMobileController::class, 'staffCheckin'])->name('staff.checkin');
+Route::post('staff/checkout', [StaffMobileController::class, 'staffCheckout'])->name('staff.checkout');
+Route::post('staff/update-status', [StaffMobileController::class, 'updateTaskStatus'])->name('staff.update-task-status');
+Route::post('staff/save-checklist', [StaffMobileController::class, 'saveChecklist'])->name('staff.save-checklist');
+Route::get('staff/task-log', [StaffMobileController::class, 'taskLog'])->name('staff.task-log');
+Route::get('staff/productivity', [StaffMobileController::class, 'productivity'])->name('staff.productivity');
+Route::get('staff/api/tasks', [StaffMobileController::class, 'apiTasks'])->name('staff.api.tasks');
+Route::get('staff/api/qr', [StaffMobileController::class, 'apiQrScan'])->name('staff.api.qr');

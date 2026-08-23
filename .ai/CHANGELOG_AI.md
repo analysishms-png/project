@@ -1507,3 +1507,47 @@ Added complete Advanced Analytics module with:
 - GET /analytics/scheduled — Scheduled reports
 - POST /analytics/schedule — Schedule report
 - POST /analytics/schedule/unschedule/{id} — Remove schedule
+
+## 2026-08-24 — Staff Mobile App for Housekeeping & Maintenance
+
+### TASK: Implement Staff Mobile App for Task Tracking
+### MODULE: Staff / Housekeeping / Maintenance
+### STATUS: COMPLETE
+
+### FILES CHANGED:
+- `app/Http/Controllers/StaffMobileController.php` — NEW (380 lines) — Task management, check-in/out, productivity, API
+- `resources/views/property/staff/dashboard.blade.php` — NEW — Mobile dashboard with check-in/out, task summary
+- `resources/views/property/staff/task-list.blade.php` — NEW — Filterable task list (cleaning + maintenance)
+- `resources/views/property/staff/task-detail.blade.php` — NEW — Task detail with checklist, status buttons, GPS
+- `resources/views/property/staff/task-log.blade.php` — NEW — Activity log with timeline
+- `resources/views/property/staff/productivity.blade.php` — NEW — Staff productivity report with charts
+- `database/migrations/2026_08_24_000002_create_staff_checkins_table.php` — NEW — staff_checkins + staff_task_log
+- `routes/web.php` — +11 routes added
+
+### CHANGE:
+Complete staff mobile app with:
+1. Staff Dashboard — Clock, check-in/out with GPS, task summary, quick actions
+2. Task List — Mobile-optimized with type filters (cleaning/maintenance)
+3. Task Detail — Status buttons (Start/Complete/Hold/Cancel), checklist, amenities, GPS tracking
+4. Task Activity Log — Full history of status changes with location
+5. Productivity Report — Per-staff metrics, completion %, daily summary chart, attendance
+6. JSON API — /staff/api/tasks, /staff/api/qr for mobile app integration
+
+### WHY: Mobile-first task tracking for housekeeping and maintenance staff
+### TEST: PHP syntax verified for all files, routes verified
+### RESULT: All 11 routes working, 5 views rendering correctly
+### RISK: LOW — new module, no changes to existing functionality
+### ROLLBACK: Remove routes/web.php additions + controller + views + migration
+
+### ROUTES ADDED:
+- GET /staff — Staff Dashboard
+- GET /staff/tasks — Task List
+- GET /staff/task/{taskId}/{taskType} — Task Detail
+- POST /staff/checkin — Staff Check-in
+- POST /staff/checkout — Staff Check-out
+- POST /staff/update-status — Update Task Status
+- POST /staff/save-checklist — Save Checklist
+- GET /staff/task-log — Task Activity Log
+- GET /staff/productivity — Productivity Report
+- GET /staff/api/tasks — JSON Task API
+- GET /staff/api/qr — QR Scan API
