@@ -52,7 +52,7 @@ class ChainController extends Controller
             $monthRevenue = Paycharge::where('propertyid', $pid)
                 ->where('vdate', '>=', $monthStart)
                 ->where('vtype', '!=', 'ADV')
-                ->sum('dramt');
+                ->sum('amtdr');
 
             // POS revenue
             $posRevenue = Sale1::where('propertyid', $pid)
@@ -162,7 +162,7 @@ class ChainController extends Controller
             $revenue = Paycharge::where('propertyid', $pid)
                 ->whereBetween('vdate', [$startDate, $endDate])
                 ->where('vtype', '!=', 'ADV')
-                ->sum('dramt');
+                ->sum('amtdr');
 
             // POS
             $pos = Sale1::where('propertyid', $pid)
@@ -225,7 +225,7 @@ class ChainController extends Controller
             $monthRevenue = Paycharge::where('propertyid', $pid)
                 ->where('vdate', '>=', Carbon::now()->startOfMonth()->toDateString())
                 ->where('vtype', '!=', 'ADV')
-                ->sum('dramt');
+                ->sum('amtdr');
 
             $adr = $occupied > 0 ? round($monthRevenue / max($occupied, 1), 2) : 0;
             $revpar = $totalRooms > 0 ? round($monthRevenue / max($totalRooms, 1), 2) : 0;

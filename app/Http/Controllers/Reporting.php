@@ -11093,15 +11093,13 @@ class Reporting extends Controller
 
       $rows = DB::table('sale1')
          ->join('sale2 as S2', 'S2.docid', '=', 'sale1.docid')
-         ->leftJoin('rest_mast as RM', 'RM.restcode', '=', 'sale1.restcode')
-         ->leftJoin('room_mast as room', 'room.roomno', '=', 'sale1.roomno')
          ->where('sale1.propertyid', $this->propertyid)
          ->whereBetween('sale1.saledate', [$fromdate, $todate])
          ->select(
             'sale1.saledate',
             'sale1.docid',
             'sale1.billno',
-            'RM.restname as outlet',
+            'sale1.restcode as outlet',
             'sale1.roomno',
             'sale1.guestname',
             'sale1.pMode',
@@ -11112,7 +11110,7 @@ class Reporting extends Controller
             'sale1.u_name as user'
          )
          ->groupBy('sale1.docid', 'sale1.saledate', 'sale1.billno', 'sale1.restcode',
-                   'sale1.roomno', 'sale1.guestname', 'sale1.pMode', 'RM.restname', 'sale1.u_name')
+                   'sale1.roomno', 'sale1.guestname', 'sale1.pMode', 'sale1.u_name')
          ->orderBy('sale1.saledate')
          ->orderBy('sale1.billno')
          ->get();
@@ -11574,17 +11572,16 @@ class Reporting extends Controller
       $todate = $request->input('todate');
       if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
       $rows = DB::table('sale1')
-         ->leftJoin('rest_mast as RM', 'RM.restcode', '=', 'sale1.restcode')
          ->where('sale1.propertyid', $this->propertyid)
          ->whereBetween('sale1.saledate', [$fromdate, $todate])
          ->where('sale1.pMode', 'Cash')
          ->select(
-            'sale1.saledate', 'sale1.billno', 'RM.restname as outlet',
+            'sale1.saledate', 'sale1.billno', 'sale1.restcode as outlet',
             'sale1.guestname', 'sale1.roomno',
             DB::raw('SUM(sale1.billamount) AS netamt'),
             'sale1.u_name as cashier'
          )
-         ->groupBy('sale1.docid', 'sale1.saledate', 'sale1.billno', 'RM.restname', 'sale1.guestname', 'sale1.roomno', 'sale1.pMode', 'sale1.u_name')
+         ->groupBy('sale1.docid', 'sale1.saledate', 'sale1.billno', 'sale1.restcode', 'sale1.guestname', 'sale1.roomno', 'sale1.pMode', 'sale1.u_name')
          ->orderBy('sale1.saledate')
          ->get();
       return response()->json(['data' => $rows, 'total' => $rows->sum('netamt')]);
@@ -11601,18 +11598,17 @@ class Reporting extends Controller
       $todate = $request->input('todate');
       if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
       $rows = DB::table('sale1')
-         ->leftJoin('rest_mast as RM', 'RM.restcode', '=', 'sale1.restcode')
          ->where('sale1.propertyid', $this->propertyid)
          ->whereBetween('sale1.saledate', [$fromdate, $todate])
          ->select(
-            'RM.restname as outlet',
+            'sale1.restcode as outlet',
             'sale1.u_name as cashier',
             'sale1.pMode',
             DB::raw('COUNT(DISTINCT sale1.docid) AS bills'),
             DB::raw('SUM(sale1.billamount) AS netamt')
          )
-         ->groupBy('RM.restname', 'sale1.u_name', 'sale1.pMode')
-         ->orderBy('RM.restname')
+         ->groupBy('sale1.restcode', 'sale1.u_name', 'sale1.pMode')
+         ->orderBy('sale1.restcode')
          ->orderBy('sale1.u_name')
          ->get();
       return response()->json(['data' => $rows]);

@@ -361,7 +361,7 @@ class CommunicationController extends Controller
         $billAmount = Paycharge::where('propertyid', $propertyid)
             ->where('refdocid', $docid)
             ->where('vtype', '!=', 'ADV')
-            ->sum('dramt');
+            ->sum('amtdr');
 
         $templateMsg = $wpenv->billmsgguest ?? "Thank you for staying with us! Bill Amount: {bill_amount} for Room {room_no}. We look forward to welcoming you again.";
 

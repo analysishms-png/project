@@ -104,7 +104,7 @@ class AnalyticsController extends Controller
         $dataSources = [
             'paycharge' => [
                 'label' => 'Guest Transactions (PayCharge)',
-                'columns' => ['vdate', 'vtype', 'docid', 'roomno', 'accode', 'dramt', 'cramt', 'narration', 'guestname', 'foliono'],
+                'columns' => ['vdate', 'vtype', 'docid', 'roomno', 'accode', 'amtdr', 'amtcr', 'narration', 'guestname', 'foliono'],
                 'filters' => ['vdate', 'vtype', 'roomno', 'accode', 'vprefix'],
             ],
             'roomocc' => [
@@ -310,7 +310,7 @@ class AnalyticsController extends Controller
             ->where('propertyid', $prpid)
             ->where('vtype', '!=', 'ADV')
             ->whereBetween('vdate', [$from, $to])
-            ->sum('dramt');
+            ->sum('amtdr');
 
         $posRevenue = DB::table('sale1')
             ->where('propertyid', $prpid)
@@ -326,7 +326,7 @@ class AnalyticsController extends Controller
             ->where('propertyid', $prpid)
             ->where('vtype', '!=', 'ADV')
             ->whereBetween('vdate', [$from, $to])
-            ->sum('cramt');
+            ->sum('amtcr');
 
         // Check-ins in period
         $checkins = DB::table('roomocc')
@@ -357,7 +357,7 @@ class AnalyticsController extends Controller
         // Outstanding
         $outstanding = DB::table('paycharge')
             ->where('propertyid', $prpid)
-            ->selectRaw('SUM(dramt - cramt) as balance')
+            ->selectRaw('SUM(amtdr - amtcr) as balance')
             ->havingRaw('balance > 0')
             ->value('balance') ?? 0;
 
@@ -386,7 +386,7 @@ class AnalyticsController extends Controller
             ->where('propertyid', $prpid)
             ->where('vtype', '!=', 'ADV')
             ->whereBetween('vdate', [$from, $to])
-            ->selectRaw('vdate, SUM(dramt) as room_rev, SUM(cramt) as payments')
+            ->selectRaw('vdate, SUM(amtdr) as room_rev, SUM(amtcr) as payments')
             ->groupBy('vdate')
             ->orderBy('vdate')
             ->get();
@@ -478,7 +478,7 @@ class AnalyticsController extends Controller
             ->where('propertyid', $prpid)
             ->where('vtype', '!=', 'ADV')
             ->whereBetween('vdate', [$from, $to])
-            ->sum('dramt');
+            ->sum('amtdr');
 
         $posRev = DB::table('sale1')
             ->where('propertyid', $prpid)
