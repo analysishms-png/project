@@ -959,3 +959,16 @@ Route::get('membership/birth-anniversary', [MembershipReportController::class, '
 Route::get('membership/mailing-labels', [MembershipReportController::class, 'memberMailingLabels'])->name('membership.mailing-labels');
 Route::get('membership/tax-report', [MembershipReportController::class, 'memberTaxReport'])->name('membership.tax-report');
 Route::get('membership/bill-missing', [MembershipReportController::class, 'memberBillMissingReport'])->name('membership.bill-missing');
+
+// ═══════════════════════════════════════════════════════════════
+// DATABASE BACKUP — Dashboard, create, download, delete, schedule
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\DatabaseBackupController;
+
+Route::get('backup', [BackupController::class, 'index'])->name('backup.index');
+Route::post('backup/create', [DatabaseBackupController::class, 'createBackup'])->name('backup.create');
+Route::get('backup/download/{filename}', [DatabaseBackupController::class, 'downloadBackup'])->name('backup.download');
+Route::delete('backup/delete/{filename}', [DatabaseBackupController::class, 'deleteBackup'])->name('backup.delete');
+Route::get('backup/schedule', [DatabaseBackupController::class, 'scheduleSettings'])->name('backup.schedule');
+Route::post('backup/schedule/save', [DatabaseBackupController::class, 'saveSchedule'])->name('backup.save-schedule');
+Route::get('backup/run-scheduled', [DatabaseBackupController::class, 'runScheduledBackup'])->name('backup.run-scheduled');
