@@ -11543,4 +11543,154 @@ class Reporting extends Controller
       if (!$fromdate || !$todate) return response()->json(['error' => 'From and To dates required']);
       return response()->json(['rows' => $this->batchchallrows($fromdate, $todate, true)]);
    }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BATCH D: POS/STORE/PURCHASE REPORTS (codes 131213-131217)
+   // Legacy refs: "CashierSale", "CashierSummary", "StoreIssueReport",
+   //               "PurchaseLedger", "CashCreditPurch"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   private function batchdguard($code, $view)
+   {
+      $p = revokeopen($code);
+      if (is_null($p) || $p->view == 0) abort(403, 'No permission');
+      $fromdate = $this->ncurdate;
+      $todate = $this->ncurdate;
+      return view($view, compact('fromdate', 'todate'));
+   }
+
+   public function cashiersale(Request $request)
+   {
+      return $this->batchdguard(131213, 'property.cashiersale');
+   }
+
+   public function cashiersalefetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
+      $rows = DB::table('sale1')
+         ->leftJoin('rest_mast as RM', 'RM.restcode', '=', 'sale1.restcode')
+         ->where('sale1.propertyid', $this->propertyid)
+         ->whereBetween('sale1.saledate', [$fromdate, $todate])
+         ->where('sale1.pMode', 'Cash')
+         ->select(
+            'sale1.saledate', 'sale1.billno', 'RM.restname as outlet',
+            'sale1.guestname', 'sale1.roomno',
+            DB::raw('SUM(sale1.billamount) AS netamt'),
+            'sale1.u_name as cashier'
+         )
+         ->groupBy('sale1.docid', 'sale1.saledate', 'sale1.billno', 'RM.restname', 'sale1.guestname', 'sale1.roomno', 'sale1.pMode', 'sale1.u_name')
+         ->orderBy('sale1.saledate')
+         ->get();
+      return response()->json(['data' => $rows, 'total' => $rows->sum('netamt')]);
+   }
+
+   public function cashiersummary(Request $request)
+   {
+      return $this->batchdguard(131214, 'property.cashiersummary');
+   }
+
+   public function cashiersummaryfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
+      $rows = DB::table('sale1')
+         ->leftJoin('rest_mast as RM', 'RM.restcode', '=', 'sale1.restcode')
+         ->where('sale1.propertyid', $this->propertyid)
+         ->whereBetween('sale1.saledate', [$fromdate, $todate])
+         ->select(
+            'RM.restname as outlet',
+            'sale1.u_name as cashier',
+            'sale1.pMode',
+            DB::raw('COUNT(DISTINCT sale1.docid) AS bills'),
+            DB::raw('SUM(sale1.billamount) AS netamt')
+         )
+         ->groupBy('RM.restname', 'sale1.u_name', 'sale1.pMode')
+         ->orderBy('RM.restname')
+         ->orderBy('sale1.u_name')
+         ->get();
+      return response()->json(['data' => $rows]);
+   }
+
+   public function storeissuereport(Request $request)
+   {
+      return $this->batchdguard(131215, 'property.storeissuereport');
+   }
+
+   public function storeissuereportfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
+      $rows = DB::table('suntran')
+         ->leftJoin('itemmast as IM', 'IM.itemcode', '=', 'suntran.itemcode')
+         ->leftJoin('depart', 'depart.depcode', '=', 'suntran.deptcode')
+         ->where('suntran.propertyid', $this->propertyid)
+         ->whereBetween('suntran.sundate', [$fromdate, $todate])
+         ->where('suntran.suntypes', 'I')
+         ->select(
+            'suntran.sundate', 'suntran.vtype', 'suntran.vno',
+            'IM.itemname', 'IM.unit',
+            DB::raw('MAX(depart.depname) AS deptname'),
+            DB::raw('SUM(suntran.qty) AS qty'),
+            DB::raw('SUM(suntran.rate * suntran.qty) AS amount')
+         )
+         ->groupBy('suntran.itemcode', 'suntran.sundate', 'suntran.vtype', 'suntran.vno')
+         ->orderBy('suntran.sundate')
+         ->get();
+      return response()->json(['data' => $rows, 'total' => $rows->sum('amount')]);
+   }
+
+   public function purchaseledger(Request $request)
+   {
+      return $this->batchdguard(131216, 'property.purchaseledger');
+   }
+
+   public function purchaseledgerfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
+      $rows = DB::table('purch1')
+         ->leftJoin('sundrytype as ST', 'ST.sundrycode', '=', 'purch1.sundrycode')
+         ->where('purch1.propertyid', $this->propertyid)
+         ->whereBetween('purch1.purchdate', [$fromdate, $todate])
+         ->select(
+            'purch1.purchdate', 'purch1.billno',
+            'ST.sundtype as supplier',
+            DB::raw('SUM(purch1.billamount) AS billamount'),
+            'purch1.u_name as user'
+         )
+         ->groupBy('purch1.docid', 'purch1.purchdate', 'purch1.billno', 'ST.sundtype', 'purch1.u_name')
+         ->orderBy('purch1.purchdate')
+         ->get();
+      return response()->json(['data' => $rows, 'total' => $rows->sum('billamount')]);
+   }
+
+   public function cashcreditpurch(Request $request)
+   {
+      return $this->batchdguard(131217, 'property.cashcreditpurch');
+   }
+
+   public function cashcreditpurchfetch(Request $request)
+   {
+      $fromdate = $request->input('fromdate');
+      $todate = $request->input('todate');
+      if (!$fromdate || !$todate) return response()->json(['error' => 'dates required']);
+      $rows = DB::table('purch1')
+         ->leftJoin('sundrytype as ST', 'ST.sundrycode', '=', 'purch1.sundrycode')
+         ->where('purch1.propertyid', $this->propertyid)
+         ->whereBetween('purch1.purchdate', [$fromdate, $todate])
+         ->select(
+            'purch1.paymode',
+            DB::raw('COUNT(DISTINCT purch1.docid) AS bills'),
+            DB::raw('SUM(purch1.billamount) AS total')
+         )
+         ->groupBy('purch1.paymode')
+         ->orderBy('purch1.paymode')
+         ->get();
+      return response()->json(['data' => $rows]);
+   }
 }

@@ -674,3 +674,15 @@ Route::get('taxsummaryhall', [Reporting::class, 'taxsummaryhall'])->name('taxsum
 Route::post('taxsummaryhallfetch', [Reporting::class, 'taxsummaryhallfetch'])->name('taxsummaryhallfetch');
 Route::get('taxwisedetailreporthall', [Reporting::class, 'taxwisedetailreporthall'])->name('taxwisedetailreporthall');
 Route::post('taxwisedetailreporthallfetch', [Reporting::class, 'taxwisedetailreporthallfetch'])->name('taxwisedetailreporthallfetch');
+
+   // ===== BATCH D: POS/STORE/PURCHASE REPORTS =====
+   Route::get('cashiersale', [Reporting::class, 'cashiersale'])->name('cashiersale');
+   Route::post('cashiersalefetch', [Reporting::class, 'cashiersalefetch'])->name('cashiersalefetch');
+   Route::get('cashiersummary', [Reporting::class, 'cashiersummary'])->name('cashiersummary');
+   Route::post('cashiersummaryfetch', [Reporting::class, 'cashiersummaryfetch'])->name('cashiersummaryfetch');
+   Route::get('storeissuereport', [Reporting::class, 'storeissuereport'])->name('storeissuereport');
+   Route::post('storeissuereportfetch', [Reporting::class, 'storeissuereportfetch'])->name('storeissuereportfetch');
+   Route::get('purchaseledger', [Reporting::class, 'purchaseledger'])->name('purchaseledger');
+   Route::post('purchaseledgerfetch', [Reporting::class, 'purchaseledgerfetch'])->name('purchaseledgerfetch');
+   Route::get('cashcreditpurch', [Reporting::class, 'cashcreditpurch'])->name('cashcreditpurch');
+   Route::post('cashcreditpurchfetch', [Reporting::class, 'cashcreditpurchfetch'])->name('cashcreditpurchfetch');
