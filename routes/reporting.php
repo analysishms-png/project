@@ -640,20 +640,20 @@ Route::post('travelagentanalysisfetch', [Reporting::class, 'travelagentanalysisf
    Route::post('resvadvrecdinhousefetch', [Reporting::class, 'resvadvrecdinhousefetch'])->name('resvadvrecdinhousefetch');
 
    // ===== HMS.text Missing Reports - Batch B (Accounts) =====
-   Route::get('bankreg', [Reporting::class, 'bankreg']);
-   Route::post('bankregfetch', [Reporting::class, 'bankregfetch']);
+   Route::get('bankreg', [Reporting::class, 'bankreg'])->name('bankreg');
+   Route::post('bankregfetch', [Reporting::class, 'bankregfetch'])->name('bankregfetch');
 
-   Route::get('ledgercred', [Reporting::class, 'ledgercred']);
-   Route::post('ledgercredfetch', [Reporting::class, 'ledgercredfetch']);
+   Route::get('ledgercred', [Reporting::class, 'ledgercred'])->name('ledgercred');
+   Route::post('ledgercredfetch', [Reporting::class, 'ledgercredfetch'])->name('ledgercredfetch');
 
-   Route::get('controlledaccounts', [Reporting::class, 'controlledaccounts']);
-   Route::post('controlledaccountsfetch', [Reporting::class, 'controlledaccountsfetch']);
+   Route::get('controlledaccounts', [Reporting::class, 'controlledaccounts'])->name('controlledaccounts');
+   Route::post('controlledaccountsfetch', [Reporting::class, 'controlledaccountsfetch'])->name('controlledaccountsfetch');
 
-   Route::get('partywiseoutstanding', [Reporting::class, 'partywiseoutstanding']);
-   Route::post('partywiseoutstandingfetch', [Reporting::class, 'partywiseoutstandingfetch']);
+   Route::get('partywiseoutstanding', [Reporting::class, 'partywiseoutstanding'])->name('partywiseoutstanding');
+   Route::post('partywiseoutstandingfetch', [Reporting::class, 'partywiseoutstandingfetch'])->name('partywiseoutstandingfetch');
 
-   Route::get('pmtbycashier', [Reporting::class, 'pmtbycashier']);
-   Route::post('pmtbycashierfetch', [Reporting::class, 'pmtbycashierfetch']);
+   Route::get('pmtbycashier', [Reporting::class, 'pmtbycashier'])->name('pmtbycashier');
+   Route::post('pmtbycashierfetch', [Reporting::class, 'pmtbycashierfetch'])->name('pmtbycashierfetch');
 
    // ===== SALES DAY BOOK + STOCK LEDGER (HMS.text missing reports) =====
    Route::get('salesdaybook', [Reporting::class, 'salesdaybook'])->name('salesdaybook');
