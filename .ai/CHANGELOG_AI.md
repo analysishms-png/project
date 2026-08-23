@@ -1705,3 +1705,19 @@ Batch B fetches on prop-103: bankreg All=4/Cleared=2/Pending=2, ledgercred
 Supplier=1 Customer=1, controlledaccounts=10, partywiseoutstanding recv=15000,
 pmtbycashier cashier/mode/date groupings OK; stockledger 184 txns/34 items.
 ## RISK: LOW-MEDIUM (new reports additive; fixes touch existing queries)
+
+## 2026-08-23 | BATCH C GST/TAX REPORTS + MORE PRE-EXISTING BUG FIXES
+## CHANGE:
+- Added Batch C tax reports (codes 131231-131236): /taxdetails /taxregister
+  /taxwisesale /taxreporthall /taxsummaryhall /taxwisedetailreporthall with
+  controller methods, routes, radio-JS views; permissions seeded (96 rows)
+- FIXED gstconsolidatedregisterfetch banquet section: sundrytype join used
+  nonexistent ST.rev_code -> revcode; hallbook HB.PartyCode -> companycode;
+  HB.NetAmt (no such column) -> base+taxes computed NetAmt
+- Seeded demo suntranh CGST/SGST lines on hallbook docid 103BBA202606160001
+## TEST: php -l OK; blade compile 779/779 OK; route:list OK;
+Batch C: taxdetails 13 rows (Room3/POS10/Banquet2), taxregister 2 rate groups,
+taxwisesale 2 rows tax=512.70, hall reports show CHAUDHARY PARTY bill
+(base 50000, cgst+sgst 2500); gstconsolidated now returns 11 rows.
+Regression Batch A (12/12) + Batch B all pass.
+## RISK: LOW-MEDIUM (new additive routes; fixed 3 broken joins in existing report)

@@ -6594,9 +6594,13 @@ class Reporting extends Controller
                   "SUM(CASE WHEN ST.nature='SGST' THEN SH.amount ELSE 0 END) AS SGSTAmt"
                ),
                DB::raw(
-                  "SUM(CASE WHEN ST.nature='IGST' THEN SH.amount ELSE 0 END) AS IGSTAmt"
+                   "SUM(CASE WHEN ST.nature='IGST' THEN SH.amount ELSE 0 END) AS IGSTAmt"
                ),
-               'HB.NetAmt AS NetAmt'
+               DB::raw(
+                  "SH.baseamount + SUM(CASE WHEN ST.nature='CGST' THEN SH.amount ELSE 0 END)"
+                  . " + SUM(CASE WHEN ST.nature='SGST' THEN SH.amount ELSE 0 END)"
+                  . " + SUM(CASE WHEN ST.nature='IGST' THEN SH.amount ELSE 0 END) AS NetAmt"
+               )
             )
             ->where('SH.propertyid', $propertyid)
             ->where('SH.delflag', 'N')
@@ -6605,7 +6609,7 @@ class Reporting extends Controller
                $q->where('SH.svalue', '>', 0)
                   ->where('SH.amount', '>', 0);
             })
-            ->groupBy('SH.docid', 'SH.baseamount', 'SH.svalue', 'HB.VNo', 'HB.VDate', 'HB.NetAmt', 'SG.GSTIN', 'SG.Name')
+            ->groupBy('SH.docid', 'SH.baseamount', 'SH.svalue', 'HB.VNo', 'HB.VDate', 'SG.GSTIN', 'SG.Name')
             ->havingRaw('ABS(CGSTAmt + SGSTAmt + IGSTAmt) > 0')
             ->get();
 
@@ -11220,7 +11224,7 @@ class Reporting extends Controller
                DB::raw("'Room' AS src"),
                'P.foliono AS billno',
                'P.settledate AS vdate',
-               DB::raw("TRIM(COALESCE(SG.Name,HB.partyname,'')) AS party"),
+               DB::raw("TRIM(COALESCE(SG.Name,'')) AS party"),
                'P.onamt AS base',
                'P.taxper AS taxper',
                DB::raw("SUM(CASE WHEN P.paycode LIKE 'CGSS%' THEN P.amtdr-P.amtcr ELSE 0 END) AS cgst"),
@@ -11258,7 +11262,7 @@ class Reporting extends Controller
                'S1.VNo AS billno',
                'S1.VDate AS vdate',
                'S2.restcode AS outlet',
-               DB::raw("TRIM(COALESCE(SG.Name,HB.partyname,'')) AS party"),
+               DB::raw("TRIM(COALESCE(SG.Name,'')) AS party"),
                'S2.taxper AS taxper',
                DB::raw('SUM(S2.basevalue) AS base'),
                DB::raw("SUM(CASE WHEN S2.taxcode LIKE 'CGSS%' THEN S2.taxamt ELSE 0 END) AS cgst"),
