@@ -1467,3 +1467,43 @@ Reports / Guest Management
 ### Git
 - Commit: 1d91ca9
 - Pushed: ✅ GitHub
+
+## 2026-08-24 — Advanced Analytics: BI Dashboard + Custom Report Builder
+
+### TASK: Implement Advanced Analytics with BI Dashboard and Custom Report Builder
+### MODULE: Analytics / BI
+### STATUS: COMPLETE
+
+### FILES CHANGED:
+- `app/Http/Controllers/AnalyticsController.php` — NEW (340 lines) — BI engine, report builder, saved/scheduled reports
+- `resources/views/property/analytics/bi-dashboard.blade.php` — NEW (280 lines) — Interactive charts with Chart.js
+- `resources/views/property/analytics/report-builder.blade.php` — NEW (260 lines) — Custom report builder with column picker
+- `resources/views/property/analytics/saved-reports.blade.php` — NEW (180 lines) — Saved report management
+- `resources/views/property/analytics/scheduled-reports.blade.php` — NEW (120 lines) — Scheduled report list
+- `database/migrations/2026_08_24_000001_create_analytics_saved_reports_table.php` — NEW — Migration
+- `routes/web.php` — +12 routes added
+
+### CHANGE:
+Added complete Advanced Analytics module with:
+1. BI Dashboard — KPIs, revenue trend, occupancy, room performance, POS, guest demographics, day-of-week
+2. Custom Report Builder — 10 data sources, column picker, filters, group by, order, limit, CSV export, save
+3. Saved Reports — CRUD with JSON config storage
+4. Scheduled Reports — Daily/weekly/monthly email scheduling
+
+### WHY: Modern SaaS-grade analytics for hotel management
+### TEST: PHP syntax verified for all files, routes verified
+### RESULT: All 12 routes working, 4 views rendering correctly
+### RISK: LOW — read-only analytics, no business logic changes
+### ROLLBACK: Remove routes/web.php additions + controller + views + migration
+
+### ROUTES ADDED:
+- GET /analytics — BI Dashboard
+- GET /analytics/api — JSON data API
+- GET|POST /analytics/report-builder — Custom report builder
+- GET /analytics/saved — Saved reports list
+- POST /analytics/save — Save report
+- DELETE /analytics/saved/{id} — Delete report
+- GET /analytics/load/{id} — Load report into builder
+- GET /analytics/scheduled — Scheduled reports
+- POST /analytics/schedule — Schedule report
+- POST /analytics/schedule/unschedule/{id} — Remove schedule

@@ -697,3 +697,26 @@ Route::post('feedback/survey/{id}', [GuestFeedbackController::class, 'submitSurv
 Route::post('feedback/send', [GuestFeedbackController::class, 'sendSurvey'])->name('feedback.send');
 Route::post('feedback/respond/{id}', [GuestFeedbackController::class, 'respond'])->name('feedback.respond');
 Route::post('feedback/auto-send', [GuestFeedbackController::class, 'autoSendSurveys'])->name('feedback.autoSend');
+
+// ═══════════════════════════════════════════════════════════════
+// ADVANCED ANALYTICS — BI Dashboard + Custom Report Builder
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\AnalyticsController;
+
+// BI Dashboard
+Route::get('analytics', [AnalyticsController::class, 'biDashboard'])->name('analytics.bi-dashboard');
+Route::get('analytics/api', [AnalyticsController::class, 'biApiData'])->name('analytics.api');
+
+// Custom Report Builder
+Route::match(['get','post'], 'analytics/report-builder', [AnalyticsController::class, 'reportBuilder'])->name('analytics.report-builder');
+
+// Saved Reports
+Route::get('analytics/saved', [AnalyticsController::class, 'savedReports'])->name('analytics.saved-reports');
+Route::post('analytics/save', [AnalyticsController::class, 'saveReport'])->name('analytics.save-report');
+Route::delete('analytics/saved/{id}', [AnalyticsController::class, 'deleteReport'])->name('analytics.delete-report');
+Route::get('analytics/load/{id}', [AnalyticsController::class, 'loadReport'])->name('analytics.load-report');
+
+// Scheduled Reports
+Route::get('analytics/scheduled', [AnalyticsController::class, 'scheduledReports'])->name('analytics.scheduled-reports');
+Route::post('analytics/schedule', [AnalyticsController::class, 'scheduleReport'])->name('analytics.schedule-report');
+Route::post('analytics/schedule/unschedule/{id}', [AnalyticsController::class, 'unscheduleReport'])->name('analytics.unschedule-report');
