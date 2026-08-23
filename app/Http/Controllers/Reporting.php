@@ -11750,4 +11750,130 @@ class Reporting extends Controller
          ->orderBy('sale1.saledate')->get();
       return response()->json(['data'=>$rows,'total'=>$rows->sum('total')]);
    }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BATCH F: HALL/STORE/ISSUE REPORTS (codes 131222-131226)
+   // Legacy refs: "SettleRepHall", "IssueReg", "IssueRegister", "StoreIssReg", "DailyStoreIssRpt"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   private function batchfguard($code, $view) { $p = revokeopen($code); if (is_null($p) || $p->view == 0) abort(403, 'No permission'); $fd = $this->ncurdate; $td = $this->ncurdate; return view($view, compact('fd', 'td')); }
+
+   public function settlerephall(Request $r) { return $this->batchfguard(131222, 'property.settlerephall'); }
+   public function settlerephallfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('hallbook as HB')
+         ->leftJoin('hallsale1 as HS1','HS1.bookingdocid','=','HB.DocId')
+         ->where('HB.propertyid',$this->propertyid)->whereBetween('HB.vdate',[$fd,$td])
+         ->select('HB.DocId','HB.vdate','HB.partyname','HB.func_name',
+            DB::raw('COALESCE(HS1.netamt,0) AS netamt'),DB::raw('COALESCE(HS1.advance,0) AS advance'),
+            DB::raw('COALESCE(HS1.netamt,0) - COALESCE(HS1.advance,0) AS balance'),
+            DB::raw('COALESCE(HS1.settledate,\'\') AS settledate'))
+         ->groupBy('HB.DocId','HB.vdate','HB.partyname','HB.func_name','HS1.netamt','HS1.advance','HS1.settledate')
+         ->orderBy('HB.vdate')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   public function issuereg(Request $r) { return $this->batchfguard(131223, 'property.issuereg'); }
+   public function issueregfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('stock')->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','stock.item')->on('IM.Property_ID','=','stock.propertyid');})
+         ->where('stock.propertyid',$this->propertyid)->where('stock.delflag','N')->whereBetween('stock.vdate',[$fd,$td])
+         ->where('stock.qtyiss','>',0)
+         ->select('stock.vdate','stock.vtype','stock.vno','stock.docid','IM.Name as itemname',
+            DB::raw('SUM(stock.qtyiss) AS qty'),DB::raw('SUM(stock.amount) AS amount'))
+         ->groupBy('stock.docid')->orderBy('stock.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   public function issueregister(Request $r) { return $this->batchfguard(131224, 'property.issueregister'); }
+   public function issueregisterfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('stock')->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','stock.item')->on('IM.Property_ID','=','stock.propertyid');})
+         ->where('stock.propertyid',$this->propertyid)->where('stock.delflag','N')->whereBetween('stock.vdate',[$fd,$td])
+         ->where('stock.qtyiss','>',0)
+         ->select('stock.item',DB::raw('MAX(IM.Name) AS itemname'),DB::raw('MAX(IM.Unit) AS unit'),
+            DB::raw('SUM(stock.qtyiss) AS qty'),DB::raw('SUM(stock.amount) AS amount'))
+         ->groupBy('stock.item')->orderBy('IM.Name')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   public function storeissreg(Request $r) { return $this->batchfguard(131225, 'property.storeissreg'); }
+   public function storeissregfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('stock')->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','stock.item')->on('IM.Property_ID','=','stock.propertyid');})
+         ->leftJoin('depart as D','D.dcode','=','stock.restcode')
+         ->where('stock.propertyid',$this->propertyid)->where('stock.delflag','N')->whereBetween('stock.vdate',[$fd,$td])
+         ->where('stock.qtyiss','>',0)
+         ->select(DB::raw('MAX(D.depname) AS deptname'),
+            DB::raw('SUM(stock.qtyiss) AS qty'),DB::raw('SUM(stock.amount) AS amount'))
+         ->groupBy('stock.restcode')->orderBy('D.depname')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   public function dailystoreissrpt(Request $r) { return $this->batchfguard(131226, 'property.dailystoreissrpt'); }
+   public function dailystoreissrptfetch(Request $r) {
+      $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
+      $rows=DB::table('stock')->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','stock.item')->on('IM.Property_ID','=','stock.propertyid');})
+         ->where('stock.propertyid',$this->propertyid)->where('stock.delflag','N')->where('stock.vdate','=',$fd)
+         ->where('stock.qtyiss','>',0)
+         ->select('stock.vdate','stock.vtype','stock.vno','IM.Name as itemname',
+            DB::raw('SUM(stock.qtyiss) AS qty'),DB::raw('SUM(stock.amount) AS amount'))
+         ->groupBy('stock.docid')->orderBy('stock.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // BATCH G: STOCK/SALES ANALYSIS REPORTS (codes 131227-131230)
+   // Legacy refs: "StockRegStore", "StockSummStore", "ItemWiseGroupWiseSale", "MonthOutletWiseSale"
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   private function batchgguard($code, $view) { $p = revokeopen($code); if (is_null($p) || $p->view == 0) abort(403, 'No permission'); $fd = $this->ncurdate; $td = $this->ncurdate; return view($view, compact('fd', 'td')); }
+
+   public function stockregstore(Request $r) { return $this->batchgguard(131227, 'property.stockregstore'); }
+   public function stockregstorefetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('stock')->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','stock.item')->on('IM.Property_ID','=','stock.propertyid');})
+         ->where('stock.propertyid',$this->propertyid)->where('stock.delflag','N')->whereBetween('stock.vdate',[$fd,$td])
+         ->select('stock.item',DB::raw('MAX(IM.Name) AS itemname'),DB::raw('MAX(IM.Unit) AS unit'),
+            DB::raw('SUM(stock.qtyrec) AS receipt'),DB::raw('SUM(stock.qtyiss) AS issue'),
+            DB::raw('SUM(stock.qtyrec - stock.qtyiss) AS closing'),
+            DB::raw('SUM(stock.amount) AS amount'))
+         ->groupBy('stock.item')->orderBy('IM.Name')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   public function stocksummstore(Request $r) { return $this->batchgguard(131228, 'property.stocksummstore'); }
+   public function stocksummstorefetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('stock')->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','stock.item')->on('IM.Property_ID','=','stock.propertyid');})
+         ->leftJoin('itemgrp as IG','IG.Code','=','IM.ItemGroup')
+         ->where('stock.propertyid',$this->propertyid)->where('stock.delflag','N')->whereBetween('stock.vdate',[$fd,$td])
+         ->select(DB::raw('MAX(IG.Name) AS groupname'),DB::raw('SUM(stock.qtyrec) AS receipt'),
+            DB::raw('SUM(stock.qtyiss) AS issue'),DB::raw('SUM(stock.amount) AS amount'))
+         ->groupBy('IM.ItemGroup')->orderBy('IG.Name')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   public function itemwisegroupwisesale(Request $r) { return $this->batchgguard(131229, 'property.itemwisegroupwisesale'); }
+   public function itemwisegroupwisesalefetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('sale2 as S2')->join('sale1 as S1','S1.docid','=','S2.docid')
+         ->leftJoin('itemmast as IM',function($j){$j->on('IM.Code','=','S2.item')->on('IM.Property_ID','=','S1.propertyid');})
+         ->leftJoin('itemgrp as IG','IG.Code','=','IM.ItemGroup')
+         ->where('S1.propertyid',$this->propertyid)->whereBetween('S1.saledate',[$fd,$td])
+         ->select(DB::raw('MAX(IG.Name) AS groupname'),DB::raw('MAX(IM.Name) AS itemname'),
+            DB::raw('SUM(S2.qty) AS qty'),DB::raw('SUM(S2.amt) AS amount'))
+         ->groupBy('S2.item')->orderBy('IG.Name')->orderBy('IM.Name')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('amount')]);
+   }
+
+   public function monthoutletwisesale(Request $r) { return $this->batchgguard(131230, 'property.monthoutletwisesale'); }
+   public function monthoutletwisesalefetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('sale1')->where('sale1.propertyid',$this->propertyid)->whereBetween('sale1.saledate',[$fd,$td])
+         ->select(DB::raw('DATE_FORMAT(sale1.saledate,\'%Y-%m\') AS month'),DB::raw('MAX(sale1.restcode) AS outlet'),
+            DB::raw('COUNT(DISTINCT sale1.docid) AS bills'),DB::raw('SUM(sale1.billamount) AS total'))
+         ->groupBy(DB::raw('DATE_FORMAT(sale1.saledate,\'%Y-%m\'), sale1.restcode'))->orderBy('month')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('total')]);
+   }
 }

@@ -696,3 +696,25 @@ Route::post('taxwisedetailreporthallfetch', [Reporting::class, 'taxwisedetailrep
    Route::post('kitchenstksummfetch', [Reporting::class, 'kitchenstksummfetch'])->name('kitchenstksummfetch');
    Route::get('saleregisteri', [Reporting::class, 'saleregisteri'])->name('saleregisteri');
    Route::post('saleregisterifetch', [Reporting::class, 'saleregisterifetch'])->name('saleregisterifetch');
+
+   // ===== BATCH F: HALL/STORE/ISSUE REPORTS =====
+   Route::get('settlerephall', [Reporting::class, 'settlerephall'])->name('settlerephall');
+   Route::post('settlerephallfetch', [Reporting::class, 'settlerephallfetch'])->name('settlerephallfetch');
+   Route::get('issuereg', [Reporting::class, 'issuereg'])->name('issuereg');
+   Route::post('issueregfetch', [Reporting::class, 'issueregfetch'])->name('issueregfetch');
+   Route::get('issueregister', [Reporting::class, 'issueregister'])->name('issueregister');
+   Route::post('issueregisterfetch', [Reporting::class, 'issueregisterfetch'])->name('issueregisterfetch');
+   Route::get('storeissreg', [Reporting::class, 'storeissreg'])->name('storeissreg');
+   Route::post('storeissregfetch', [Reporting::class, 'storeissregfetch'])->name('storeissregfetch');
+   Route::get('dailystoreissrpt', [Reporting::class, 'dailystoreissrpt'])->name('dailystoreissrpt');
+   Route::post('dailystoreissrptfetch', [Reporting::class, 'dailystoreissrptfetch'])->name('dailystoreissrptfetch');
+
+   // ===== BATCH G: STOCK/SALES ANALYSIS REPORTS =====
+   Route::get('stockregstore', [Reporting::class, 'stockregstore'])->name('stockregstore');
+   Route::post('stockregstorefetch', [Reporting::class, 'stockregstorefetch'])->name('stockregstorefetch');
+   Route::get('stocksummstore', [Reporting::class, 'stocksummstore'])->name('stocksummstore');
+   Route::post('stocksummstorefetch', [Reporting::class, 'stocksummstorefetch'])->name('stocksummstorefetch');
+   Route::get('itemwisegroupwisesale', [Reporting::class, 'itemwisegroupwisesale'])->name('itemwisegroupwisesale');
+   Route::post('itemwisegroupwisesalefetch', [Reporting::class, 'itemwisegroupwisesalefetch'])->name('itemwisegroupwisesalefetch');
+   Route::get('monthoutletwisesale', [Reporting::class, 'monthoutletwisesale'])->name('monthoutletwisesale');
+   Route::post('monthoutletwisesalefetch', [Reporting::class, 'monthoutletwisesalefetch'])->name('monthoutletwisesalefetch');
