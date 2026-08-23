@@ -785,3 +785,58 @@ Route::prefix('smartroom')->group(function () {
     Route::post('api/scenes/{sceneId}/activate', [SmartRoomController::class, 'apiSceneActivate'])->name('smartroom.api.scene');
     Route::get('api/device/status', [SmartRoomController::class, 'apiDeviceStatus'])->name('smartroom.api.status');
 });
+
+// ═══════════════════════════════════════════════════════════════
+// HR/PAYROLL — Salary, Leave, Overtime, Loan, Reports
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\OvertimeController;
+use App\Http\Controllers\LoanController;
+
+// Payroll Parameter
+Route::get('payrollparameter', [SalaryController::class, 'payrollParameter'])->name('hr.payroll-parameter');
+Route::post('payrollparameter/save', [SalaryController::class, 'savePayrollParameter'])->name('hr.save-payroll-parameter');
+
+// Salary Creation
+Route::get('salarycreation', [SalaryController::class, 'salaryCreation'])->name('salarycreation');
+Route::post('getemployees', [SalaryController::class, 'getEmployees'])->name('getemployees');
+Route::post('salarycreationstore', [SalaryController::class, 'salaryCreationStore'])->name('salarycreationstore');
+Route::post('salarydeletion', [SalaryController::class, 'salaryDeletion'])->name('salarydeletion');
+Route::get('salarylist', [SalaryController::class, 'salaryList'])->name('hr.salary-list');
+
+// Pay Slip
+Route::get('payslip', [SalaryController::class, 'paySlip'])->name('hr.pay-slip');
+
+// Payroll Register
+Route::get('payrollregister', [SalaryController::class, 'payrollRegister'])->name('hr.payroll-register');
+
+// PF Statement
+Route::get('pfstatement', [SalaryController::class, 'pfStatement'])->name('hr.pf-statement');
+
+// Gratuity Report
+Route::get('gratuityreport', [SalaryController::class, 'gratuityReport'])->name('hr.gratuity-report');
+
+// Leave Management
+Route::get('leave', [LeaveController::class, 'index'])->name('leave');
+Route::post('showleave', [LeaveController::class, 'showLeave'])->name('showleave');
+Route::post('leavestore', [LeaveController::class, 'leaveStore'])->name('leavestore');
+Route::get('leaveedit/{id}', [LeaveController::class, 'leaveEdit'])->name('leaveedit');
+Route::post('leaveupdate/{id}', [LeaveController::class, 'leaveUpdate'])->name('leaveupdate');
+Route::post('leavedelete/{id}', [LeaveController::class, 'leaveDelete'])->name('leavedelete');
+
+// Overtime Management
+Route::get('overtime', [OvertimeController::class, 'index'])->name('overtime');
+Route::post('showovertime', [OvertimeController::class, 'showOvertime'])->name('showovertime');
+Route::post('overtimestore', [OvertimeController::class, 'overtimeStore'])->name('overtimestore');
+Route::get('overtimeedit/{id}', [OvertimeController::class, 'overtimeEdit'])->name('overtimeedit');
+Route::post('overtimeupdate/{id}', [OvertimeController::class, 'overtimeUpdate'])->name('overtimeupdate');
+Route::post('overtimedelete/{id}', [OvertimeController::class, 'overtimeDelete'])->name('overtimedelete');
+
+// Loan/Advance Management
+Route::get('loanadvance', [LoanController::class, 'index'])->name('loanadvance');
+Route::post('showloan', [LoanController::class, 'showLoan'])->name('showloan');
+Route::post('loanstore', [LoanController::class, 'loanStore'])->name('loanstore');
+Route::get('loanedit/{id}', [LoanController::class, 'loanEdit'])->name('loanedit');
+Route::post('loanupdate/{id}', [LoanController::class, 'loanUpdate'])->name('loanupdate');
+Route::post('loandelete/{id}', [LoanController::class, 'loanDelete'])->name('loandelete');
