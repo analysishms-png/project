@@ -686,3 +686,13 @@ Route::post('taxwisedetailreporthallfetch', [Reporting::class, 'taxwisedetailrep
    Route::post('purchaseledgerfetch', [Reporting::class, 'purchaseledgerfetch'])->name('purchaseledgerfetch');
    Route::get('cashcreditpurch', [Reporting::class, 'cashcreditpurch'])->name('cashcreditpurch');
    Route::post('cashcreditpurchfetch', [Reporting::class, 'cashcreditpurchfetch'])->name('cashcreditpurchfetch');
+
+   // ===== BATCH E: RESTAURANT/KITCHEN REPORTS =====
+   Route::get('restissue', [Reporting::class, 'restissue'])->name('restissue');
+   Route::post('restissuefetch', [Reporting::class, 'restissuefetch'])->name('restissuefetch');
+   Route::get('kitchenstkrep', [Reporting::class, 'kitchenstkrep'])->name('kitchenstkrep');
+   Route::post('kitchenstkrepfetch', [Reporting::class, 'kitchenstkrepfetch'])->name('kitchenstkrepfetch');
+   Route::get('kitchenstksumm', [Reporting::class, 'kitchenstksumm'])->name('kitchenstksumm');
+   Route::post('kitchenstksummfetch', [Reporting::class, 'kitchenstksummfetch'])->name('kitchenstksummfetch');
+   Route::get('saleregisteri', [Reporting::class, 'saleregisteri'])->name('saleregisteri');
+   Route::post('saleregisterifetch', [Reporting::class, 'saleregisterifetch'])->name('saleregisterifetch');
