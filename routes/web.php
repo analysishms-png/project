@@ -737,3 +737,51 @@ Route::get('staff/task-log', [StaffMobileController::class, 'taskLog'])->name('s
 Route::get('staff/productivity', [StaffMobileController::class, 'productivity'])->name('staff.productivity');
 Route::get('staff/api/tasks', [StaffMobileController::class, 'apiTasks'])->name('staff.api.tasks');
 Route::get('staff/api/qr', [StaffMobileController::class, 'apiQrScan'])->name('staff.api.qr');
+
+// ═══════════════════════════════════════════════════════════════
+// SMART ROOM IoT — Device control, scenes, energy, guest portal
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\SmartRoomController;
+
+Route::prefix('smartroom')->group(function () {
+    // Dashboard & Overview
+    Route::get('/', [SmartRoomController::class, 'dashboard'])->name('smartroom.dashboard');
+
+    // Room Control
+    Route::get('room/{roomNo}', [SmartRoomController::class, 'roomControl'])->name('smartroom.room-control');
+    Route::post('room/{roomNo}/all-on', [SmartRoomController::class, 'roomAllOn'])->name('smartroom.room-all-on');
+    Route::post('room/{roomNo}/all-off', [SmartRoomController::class, 'roomAllOff'])->name('smartroom.room-all-off');
+
+    // Device Management
+    Route::get('devices', [SmartRoomController::class, 'devices'])->name('smartroom.devices');
+    Route::post('devices/add', [SmartRoomController::class, 'addDevice'])->name('smartroom.add-device');
+    Route::post('devices/{deviceId}/update', [SmartRoomController::class, 'updateDevice'])->name('smartroom.update-device');
+    Route::post('devices/{deviceId}/delete', [SmartRoomController::class, 'deleteDevice'])->name('smartroom.delete-device');
+
+    // Device Control
+    Route::post('toggle', [SmartRoomController::class, 'toggleDevice'])->name('smartroom.toggle');
+
+    // Scenes
+    Route::get('scenes', [SmartRoomController::class, 'scenes'])->name('smartroom.scenes');
+    Route::post('scenes/create', [SmartRoomController::class, 'createScene'])->name('smartroom.create-scene');
+    Route::post('scenes/{sceneId}/activate', [SmartRoomController::class, 'activateScene'])->name('smartroom.activate-scene');
+    Route::post('scenes/{sceneId}/deactivate', [SmartRoomController::class, 'deactivateScene'])->name('smartroom.deactivate-scene');
+    Route::post('scenes/device/add', [SmartRoomController::class, 'addSceneDevice'])->name('smartroom.add-scene-device');
+    Route::post('scenes/device/{id}/remove', [SmartRoomController::class, 'removeSceneDevice'])->name('smartroom.remove-scene-device');
+
+    // Energy Monitoring
+    Route::get('energy', [SmartRoomController::class, 'energy'])->name('smartroom.energy');
+
+    // Alerts
+    Route::get('alerts', [SmartRoomController::class, 'alerts'])->name('smartroom.alerts');
+    Route::post('alerts/{alertId}/resolve', [SmartRoomController::class, 'resolveAlert'])->name('smartroom.resolve-alert');
+
+    // Guest Portal (public-facing)
+    Route::get('guest/{roomNo}', [SmartRoomController::class, 'guestPortal'])->name('smartroom.guest-portal');
+
+    // JSON API
+    Route::get('api/rooms/{roomNo}/devices', [SmartRoomController::class, 'apiRoomDevices'])->name('smartroom.api.devices');
+    Route::post('api/toggle', [SmartRoomController::class, 'apiToggle'])->name('smartroom.api.toggle');
+    Route::post('api/scenes/{sceneId}/activate', [SmartRoomController::class, 'apiSceneActivate'])->name('smartroom.api.scene');
+    Route::get('api/device/status', [SmartRoomController::class, 'apiDeviceStatus'])->name('smartroom.api.status');
+});
