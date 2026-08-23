@@ -946,3 +946,16 @@ Route::post('delaydeliveryreportfetch', [InventoryController::class, 'delayDeliv
 Route::get('receiverpendingmaterial', [InventoryController::class, 'receiverPendingMaterial'])->name('receiverpendingmaterial');
 Route::get('itemstockval', [InventoryController::class, 'itemstockval'])->name('itemstockval');
 Route::get('exportrecipemaster', [InventoryController::class, 'exportRecipeMaster'])->name('exportrecipemaster');
+
+// ═══════════════════════════════════════════════════════════════
+// MEMBERSHIP REPORTS — Ledger, Sales, Visits, Birthdays, Labels, Tax, Missing Bills
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\MembershipReportController;
+
+Route::get('membership/ledger', [MembershipReportController::class, 'memberLedger'])->name('membership.ledger');
+Route::get('membership/sales-register', [MembershipReportController::class, 'memberSalesRegister'])->name('membership.sales-register');
+Route::get('membership/visit-detail', [MembershipReportController::class, 'memberVisitDetail'])->name('membership.visit-detail');
+Route::get('membership/birth-anniversary', [MembershipReportController::class, 'memberBirthAnniversary'])->name('membership.birth-anniversary');
+Route::get('membership/mailing-labels', [MembershipReportController::class, 'memberMailingLabels'])->name('membership.mailing-labels');
+Route::get('membership/tax-report', [MembershipReportController::class, 'memberTaxReport'])->name('membership.tax-report');
+Route::get('membership/bill-missing', [MembershipReportController::class, 'memberBillMissingReport'])->name('membership.bill-missing');
