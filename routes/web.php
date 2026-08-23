@@ -845,6 +845,7 @@ Route::post('loandelete/{id}', [LoanController::class, 'loanDelete'])->name('loa
 // ═══════════════════════════════════════════════════════════════
 // ADVANCE RECONCILIATION — Connect existing controller to routes
 // ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\Reporting;
 Route::get('advreconreport', [Reporting::class, 'advreconreport'])->name('advreconreport');
 Route::post('advreconreportfetch', [Reporting::class, 'advreconreportfetch'])->name('advreconreportfetch');
 Route::post('advreconreportdetail', [Reporting::class, 'advreconreportdetail'])->name('advreconreportdetail');
