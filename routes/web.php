@@ -840,3 +840,40 @@ Route::post('loanstore', [LoanController::class, 'loanStore'])->name('loanstore'
 Route::get('loanedit/{id}', [LoanController::class, 'loanEdit'])->name('loanedit');
 Route::post('loanupdate/{id}', [LoanController::class, 'loanUpdate'])->name('loanupdate');
 Route::post('loandelete/{id}', [LoanController::class, 'loanDelete'])->name('loandelete');
+
+// ═══════════════════════════════════════════════════════════════
+// ADVANCE RECONCILIATION — Connect existing controller to routes
+// ═══════════════════════════════════════════════════════════════
+Route::get('advreconreport', [Reporting::class, 'advreconreport'])->name('advreconreport');
+Route::post('advreconreportfetch', [Reporting::class, 'advreconreportfetch'])->name('advreconreportfetch');
+Route::post('advreconreportdetail', [Reporting::class, 'advreconreportdetail'])->name('advreconreportdetail');
+Route::get('advresreport', [Reporting::class, 'advresreport'])->name('advresreport');
+Route::post('advresreportfetch', [Reporting::class, 'advresreportfetch'])->name('advresreportfetch');
+
+// ═══════════════════════════════════════════════════════════════
+// MEMBERSHIP — Category, Master, Facility
+// ═══════════════════════════════════════════════════════════════
+use App\Http\Controllers\Member\MemberCategoryController;
+use App\Http\Controllers\Member\MemberMasterController;
+use App\Http\Controllers\Member\MemberFacilityMasterController;
+
+// Member Category
+Route::get('membercategory', [MemberCategoryController::class, 'openmembercategory'])->name('membercategory');
+Route::post('membercategorystore', [MemberCategoryController::class, 'categoryStore'])->name('membercategorystore');
+Route::get('membercategoryedit/{code}', [MemberCategoryController::class, 'editcategory'])->name('membercategoryedit');
+Route::post('membercategoryupdate/{code}', [MemberCategoryController::class, 'updatecategory'])->name('membercategoryupdate');
+Route::post('membercategorydelete/{code}', [MemberCategoryController::class, 'deletecategory'])->name('membercategorydelete');
+
+// Member Master
+Route::get('membermaster', [MemberMasterController::class, 'openmembermaster'])->name('membermaster');
+Route::post('membermasterstore', [MemberMasterController::class, 'store'])->name('membermasterstore');
+Route::get('membermasteredit/{code}', [MemberMasterController::class, 'editmaster'])->name('membermasteredit');
+Route::post('membermasterupdate/{code}', [MemberMasterController::class, 'updatemaster'])->name('membermasterupdate');
+Route::post('membermasterdelete/{code}', [MemberMasterController::class, 'deletemaster'])->name('membermasterdelete');
+
+// Member Facility
+Route::get('memberfacility', [MemberFacilityMasterController::class, 'index'])->name('memberfacility');
+Route::post('memberfacilitystore', [MemberFacilityMasterController::class, 'store'])->name('memberfacilitystore');
+Route::get('memberfacilityedit/{code}', [MemberFacilityMasterController::class, 'update'])->name('memberfacilityedit');
+Route::post('memberfacilityupdate/{code}', [MemberFacilityMasterController::class, 'updatestore'])->name('memberfacilityupdate');
+Route::post('memberfacilitydelete/{code}', [MemberFacilityMasterController::class, 'delete'])->name('memberfacilitydelete');

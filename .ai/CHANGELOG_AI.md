@@ -1636,3 +1636,24 @@ Complete Smart Room IoT integration with:
 ### WHY: Complete HR/Payroll module as identified by HMS.text gap analysis
 ### TEST: PHP syntax verified for all 10 new files
 ### RISK: LOW — new controllers, no changes to existing functionality
+
+## 2026-08-24 — Connect Missing Routes (Advance Reconciliation + Membership)
+
+### TASK: Connect existing controllers/views to routes that were missing
+### MODULE: Advance Reconciliation, Membership
+### STATUS: COMPLETE
+
+### CHANGES:
+1. Added 5 routes for Advance Reconciliation Report (advreconreport, advreconreportfetch, advreconreportdetail, advresreport, advresreportfetch)
+2. Added 15 routes for Membership module (Category CRUD, Master CRUD, Facility CRUD)
+
+### EXISTING CODE NOW ACCESSIBLE:
+- Advance Reconciliation: Controller (Reporting.php) + View (advreconreport.blade.php) were already implemented
+- Advance Res Report: Controller + View (advresreport.blade.php) were already implemented
+- Member Category: Controller (MemberCategoryController.php) + Views (category.blade.php, categoryupdate.blade.php)
+- Member Master: Controller (MemberMasterController.php) + Views (master.blade.php, masterupdate.blade.php)
+- Member Facility: Controller (MemberFacilityMasterController.php) + Views (memberfacilitymast.blade.php)
+
+### WHY: Controllers and views existed but had no routes — completely inaccessible
+### TEST: PHP syntax verified for routes/web.php
+### RISK: LOW — only adding missing routes, no existing code changed
