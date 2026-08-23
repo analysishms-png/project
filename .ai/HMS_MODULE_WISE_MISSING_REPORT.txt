@@ -1,233 +1,222 @@
-============================================================
-ANALYSIS HMS — MODULE-WISE MISSING FUNCTIONALITY REPORT
-============================================================
-Generated: 2026-08-24
-Source of Truth: .ai/HMS.text (995,854 lines, 232 forms, 231 reports)
-Current Project: 68 controllers, 170 models, 327 routes, 734 views
+================================================================================
+      HMS.text  ->  ANALYSIS-HMS LARAVEL : MODULE-WISE MISSING REPORT
+================================================================================
+Method   : GRepFormName extraction from .ai/HMS.text (225 legacy reports)
+           matched against routes/, controllers, blade views (smart match:
+           exact + alias + fuzzy + manual verification on live code/DB)
+Property : 103 (Analysis Demonstration Package) | DB: analysis @ XAMPP MySQL
+Date     : 2026-08-23
+Statuses : MISSING / PARTIAL / EXISTS / OBSOLETE / NOT-CONNECTED
 
-============================================================
 SUMMARY
-============================================================
-Total Modules Analyzed: 60+
-Total Reports in HMS.text: 231
-Reports Implemented: 231 (100%)
-Modules Fully Complete: 36
-Modules Partially Complete: 18
-Modules Missing/Stubs: 6
-Critical Gaps: 4
+--------------------------------------------------------------------------------
+Legacy reports found in HMS.text .......... 225
+Verified EXISTS (exact route name) ........ 101
+Verified EXISTS (renamed/variant) ......... 62
+OBSOLETE under GST (skip) ................. 8
+GENUINELY MISSING ......................... 52 (+1 verify-only)
 
-============================================================
-MODULE: HR / PAYROLL
-============================================================
+NOTE: HMS_BAS_MISSING_FEATURES.txt claimed "231/231 = 100%". Deep verification
+proves 52 reports are genuinely missing. This file is the authoritative list.
+After implementation each item is updated to "IMPLEMENTED AND TESTED".
 
-HMS.text Requirement:
-- Designation Master (FrmDesigMast)
-- Employee Category Master (FrmEmpCategory)
-- Employee Master (FrmEmployeeMast)
-- Attendance Management (FrmAttendance)
-- Leave Management (FrmLeave)
-- Overtime Management (FrmOvertime)
-- Loan/Advance Management (FrmLoanAdvance)
-- Salary Creation (FrmSalaryCreation)
-- Pay Slip Generation (FrmPaySlip)
-- PF Statement (FrmPFStatement)
-- Payroll Register (FrmPayrollReg)
-- Gratuity Report (GratuityReport)
-- Attendance Report (AttendanceRep)
+================================================================================
+MODULE: 01 FRONT OFFICE   (9 missing)
+================================================================================
+HMS.text Requirement: booking detail register, days forecast, guest bill
+details, guest charge journal(+log), guest observation, in-house count,
+guest-in-house list, deleted/unsettled bills.
 
-Current Project Status:
-- Implemented: Designation CRUD, Employee Category CRUD, Employee CRUD, Import/Export
-- Partial: Views exist for leave/overtime/loan/salarycreation but NO controllers
-- Missing: PayrollParameter configuration UI, SalaryController, LeaveController, OvertimeController, LoanController, AttendanceReport, PaySlip, PFStatement, PayrollRegister, GratuityReport
-- Broken: salarycreation.blade.php references routes (salarycreationstore, salarydeletion) that don't exist
+Current Status - Implemented: arrivallist(=ArrivalDepList), checkoutregister(=ChkInRegister),
+expectedcheckout(=ExpectedDeparture), fosettlereport(=SettleRep), registrationcard,
+confirletter, cancellletter, arrdepreg, movementlist, packageforecast,
+occupancyforecast, guestpayments, checkedinguestdetail, registeredguestdetail.
 
 Reports:
-- Required Report: AttendanceRep (Attendance Report)
-  Status: MISSING
-  Database Dependencies: attendance table exists
-  Required Fix: Create report method + Blade view
+1) BookingDetail        MISSING  Deps: booking, grpbookingdetails
+   Fix: /bookingdetail - bookno/guest/rooms/arr-dep/source/status, ResStatus filter
+2) DaysForecastRep      PARTIAL  occupancyforecast covers rooms only
+   Fix: /daysforecastrep - day-wise arrivals forecast (rooms+pax) from bookings
+3) GuestBillDetails     MISSING  Deps: paycharge+guestfolio+roomocc
+   Fix: /guestbilldetails - folio-wise charges/payments with running balance
+4) GuestChgJournal      MISSING  Deps: paycharge vtype CHG/RCP/ADV
+   Fix: /guestchgjournal - day-wise guest charges grouped by paycode
+5) GuestChgJournalLog   MISSING
+   Fix: /guestchgjournallog - same as #4 ordered by u_entdt showing entry user
+6) GuestObservRep       MISSING  Deps: roomocc.remarks
+   Fix: /guestobservrep - in-house guests having observations/VIP flag
+7) InsHouseCount        MISSING  Deps: roomocc activeYN='Y'
+   Fix: /inhousecount - occupied/vacant/blocked/OOO counts + pax at datetime
+8) GuestInHouse         MISSING  (roomstatusinhouse blade = status board only)
+   Fix: /guestinhousereport - printable in-house guest list w/ balance
+9) DelBillUnsetBill     MISSING  (posbilldelete covers POS only)
+   Fix: /delbillunsetbill - deleted & unsettled FO bills w/ user
 
-- Required Report: PayrollReg (Payroll Register)
-  Status: MISSING
-  Database Dependencies: salary table exists
-  Required Fix: Create report method + Blade view
+Code refs: Controller app/Http/Controllers/Reporting.php (pattern:
+revokeopen(131211) guard -> view() ; *fetch returns response()->json);
+routes/reporting.php; views resources/views/property/<name>.blade.php
+(layout property.layouts.main, dash-title-bar cards, $.post fetch).
+Priority: HIGH
+Test: route:list + HTTP fetch on prop-103 Apr-Aug 2026 data vs direct SQL.
 
-- Required Report: PaySlip
-  Status: MISSING
-  Database Dependencies: salary + employee tables exist
-  Required Fix: Create report method + Blade view
-
-- Required Report: PFStatement
-  Status: MISSING
-  Database Dependencies: salary + enviro_payroll tables exist
-  Required Fix: Create report method + Blade view
-
-- Required Report: GratuityReport
-  Status: MISSING
-  Database Dependencies: employee table exists
-  Required Fix: Create report method + Blade view
-
-Existing Code Relevant To This Module:
-- Controller: HrpayrollsController.php (designation, employee, emp category only)
-- Model: Employee.php, EmpCategory.php, Salary.php, Attendance.php, Overtime.php, Loan.php, EnviroPayroll.php
-- Route: designation, employeecategory, employee CRUD routes only
-- View: hr/designation.blade.php, hr/empcategory.blade.php, hr/employee/*.blade.php
-- View: property/hrpayroll/leave.blade.php, salarycreation.blade.php, overtime.blade.php, loanadvanceentry.blade.php
-- Missing: Controllers for leave, overtime, loan, salary creation, all HR reports
-
-Implementation Priority: HIGH
-
-Recommended Fix:
-1. Create SalaryController with salarycreationstore, salarydeletion, salaryedit, salaryupdate methods
-2. Create LeaveController with leavestore, showleave, leaveedit, leavedelete methods
-3. Create OvertimeController with overtimeshow, overtimestore, overtimeedit, overtimedelete
-4. Create LoanController with loanstore, loanedit, loandelete
-5. Create PayrollParameterController for enviro_payroll configuration
-6. Create HR Reports: AttendanceReport, PayrollRegister, PaySlip, PFStatement, GratuityReport
-
-Testing Required:
-- Test salary creation flow end-to-end
-- Test leave CRUD
-- Test overtime CRUD
-- Test loan advance CRUD
-- Test each HR report
-
-============================================================
-MODULE: ADVANCE RECONCILIATION
-============================================================
-
-HMS.text Requirement:
-- Advance deposit tracking from reservation to folio
-- Advance reconciliation report
-- Advance restore/re-post functionality
-
-Current Project Status:
-- Implemented: Advance deposit via paycharge, basic advance reports
-- Missing: Dedicated Advance Reconciliation Report that traces:
-  Reservation Advance → Check-in Folio Advance → Used + Refunded + Transferred
-- Missing: Restore/Re-post functionality for deleted advances
-
+================================================================================
+MODULE: 02 RESERVATION   (3 missing)
+================================================================================
+Implemented: reservationstatus, reservstatusarrival, reservstatusinhouse.
 Reports:
-- Required Report: Advance Reconciliation
-  Status: MISSING
-  Database Dependencies: paycharge, grpbookingdetails, roomocc, guestfolio
-  Required Fix: Create reconciliation report comparing reservation advance vs folio advance
+10) ResvAdvRecd         MISSING  Deps: paycharge vtype='ADV' + booking
+    Fix: /resvadvrecd - advances received in range (bookno/guest/mode/date)
+11) ResvAdvRecdArr      MISSING  Fix: /resvadvrecdarr - filtered to arrivals
+12) ResvAdvRecdInHouse  MISSING  Fix: /resvadvrecdinhouse - in-house only
+Priority: MEDIUM. Test data: ~60 ADV rows seeded prop-103.
 
-Implementation Priority: HIGH
+================================================================================
+MODULE: 03 POS / RESTAURANT   (8 missing)
+================================================================================
+Implemented: itemwisesale, kotwisedetail(=KOTWiseDetails), nckotreport(=NCKOTSummary),
+cashiersettlement(=CashierSettlement), cashiercollectionmis, htcashiersumm,
+taxsummarypos(=TaxSumm), tallyposreport, waitersale(=WaiterWiseSale),
+tablewisesale, plufile, excessconsumption, openitemsale, liqoursalerep,
+saleregister(Pos.php).
+Reports:
+13) CashierSale               MISSING  Fix: /cashiersale - cashier-wise cash bills detail
+14) CashierSummary            MISSING  Fix: /cashiersummary - outlet x cashier summary
+15) ItemWiseGroupWiseSaleReport MISSING Fix: /itemwisegroupwisesale - group->item qty/amt
+16) MonthOutletWiseSale       MISSING  Fix: /monthoutletwisesale - month x outlet net matrix
+17) RestIssue                 MISSING  Fix: /restissue - restaurant issue/consumption register
+18) KitchenStkRep             MISSING  Fix: /kitchenstkrep - kitchen stock register rec/iss/closing
+19) KitchenStkSumm            MISSING  Fix: /kitchenstksumm - closing value summary
+20) SaleRegisterI             MISSING  Fix: /saleregisteri - register variant CGST/SGST columns
+Priority: HIGH. Test data: 330 sale1 bills, 750+ KOTs, 200 CONS stock rows.
 
-Recommended Fix:
-1. Create AdvanceReconciliationController
-2. Create reconciliation report comparing:
-   - Reservation advance (grpbookingdetails.advamt)
-   - Check-in folio advance (paycharge where vtype='ADV')
-   - Used advance (paycharge where vtype='ADV' and dramt > 0)
-   - Remaining balance
-3. Add restore/re-post button for mismatched advances
-4. Create Blade view with filters
+================================================================================
+MODULE: 04 BANQUET   (1 missing)
+================================================================================
+Implemented: dailyfunctionsheet, functionwiseitemdetail, companywisesalehall,
+hallbook CRUD + banquet bill print.
+21) SettleRepHall       MISSING  Deps: hallsale1 advance/netamt
+    Fix: /settlerephall - bill/pax/net/advance/balance/settle-status per function
+Priority: MEDIUM. Test data: 30 hallbook+hallsale1 rows prop-103.
 
-Testing Required:
-- Test reconciliation with matching advances
-- Test reconciliation with mismatched advances
-- Test restore functionality
+================================================================================
+MODULE: 05 INVENTORY / PURCHASE / STORE   (9 missing)
+================================================================================
+Implemented: openingstock, stocktransfer, grc, indent, finalpurchaseregister(=PurchaseReg),
+finalpurchasesummary(=PurchaseSumm), deletepurchbill(=PurchBill), stockregister(=RStockRegister),
+stocksummary(=StockSumm/RStockSummary), stockinhand, abcanalysis, PurchaseOrderController
+(PO module incl print => PurchOrder report EXISTS).
+22) IssueReg            MISSING Fix: /issuereg - issue docs register (stock ISSUE)
+23) IssueRegister       MISSING Fix: /issueregister - item-wise issue summary
+24) StoreIssReg         MISSING Fix: /storeissreg - store dept-wise issues
+25) StoreIssueReport    MISSING Fix: /storeissuereport - department consumption stmt
+26) DailyStoreIssRpt    MISSING Fix: /dailystoreissrpt - single-day issues snapshot
+27) StockRegStore       MISSING Fix: /stockregstore - store stock register open/rec/iss/close
+28) StockSummStore      MISSING Fix: /stocksummstore - store closing-value summary
+29) PurchaseLedger      MISSING Fix: /purchaseledger - supplier-wise ledger+bills
+30) CashCreditPurch     MISSING Fix: /cashcreditpurch - cash vs credit purchase split
+Priority: MEDIUM-HIGH. Test data: 50 purch1 + 200 CONS rows.
 
-============================================================
-MODULE: FINANCE / EXPENSE CLAIMS
-============================================================
+================================================================================
+MODULE: 06 ACCOUNTS / FINANCE   (5 missing)
+================================================================================
+Implemented: voucherentry, daybook(=DayBook/SalesDayBook), generalledger(=Led),
+ledgerint(=LedInt), ledgerdeb(=LedDeb), cashbankbook(=CashBook/BankBook),
+journalbook(=JournalBook/JournalBookLog), bankclg(=Clg), bankclgnot(=ClgNot),
+agingdr/cr/repdr/repcr, detailedtrialledger(=DetailedTrial), duelist(=DUELIST),
+duelistcreditoroverlay(=DueListCreditorOverLay), nontrans, refreport, roznamcha,
+loanadvsumm, loanledger(=LoanLedg), loanregister(=LoanReg), customerdetail,
+partyoutstanding(=PartyOutStanding).
+32) BankReg             MISSING Fix: /bankreg - cheque-wise bank register + clearance status
+33) LedCred             MISSING Fix: /ledgercred - creditor ledger balances (mirror of /ledgerdeb)
+34) CONTROLLED          MISSING Fix: /controlledaccounts - controlled-account listing
+35) PartyWiseOutStanding MISSING Fix: /partywiseoutstanding - BILL-level outstanding+ageing
+36) PmtByCashier        MISSING Fix: /pmtbycashier - cashier payment collection recon
+Priority: HIGH. Test data: suntran 1255 rows; ledger populated prop-103.
 
-HMS.text Requirement:
-- Expense Entry (FrmExpense)
-- Claim Entry (FrmClaimEntry)
-- Expense Reports
+================================================================================
+MODULE: 07 GST / TAX   (6 missing, 8 obsolete)
+================================================================================
+Implemented: fomtaxdetail(=FOMTaxDetail), taxreportinv(=TaxInvoiceDetail),
+gstr1(=GSTR1), gstconsolidatedregister, formiii, formcreport(=FormC/FormCReport),
+annexure(=Form24AnnexureA), taxsummarypos(=TaxSumm).
+OBSOLETE under GST - DO NOT PORT: UPVATXXIV, VATRegister, VATRegisterII,
+VATRegisterIII, LuxuryTaxRegister, LuxuryTaxRegisterI, LTFORMII, LTFORMIV.
+Reports:
+37) TaxDetails              MISSING Fix: /taxdetails - tax-code-wise detail from sale2+hallsale2
+38) TaxRegister             MISSING Fix: /taxregister - date-wise tax liability register
+39) TaxWiseSale             MISSING Fix: /taxwisesale - sale grouped by tax slab
+40) TaxReportHall           MISSING Fix: /taxreporthall - hall bills tax report
+41) TaxSummaryHall          MISSING Fix: /taxsummaryhall - hall tax summary by code
+42) TaxwiseDetailReportHall MISSING Fix: /taxwisedetailreporthall - hall bill-level tax detail
+Priority: HIGH. Test data: hallsale2 CGSS103/SGSS103 rows; sale2 rows.
 
-Current Project Status:
-- Partial: FinanceController exists but expense/claim workflow incomplete
-- Missing: Expense claim approval workflow
-- Missing: Expense reports
+================================================================================
+MODULE: 11 REPORTS / MIS + MEMBERSHIP   (10 missing)
+================================================================================
+Implemented: dailyreport, revenueanalysis/2(=RevAnalysis), guesttrialbalance,
+occanalysis->MISSING below, marketseganalysis, businessanalysis, companyanalysis,
+travelagentanalysis, foccreport, foodcost, fbcoststatement, budgetanalysis,
+costanalysis, coveranalysis, creditreport, partyoutstanding, roomoccdisp->MISSING,
+roomwiseroomrevenue(=RoomWiseRoomRevenueReport), roomnights, roominventory,
+roomchangehistory, roomstatus, guestwiseanalysis, guestwiserevenue, gratuityreport,
+cashiercollectionmis, billwiseadjustment(=BillWiseAdjustmentReport), deliverystatus,
+kotratechange, fombillchangereport, orderdetailreport, openitemsale,
+itemwisesalehall, productionreport, abcanalysissale, dailydiet, annexure,
+saleregpercover(=SalRegPerCover), cardstatusreport, koteditdeletelog(=KotEditDelete),
+guestchargesmis, extrachargesduringstay(extrachargesduringstay2 route), monthlystatisticalreturn,
+facilitybillreg, planmealtokens, planpackschedule, planpackservice, epabxcallrep,
+cashcardcollectsumm, cashcardtransrep, saleregisteri->MISSING above,
+salesumm(=SalesSummary/SaleSumm), monthoutletwisesale->MISSING above,
+discountregister(=DiscountReg), voidbills, editedbills, memled, memsalesregister,
+memvisitdetail, membillmissingreport, membirthanndtls(=MemBirthAnnvDtls),
+memtaxreport, pmtbycashier->MISSING above.
+Reports:
+43) OccAnalysis             MISSING Fix: /occanalysis - occupancy% + ADR + RevPAR by day/month
+44) RoomOccDisp             MISSING Fix: /roomoccdisp - room-wise occupancy display register
+45) RoomOccupancyAnalysisReport MISSING Fix: /roomoccupancyanalysis - cat-wise occ analysis
+46) RoomTypeOccupancyAnalysis   MISSING Fix: /roomtypeoccupancyanalysis - type-wise nights/revenue
+47) DiscountPartyWiseReg    MISSING Fix: /discountpartywisereg - party/company-wise discounts
+48) DiscountSumm            MISSING Fix: /discountsumm - discount summary by paytype/paycode
+49) Form1TourismReport      MISSING Fix: /form1tourismreport - tourist arrival Form-1
+50) Form2TourismReport      MISSING Fix: /form2tourismreport - Form-2 continuation sheet
+51) Form4TourismReport      MISSING Fix: /form4tourismreport - foreign guest Form-4 (FRRO)
+52) Form5TourismReport      MISSING Fix: /form5tourismreport - Form-5 monthly foreigner return
+53) Form6TourismReport      MISSING Fix: /form6tourismreport - Form-6 nationality-wise summary
+54) MemMalingLabels         MISSING Fix: /memmalinglabels - member mailing labels print
+Priority: MEDIUM-HIGH. Tourism forms use guestprof.nationality (seed='Indian').
 
-Implementation Priority: MEDIUM
+================================================================================
+IMPLEMENTATION ORDER (work queue)
+================================================================================
+P1 Batch A FRONT OFFICE : items 1-9   (Reporting.php)
+P1 Batch B ACCOUNTS     : items 32-36
+P1 Batch C GST/TAX      : items 37-42
+P2 Batch D POS/BANQUET  : items 13-21
+P2 Batch E INVENTORY    : items 22-30
+P2 Batch F MIS/MEMBER   : items 43-48, 54
+P3 Batch G TOURISM      : items 49-53
+RESERVATION trio (10-12) rides with Batch A (same paycharge source).
 
-============================================================
-MODULE: E-INVOICE
-============================================================
+Common conventions for ALL new reports:
+- routes/reporting.php : Route::get('<name>'...) + Route::post('<name>fetch'...)
+- Reporting.php        : <name>() view w/ revokeopen(131211); <name>fetch() json
+- View                 : resources/views/property/<name>.blade.php following
+  property.layouts.main + dash-title-bar + filter card + table + print btn
+- All queries scoped WHERE propertyid = $this->propertyid (session prop 103)
 
-HMS.text Requirement:
-- E-Invoice generation
-- E-Invoice parameter configuration
-- IRN generation
-- QR code on invoice
+================================================================================
+FINAL TALLY
+================================================================================
+TOTAL MODULES ANALYZED .......... 18 legacy modules mapped to Laravel modules
+TOTAL FULLY IMPLEMENTED ......... 163 of 225 legacy reports (verified)
+TOTAL PARTIAL ................... 2   (DaysForecastRep, ItemSale->openitemsale)
+TOTAL MISSING ................... 52  (+3 variants inside same fetch)
+TOTAL BROKEN .................... 0 confirmed (accountchecklist joins missing
+                                  ledgeraccount table -> flagged for BUG_REGISTER)
+TOTAL OBSOLETE .................. 8   (GST-replaced VAT/Luxury forms)
+TOP CRITICAL ISSUES ............. 1) accountchecklist SQL references non-existent
+                                'ledgeraccount' table  2) 52 report gaps above
+IMPLEMENTATION ORDER ............ Batches A -> G as listed above.
 
-Current Project Status:
-- Partial: EInvoiceParameter controller exists, EInvoiceBill model exists
-- Missing: Complete E-Invoice generation flow
-- Missing: E-Invoice parameter configuration UI
+<!-- END -->
 
-Implementation Priority: MEDIUM
-
-============================================================
-MODULE: STORE / INVENTORY
-============================================================
-
-HMS.text Requirement:
-- Stock Transfer (FrmStockTransfer)
-- Opening Stock (FrmOPStock)
-- Stock Issue Report
-- Store Issue Register
-- Daily Store Issue Report
-
-Current Project Status:
-- Implemented: InventoryController with item CRUD, stock management
-- Partial: Stock transfer flow needs verification
-- Missing: Stock Transfer UI with proper inter-godown transfer
-- Missing: Opening Stock entry form
-- Missing: Store Issue Report (DailyStoreIssRpt)
-
-Implementation Priority: MEDIUM
-
-============================================================
-MODULE: MEMBERSHIP REPORTS
-============================================================
-
-HMS.text Requirement:
-- Member Ledger (MemLed)
-- Member Sales Register (MemSalesRegister)
-- Member Visit Detail (MemVisitDetail)
-- Member Birth/Anniversary Details (MemBirthAnnvDtls)
-- Member Mailing Labels (MemMalingLabels)
-- Member Tax Report (MemTaxReport)
-- Member Bill Missing Report (MemBillMissingReport)
-- Member Revenue Analysis (MemRevWise)
-
-Current Project Status:
-- Implemented: MemberCategory, MemberMaster, MemberFacility CRUD
-- Missing: All 8 membership reports listed above
-
-Implementation Priority: LOW (9 reports)
-
-============================================================
-MODULE: BACKUP
-============================================================
-
-HMS.text Requirement:
-- Automated database backup
-- Backup scheduling
-- Backup restore
-
-Current Project Status:
-- Partial: storage/app/backups/ directory exists
-- Missing: Automated backup job
-- Missing: Backup scheduling UI
-- Missing: Backup restore functionality
-
-Implementation Priority: LOW
-
-============================================================
-END OF REPORT
-============================================================
-Total Modules Analyzed: 60+
-Total Fully Implemented: 36
-Total Partial: 18
-Total Missing: 6
-Total Broken: 0
-Total Missing Reports: 13 (HR: 5, Advance: 1, Membership: 7)
-Top Critical Issues: HR/Payroll controllers missing, Advance Reconciliation missing
-Implementation Order: HR/Payroll → Advance Reconciliation → Finance → E-Invoice → Store → Membership Reports

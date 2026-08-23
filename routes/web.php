@@ -17,6 +17,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\NightAuditlogController;
 use App\Http\Controllers\BookingFollowUp;
+use App\Http\Controllers\EInvoiceParameter;
 use App\Http\Controllers\HrpayrollsController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\FeedbackMasterController;
@@ -972,3 +973,4 @@ Route::delete('backup/delete/{filename}', [DatabaseBackupController::class, 'del
 Route::get('backup/schedule', [DatabaseBackupController::class, 'scheduleSettings'])->name('backup.schedule');
 Route::post('backup/schedule/save', [DatabaseBackupController::class, 'saveSchedule'])->name('backup.save-schedule');
 Route::get('backup/run-scheduled', [DatabaseBackupController::class, 'runScheduledBackup'])->name('backup.run-scheduled');
+

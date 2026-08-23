@@ -90,7 +90,7 @@ class Reporting extends Controller
          return $next($request);
       });
    }
-   # Warning: Abandon hope, all who enter here. 😱
+   # Warning: Abandon hope, all who enter here. ðŸ˜±
 
    public function ncurfetch()
    {
@@ -2082,7 +2082,7 @@ class Reporting extends Controller
          ->whereRaw("ro.type = 'O'")
          ->groupBy('ro.docid');
 
-      // fromSub / joinSub let Laravel track bindings itself — no toSql()/mergeBindings surgery
+      // fromSub / joinSub let Laravel track bindings itself â€” no toSql()/mergeBindings surgery
       $results = DB::table(DB::raw('1 as dummy')) // placeholder, replaced by fromSub below
          ->fromSub($paychargeAgg, 'P')
          ->joinSub($guestRoom, 'G', 'P.folionodocid', '=', 'G.folionodocid')
@@ -2113,7 +2113,7 @@ class Reporting extends Controller
             'P.billamount'
          );
 
-      // Wrap again as a sub-builder for filtering/count/paginate — bindings still auto-tracked
+      // Wrap again as a sub-builder for filtering/count/paginate â€” bindings still auto-tracked
       $draw = intval($request->input('draw', 0));
       $start = intval($request->input('start', 0));
       $length = intval($request->input('length', 10));
@@ -2136,7 +2136,7 @@ class Reporting extends Controller
 
       $recordsFiltered = (clone $wrapped)->count();
 
-      // whitelist order column + direction — never trust raw request input in ORDER BY
+      // whitelist order column + direction â€” never trust raw request input in ORDER BY
       $orderColIndex = intval($request->input('order.0.column', 0));
       $orderDir = strtolower($request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
       $columnsMap = [
@@ -3189,7 +3189,7 @@ class Reporting extends Controller
          ->get();
 
       // Batch the per-outlet voucher-type + per-voucher sums (was 1 VoucherType
-      // + 1 Paycharge query per voucher, twice — today and yesterday).
+      // + 1 Paycharge query per voucher, twice â€” today and yesterday).
       $outletCodes = $depart->pluck('dcode')->all();
       $outletVouchers = VoucherType::where('propertyid', $this->propertyid)
          ->whereIn('restcode', $outletCodes)
@@ -3850,7 +3850,7 @@ class Reporting extends Controller
    }
 
    /**
-    * Advance / Folio Reconciliation Report (read-only diagnostic, mission §10).
+    * Advance / Folio Reconciliation Report (read-only diagnostic, mission Â§10).
     *
     * Traces each reservation's advance: received at reservation (ADRES/ARRES via
     * refdocid) -> transferred at check-in (folio paycharge rows) -> deletion
@@ -4010,7 +4010,7 @@ class Reporting extends Controller
    }
 
    /**
-    * Safe Restore / Re-post of a missing folio advance (mission §10).
+    * Safe Restore / Re-post of a missing folio advance (mission Â§10).
     *
     * Reposts ONLY the missing difference (ResAdvance - FolioAdvance - Deleted)
     * onto the existing folio, so a payment is NEVER duplicated. Guards:
@@ -4039,7 +4039,7 @@ class Reporting extends Controller
 
       $folio = DB::table('guestfolio')->where('propertyid', $pid)->where('bookingdocid', $docid)->first();
       if (!$folio) {
-         return response()->json(['status' => false, 'message' => 'Reservation is not checked-in — no folio to restore to']);
+         return response()->json(['status' => false, 'message' => 'Reservation is not checked-in â€” no folio to restore to']);
       }
       $folioDocid = $folio->docid;
       $folioNo = $folio->folio_no;
@@ -4048,7 +4048,7 @@ class Reporting extends Controller
       $checkedOut = DB::table('roomocc')->where('propertyid', $pid)->where('docid', $folioDocid)->where('type', 'O')->exists();
       $settled = DB::table('paycharge')->where('propertyid', $pid)->where('folionodocid', $folioDocid)->whereNotNull('settledate')->exists();
       if ($checkedOut || $settled) {
-         return response()->json(['status' => false, 'message' => 'Folio is settled / guest checked-out — restore not allowed']);
+         return response()->json(['status' => false, 'message' => 'Folio is settled / guest checked-out â€” restore not allowed']);
       }
 
       // Amounts (same semantics as advreconreportfetch)
@@ -4069,7 +4069,7 @@ class Reporting extends Controller
 
       $missing = round($resAdvance - $folioAdvance - $delAmount, 2);
       if ($missing <= 0.01) {
-         return response()->json(['status' => false, 'message' => 'No missing advance to restore (already balanced) — nothing to re-post']);
+         return response()->json(['status' => false, 'message' => 'No missing advance to restore (already balanced) â€” nothing to re-post']);
       }
 
       $advRow = DB::table('paycharge')
@@ -4105,7 +4105,7 @@ class Reporting extends Controller
          $dup = DB::table('paycharge')->where('propertyid', $pid)->where('docid', $newDocid)->exists();
          if ($dup) {
             DB::rollBack();
-            return response()->json(['status' => false, 'message' => 'Voucher docid collision — restore aborted (no duplicate created)']);
+            return response()->json(['status' => false, 'message' => 'Voucher docid collision â€” restore aborted (no duplicate created)']);
          }
 
          DB::table('paycharge')->insert([
@@ -4168,7 +4168,7 @@ class Reporting extends Controller
             'folionodocid' => $folioDocid,
             'refdocid' => $docid,
             'restcode' => 'FOM' . $pid,
-            'remarks' => 'ADVANCE RESTORED via reconciliation by ' . (Auth::user()->u_name ?? Auth::user()->name) . ' — original reservation ' . ($booking->BookNo ?? $docid),
+            'remarks' => 'ADVANCE RESTORED via reconciliation by ' . (Auth::user()->u_name ?? Auth::user()->name) . ' â€” original reservation ' . ($booking->BookNo ?? $docid),
             'u_entdt' => $this->currenttime,
             'u_name' => Auth::user()->u_name ?? Auth::user()->name,
             'u_ae' => 'a',
@@ -4338,7 +4338,7 @@ class Reporting extends Controller
    }
 
    /**
-    * Room Management reconciliation — read-only diagnostics.
+    * Room Management reconciliation â€” read-only diagnostics.
     * Compares RoomOcc / GuestFolio / PayCharge / room_mast / roomblockout
     * against the invariants the legacy HMS maintained. No data mutation.
     */
@@ -4422,7 +4422,7 @@ class Reporting extends Controller
                ->get();
             break;
 
-         // 6. Blocked (OOO/Maint) rooms that are simultaneously occupied — must never happen
+         // 6. Blocked (OOO/Maint) rooms that are simultaneously occupied â€” must never happen
          case 'blockedoccupied':
             $rows = DB::table('roomblockout AS RB')
                ->join('roomocc AS RO', function ($j) {
@@ -5034,7 +5034,7 @@ class Reporting extends Controller
          ->get();
 
       // One batched fetch of depart names for every non-FOM restcode on the
-      // page (the per-row Depart lookup was an N+1 — 1 query per payment row).
+      // page (the per-row Depart lookup was an N+1 â€” 1 query per payment row).
       $nonFomCodes = $otherpay
          ->pluck('restcode')
          ->reject(fn($code) => $code == 'FOM' . $this->propertyid)
@@ -5500,7 +5500,7 @@ class Reporting extends Controller
 
       // Batch the per-room balance/advance lookups (was 2 queries per room).
       // Aggregate once per (folionodocid, sno1) pair, then attach in memory.
-      // NOTE: the original had NO propertyid filter on these lookups — preserved.
+      // NOTE: the original had NO propertyid filter on these lookups â€” preserved.
       $folioPairs = collect($occupiedRooms)
          ->filter(function ($row) {
             return $row->docid !== null && $row->sno1 !== null;
@@ -6119,7 +6119,7 @@ class Reporting extends Controller
       }
    }
 
-   // ─── Reward Point Report ──────────────────────────────────────────────────
+   // â”€â”€â”€ Reward Point Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
    public function rewardpointreport(Request $request)
    {
@@ -6147,7 +6147,7 @@ class Reporting extends Controller
             ->where('propertyid', $propertyId);
 
          if ($mobileno) {
-            // Party wise — filter by mobile, no date filter, order by date DESC
+            // Party wise â€” filter by mobile, no date filter, order by date DESC
             $query->where('mobileno', $mobileno)
                   ->select(
                      'vdate as Date', 'vtime as Time', 'departname as Outlet',
@@ -6194,7 +6194,7 @@ class Reporting extends Controller
       }
    }
 
-   // ─── Occupancy Forecast Report ──────────────────────────────────────────────
+   // â”€â”€â”€ Occupancy Forecast Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    public function occupancyforecast(Request $request)
    {
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
@@ -6336,7 +6336,7 @@ class Reporting extends Controller
       ]);
    }
 
-   // ─── Occupancy Forecast Print (DomPDF) ─────────────────────────────────────
+   // â”€â”€â”€ Occupancy Forecast Print (DomPDF) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    public function printoccupancyforecast(Request $request)
    {
       $fromdate = $request->input('fromdate');
@@ -6368,7 +6368,7 @@ class Reporting extends Controller
       return $pdf->stream('OccupancyForecast_' . $fromdate . '_' . $todate . '.pdf');
    }
 
-   // ─── Occupancy Forecast Excel Export ───────────────────────────────────────
+   // â”€â”€â”€ Occupancy Forecast Excel Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    public function exportoccupancyforecast(Request $request)
    {
       $fromdate = $request->input('fromdate');
@@ -6408,9 +6408,9 @@ class Reporting extends Controller
       return null;
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // GST Consolidated Register — unified outward-supply tax view
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // GST Consolidated Register â€” unified outward-supply tax view
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function gstconsolidatedregister(Request $request)
    {
@@ -6445,7 +6445,7 @@ class Reporting extends Controller
 
       $results = [];
 
-      // ── 1. ROOM REVENUE (paycharge + revmast → sundrymast) ──────────────
+      // â”€â”€ 1. ROOM REVENUE (paycharge + revmast â†’ sundrymast) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (in_array($source, ['all', 'rooms'])) {
          $roomRows = DB::table('paycharge AS P')
             ->leftJoin('revmast AS R', 'P.paycode', '=', 'R.rev_code')
@@ -6510,7 +6510,7 @@ class Reporting extends Controller
          }
       }
 
-      // ── 2. POS — SUNTRAN (tax lines per docid) ─────────────────────────
+      // â”€â”€ 2. POS â€” SUNTRAN (tax lines per docid) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (in_array($source, ['all', 'pos'])) {
          $posTax = DB::table('suntran AS ST')
             ->join('revmast AS R', 'ST.revcode', '=', 'R.rev_code')
@@ -6569,7 +6569,7 @@ class Reporting extends Controller
          }
       }
 
-      // ── 3. BANQUET — SUNTRANH (tax lines via sundrytype) ───────────────
+      // â”€â”€ 3. BANQUET â€” SUNTRANH (tax lines via sundrytype) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (in_array($source, ['all', 'banquet'])) {
          $banqTax = DB::table('suntranh AS SH')
             ->join('sundrytype AS ST', function ($j) use ($propertyid) {
@@ -6627,7 +6627,7 @@ class Reporting extends Controller
          }
       }
 
-      // ── SUMMARY ────────────────────────────────────────────────────────
+      // â”€â”€ SUMMARY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $summary = [];
       foreach ($results as $row) {
          $key = ($row['GSTIN'] ?: 'UNREGISTERED') . '|' . $row['TaxPer'];
@@ -6722,9 +6722,9 @@ class Reporting extends Controller
       return $export->download();
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // Night Audit Reconciliation Report
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function nightauditrecon(Request $request)
    {
@@ -6753,7 +6753,7 @@ class Reporting extends Controller
 
       $prevdate = date('Y-m-d', strtotime($fordate . ' -1 day'));
 
-      // ── 1. ROOM OCCUPANCY SNAPSHOT ──────────────────────────────────────
+      // â”€â”€ 1. ROOM OCCUPANCY SNAPSHOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $occupancy = DB::table('roomocc AS ro')
          ->select(
             'ro.roomno',
@@ -6779,7 +6779,7 @@ class Reporting extends Controller
       $activeGuests  = $occupancy->filter(fn($r) => $r->chkoutstatus === 'ACTIVE')->count();
       $checkedOut    = $totalRooms - $activeGuests;
 
-      // ── 2. CHARGES POSTED FOR THE DATE ──────────────────────────────────
+      // â”€â”€ 2. CHARGES POSTED FOR THE DATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $charges = DB::table('paycharge AS P')
          ->select(
             'P.vtype',
@@ -6808,7 +6808,7 @@ class Reporting extends Controller
 
       $totalRevenue = $charges->sum('netamount');
 
-      // ── 3. SETTLEMENT STATUS ────────────────────────────────────────────
+      // â”€â”€ 3. SETTLEMENT STATUS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $unsettled = DB::table('paycharge AS P')
          ->join('roomocc AS ro', function ($j) use ($propertyid) {
             $j->on('P.folionodocid', '=', 'ro.docid')
@@ -6831,7 +6831,7 @@ class Reporting extends Controller
          ->orderByDesc('balance')
          ->get();
 
-      // ── 4. COMPARISON WITH PRIOR NIGHT ──────────────────────────────────
+      // â”€â”€ 4. COMPARISON WITH PRIOR NIGHT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $prevCharges = DB::table('paycharge')
          ->selectRaw('SUM(amtdr - amtcr) AS total')
          ->where('propertyid', $propertyid)
@@ -6849,7 +6849,7 @@ class Reporting extends Controller
          })
          ->count();
 
-      // ── 5. NIGHT AUDIT LOG ENTRIES ──────────────────────────────────────
+      // â”€â”€ 5. NIGHT AUDIT LOG ENTRIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $naLog = DB::table('nightauditlog')
          ->where('propertyid', $propertyid)
          ->where('ncurdate', $fordate)
@@ -6876,9 +6876,9 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // AMR Morning Report
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function amrmorningreport(Request $request)
    {
@@ -6899,7 +6899,7 @@ class Reporting extends Controller
       $fordate    = $request->input('fordate');
       if (!$fordate) return response()->json(['message' => 'Date required.'], 422);
 
-      // ── 1. ROOM TYPE OCCUPANCY ──────────────────────────────────────
+      // â”€â”€ 1. ROOM TYPE OCCUPANCY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $roomTypes = DB::table('room_cat')
          ->where('propertyid', $propertyid)
          ->orderBy('cat_code')
@@ -6929,7 +6929,7 @@ class Reporting extends Controller
       $totalOccupied = array_sum(array_column($occupancyByType, 'occupied'));
       $overallOccPct = $totalRooms > 0 ? round($totalOccupied / $totalRooms * 100, 1) : 0;
 
-      // ── 2. ROOM STATUS BREAKDOWN ────────────────────────────────────
+      // â”€â”€ 2. ROOM STATUS BREAKDOWN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $roomStatus = DB::table('room_mast')
          ->where('propertyid', $propertyid)
          ->where('type', 'RO')
@@ -6942,7 +6942,7 @@ class Reporting extends Controller
          $statusMap[$rs->room_stat ?? 'U'] = (int) $rs->cnt;
       }
 
-      // ── 3. EXPECTED ARRIVALS (reservations with ArrDate = fordate, not checked in) ─────────
+      // â”€â”€ 3. EXPECTED ARRIVALS (reservations with ArrDate = fordate, not checked in) â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $arrivals = DB::table('grpbookingdetails AS gb')
          ->leftJoin('room_mast AS rm', function ($j) use ($propertyid) {
             $j->on('gb.RoomNo', '=', 'rm.rcode')->where('rm.propertyid', $propertyid);
@@ -6968,7 +6968,7 @@ class Reporting extends Controller
          ->orderBy('gb.RoomNo')
          ->get();
 
-      // ── 4. EXPECTED DEPARTURES (roomocc with depdate = fordate) ─────────
+      // â”€â”€ 4. EXPECTED DEPARTURES (roomocc with depdate = fordate) â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $departures = DB::table('roomocc AS ro')
          ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
          ->select(
@@ -6985,7 +6985,7 @@ class Reporting extends Controller
          ->orderBy('ro.roomno')
          ->get();
 
-      // ── 5. TODAY REVENUE ────────────────────────────────────────────
+      // â”€â”€ 5. TODAY REVENUE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $todayRevenue = DB::table('paycharge')
          ->selectRaw('vtype, COUNT(DISTINCT docid) AS bills, SUM(amtdr-amtcr) AS net')
          ->where('propertyid', $propertyid)
@@ -6997,7 +6997,7 @@ class Reporting extends Controller
 
       $totalRevenue = $todayRevenue->sum('net');
 
-      // ── 6. IN-HOUSE SUMMARY ─────────────────────────────────────────
+      // â”€â”€ 6. IN-HOUSE SUMMARY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       $inHouse = DB::table('roomocc')
          ->where('propertyid', $propertyid)
          ->whereNull('type')
@@ -7025,9 +7025,9 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // Checked-In Guest Detail Report
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function checkedinguestdetail(Request $request)
    {
@@ -7141,9 +7141,9 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // Room-Wise Room Revenue Report
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function roomwiseroomrevenue(Request $request)
    {
@@ -7225,9 +7225,9 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Form C — Foreign Guest Registration (Compliance)
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Form C â€” Foreign Guest Registration (Compliance)
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function formcreport(Request $request)
    {
@@ -7249,7 +7249,7 @@ class Reporting extends Controller
       $todate     = $request->input('todate');
       if (!$fromdate || !$todate) return response()->json(['message' => 'From and To dates required.'], 422);
 
-      // Form C requires foreign guests — filter by nationality != India (country_code != 'IN')
+      // Form C requires foreign guests â€” filter by nationality != India (country_code != 'IN')
       // or idtype = 'Passport'
       $guests = DB::table('roomocc AS ro')
          ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
@@ -7322,9 +7322,9 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // FO Settlement Report (SettleRep parity)
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function fosettlereport(Request $request)
    {
@@ -7410,9 +7410,9 @@ class Reporting extends Controller
       return response()->json(['data' => $result, 'summary' => $summary]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // Reservation Status Dashboard
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function reservationstatus(Request $request)
    {
@@ -7433,7 +7433,7 @@ class Reporting extends Controller
       $fordate    = $request->input('fordate');
       if (!$fordate) return response()->json(['message' => 'Date required.'], 422);
 
-      // ── 1. TODAY ARRIVALS (reservations with ArrDate = fordate, not checked in) ──
+      // â”€â”€ 1. TODAY ARRIVALS (reservations with ArrDate = fordate, not checked in) â”€â”€
       $arrivals = DB::table('grpbookingdetails AS gb')
          ->leftJoin('room_mast AS rm', function ($j) use ($propertyid) {
             $j->on('gb.RoomNo', '=', 'rm.rcode')->where('rm.propertyid', $propertyid);
@@ -7454,7 +7454,7 @@ class Reporting extends Controller
          ->orderBy('gb.RoomNo')
          ->get();
 
-      // ── 2. IN-HOUSE (roomocc active) ──
+      // â”€â”€ 2. IN-HOUSE (roomocc active) â”€â”€
       $inhouse = DB::table('roomocc AS ro')
          ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
          ->leftJoin('guestfolio AS gf', function ($j) {
@@ -7476,7 +7476,7 @@ class Reporting extends Controller
          ->orderBy('ro.roomno')
          ->get();
 
-      // ── 3. TODAY DEPARTURES ──
+      // â”€â”€ 3. TODAY DEPARTURES â”€â”€
       $departures = DB::table('roomocc AS ro')
          ->leftJoin('guestprof AS gp', 'ro.guestprof', '=', 'gp.guestcode')
          ->select(
@@ -7490,7 +7490,7 @@ class Reporting extends Controller
          ->orderBy('ro.roomno')
          ->get();
 
-      // ── 4. CANCELLATIONS TODAY ──
+      // â”€â”€ 4. CANCELLATIONS TODAY â”€â”€
       $cancellations = DB::table('grpbookingdetails AS gb')
          ->leftJoin('subgroup AS sg', 'gb.PartyCode', '=', 'sg.sub_code')
          ->select(
@@ -7505,7 +7505,7 @@ class Reporting extends Controller
          ->orderBy('gb.CancelDate')
          ->get();
 
-      // ── 5. NO-SHOWS TODAY ──
+      // â”€â”€ 5. NO-SHOWS TODAY â”€â”€
       $noshow = DB::table('grpbookingdetails AS gb')
          ->leftJoin('subgroup AS sg', 'gb.PartyCode', '=', 'sg.sub_code')
          ->select(
@@ -7536,9 +7536,9 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    // Room Rent Audit Report
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function roomrentaudit(Request $request)
    {
@@ -7604,7 +7604,7 @@ class Reporting extends Controller
             ->value('total') ?? 0;
 
          $variance = (float) $actualRC - $expected;
-         $flag = abs($variance) > 0.01 ? '⚠️' : '✅';
+         $flag = abs($variance) > 0.01 ? 'âš ï¸' : 'âœ…';
 
          $result[] = [
             'RoomNo'     => $room->roomno,
@@ -7624,7 +7624,7 @@ class Reporting extends Controller
 
       $totalExpected = array_sum(array_column($result, 'Expected'));
       $totalActual   = array_sum(array_column($result, 'ActualRC'));
-      $flagged       = count(array_filter($result, fn($r) => $r['Flag'] === '⚠️'));
+      $flagged       = count(array_filter($result, fn($r) => $r['Flag'] === 'âš ï¸'));
 
       return response()->json([
          'data' => $result,
@@ -7638,10 +7638,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Movement List — daily booking movements (arrivals/departures/transfers)
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Movement List â€” daily booking movements (arrivals/departures/transfers)
    // Legacy: GRepFormName = "MovementList"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function movementlist(Request $request)
    {
@@ -7685,10 +7685,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Discount Register — POS discount audit trail
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Discount Register â€” POS discount audit trail
    // Legacy: GRepFormName = "DiscountReg"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function discountregister(Request $request)
    {
@@ -7755,10 +7755,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Food Cost Report — F&B cost analysis (opening + purchases - closing)
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Food Cost Report â€” F&B cost analysis (opening + purchases - closing)
    // Legacy: GRepFormName = "FoodCost"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function foodcost(Request $request)
    {
@@ -7781,7 +7781,7 @@ class Reporting extends Controller
       $pid = $this->propertyid;
 
       // Column names: stock.propertyid, stock.departcode, stock.departcode, depart.dcode, depart.rest_type
-      // 1. Opening Stock (Raw Material + Semi-Finish) — purchases before fromdate
+      // 1. Opening Stock (Raw Material + Semi-Finish) â€” purchases before fromdate
       $openingStock = DB::table('stock AS S')
          ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
          ->where('S.propertyid', $pid)
@@ -7809,7 +7809,7 @@ class Reporting extends Controller
          ->selectRaw('SUM(CASE WHEN QtyRec > 0 THEN Amount ELSE -Amount END) AS Amt')
          ->value('Amt') ?? 0;
 
-      // 3. Closing Stock — total store stock up to todate
+      // 3. Closing Stock â€” total store stock up to todate
       $closingStock = DB::table('stock AS S')
          ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
          ->where('S.propertyid', $pid)
@@ -7850,7 +7850,7 @@ class Reporting extends Controller
          ->selectRaw('SUM(Amount * ncper) / 100 AS Amt')
          ->value('Amt') ?? 0;
 
-      // 7. Food Sales — POS outlets
+      // 7. Food Sales â€” POS outlets
       $foodSalesPOS = DB::table('stock AS S')
          ->join('itemmast AS I', 'S.Item', '=', 'I.Code')
          ->join('depart AS D', 'S.RestCode', '=', 'D.dcode')
@@ -7865,7 +7865,7 @@ class Reporting extends Controller
 
       $totalFoodSalesPOS = $foodSalesPOS->sum('Amt');
 
-      // 8. Food Sales — Banquet
+      // 8. Food Sales â€” Banquet
       $foodSalesBanquet = DB::table('hallstock AS HS')
          ->join('itemmast AS I', 'HS.Item', '=', 'I.Code')
          ->join('itemcatmast AS IC', 'I.ItemCatCode', '=', 'IC.Code')
@@ -7896,10 +7896,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Cover Analysis — pax/covers per outlet per day
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Cover Analysis â€” pax/covers per outlet per day
    // Legacy: GRepFormName = "CoverAnalysis"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function coveranalysis(Request $request)
    {
@@ -7981,10 +7981,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Waiter-Wise Sale — sales by steward/waiter
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Waiter-Wise Sale â€” sales by steward/waiter
    // Legacy: GRepFormName = "WaiterWiseSale"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function waitersale(Request $request)
    {
@@ -8042,10 +8042,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Cashier Settlement — cashier collection/closing
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Cashier Settlement â€” cashier collection/closing
    // Legacy: GRepFormName = "CashierSettlement"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function cashiersettlement(Request $request)
    {
@@ -8099,10 +8099,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Guest Payments — payment summary by guest/folio
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Guest Payments â€” payment summary by guest/folio
    // Legacy: GRepFormName = "GuestPayments"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function guestpayments(Request $request)
    {
@@ -8150,10 +8150,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Room Change History — audit trail of room changes
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Room Change History â€” audit trail of room changes
    // Legacy: GRepFormName = "RoomChangeHistory"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function roomchangehistory(Request $request)
    {
@@ -8284,11 +8284,11 @@ class Reporting extends Controller
       return $report->get();
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Guest Trial Balance — charges vs payments per guest/folio
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Guest Trial Balance â€” charges vs payments per guest/folio
    // Legacy: GRepFormName = "GuestTrialBalance"
    // Filters: All / In House / Checked In / Checked Out
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function guesttrialbalance(Request $request)
    {
@@ -8359,10 +8359,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Room Nights Analysis — room nights consumed per room type
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Room Nights Analysis â€” room nights consumed per room type
    // Legacy: GRepFormName = "RoomNights"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function roomnights(Request $request)
    {
@@ -8426,10 +8426,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Check-Out Register — daily checkout list with bill details
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Check-Out Register â€” daily checkout list with bill details
    // Legacy: GRepFormName = "ChkOutRegister"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function checkoutregister(Request $request)
    {
@@ -8499,10 +8499,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Registered Guest Detail — guest master listing with visit history
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Registered Guest Detail â€” guest master listing with visit history
    // Legacy: GRepFormName = "RegisteredGuestDetail"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function registeredguestdetail(Request $request)
    {
@@ -8590,10 +8590,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Edited Bills — audit trail of modified FOM bills
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Edited Bills â€” audit trail of modified FOM bills
    // Legacy: GRepFormName = "EditedBills"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function editedbills(Request $request)
    {
@@ -8640,10 +8640,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // KOT Edit/Delete Log — audit trail of KOT modifications
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // KOT Edit/Delete Log â€” audit trail of KOT modifications
    // Legacy: GRepFormName = "KOTEditDelete"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function koteditdeletelog(Request $request)
    {
@@ -8721,10 +8721,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Revenue Analysis — revenue breakdown by source/vtype
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Revenue Analysis â€” revenue breakdown by source/vtype
    // Legacy: GRepFormName = "RevAnalysis"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function revenueanalysis(Request $request)
    {
@@ -8806,10 +8806,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Guest Charges MIS — charges summary per guest/folio
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Guest Charges MIS â€” charges summary per guest/folio
    // Legacy: GRepFormName = "GuestChargesMIS"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function guestchargesmis(Request $request)
    {
@@ -8860,10 +8860,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Extra Charges During Stay — non-room charges (POS, laundry, etc.)
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Extra Charges During Stay â€” non-room charges (POS, laundry, etc.)
    // Legacy: GRepFormName = "ExtraChargesDuringStay"
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function extrachargesduringstay(Request $request)
    {
@@ -8929,10 +8929,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Advance Reconciliation — 3-way match: Booking → PayCharge → Folio
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Advance Reconciliation â€” 3-way match: Booking â†’ PayCharge â†’ Folio
    // Detects mismatches between reservation advance and posted payments
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function advancereconcil(Request $request)
    {
@@ -9007,7 +9007,7 @@ class Reporting extends Controller
             $status = 'NO_ADVANCE';
             $mismatch = 0;
          } elseif ($b->Cancel === 'Y') {
-            // Cancelled booking with advance — check if refund was processed
+            // Cancelled booking with advance â€” check if refund was processed
             $refundCheck = DB::table('paycharge')
                ->where('propertyid', $b->BookingDocId ? '' : '')
                ->where('refdocid', $b->BookingDocId)
@@ -9022,7 +9022,7 @@ class Reporting extends Controller
          } else {
             // Advance collected but not yet checked in or not transferred to folio
             $status = 'ADVANCE_ONLY';
-            $mismatch = 0; // Not a mismatch — just advance collected, check-in pending
+            $mismatch = 0; // Not a mismatch â€” just advance collected, check-in pending
          }
 
          return [
@@ -9065,10 +9065,10 @@ class Reporting extends Controller
       ]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Party Outstanding Report — banquet party wise outstanding
-   // Legacy: PartyOutStanding — HallSale1 vs PaychargeH advance
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Party Outstanding Report â€” banquet party wise outstanding
+   // Legacy: PartyOutStanding â€” HallSale1 vs PaychargeH advance
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function partyoutstanding(Request $request)
    {
@@ -9116,9 +9116,9 @@ class Reporting extends Controller
 
 
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // Plan Report — plan/room category wise booking analysis
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // Plan Report â€” plan/room category wise booking analysis
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function planreport(Request $request)
    {
@@ -9332,9 +9332,9 @@ class Reporting extends Controller
       return response()->json($r);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // MISSING REPORTS — POS, Banquet, HR, Membership (added by AI migration 2)
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // MISSING REPORTS â€” POS, Banquet, HR, Membership (added by AI migration 2)
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    public function kotratechange(Request $request) {
       $propertyid = Auth::user()->propertyid;
@@ -9790,9 +9790,9 @@ class Reporting extends Controller
    }
 
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // MISSING REPORTS — Batch 3 (29 remaining reports)
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // MISSING REPORTS â€” Batch 3 (29 remaining reports)
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
    // Membership Reports
    public function birthmarrrep(Request $request) {
@@ -10325,11 +10325,11 @@ class Reporting extends Controller
       return response()->json(["success" => true, "data" => $rows, "comp" => $comp]);
    }
 
-   // ═══════════════════════════════════════════════════════════════════════════
-   // MISSING HMS REPORTS — Migration Batch
-   // ═══════════════════════════════════════════════════════════════════════════
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   // MISSING HMS REPORTS â€” Migration Batch
+   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-   // 1. Arrival/Departure Register — Legacy: ArrDepReg
+   // 1. Arrival/Departure Register â€” Legacy: ArrDepReg
    public function arrdepreg(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.arrdepreg', ['comp' => $comp]);
@@ -10344,7 +10344,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 2. Bank Clearance — Legacy: Clg
+   // 2. Bank Clearance â€” Legacy: Clg
    public function bankclg(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.bankclg', ['comp' => $comp]);
@@ -10361,7 +10361,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 3. Bank Not Cleared — Legacy: ClgNot
+   // 3. Bank Not Cleared â€” Legacy: ClgNot
    public function bankclgnot(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.bankclgnot', ['comp' => $comp]);
@@ -10379,7 +10379,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 4. Debit Ledger — Legacy: LedDeb
+   // 4. Debit Ledger â€” Legacy: LedDeb
    public function ledgerdeb(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       $accounts = DB::table('subgroup')->where('propertyid', $this->propertyid)->where('activeyn', 'Y')->orderBy('name')->get();
@@ -10399,7 +10399,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 5. Interest Ledger — Legacy: LedInt
+   // 5. Interest Ledger â€” Legacy: LedInt
    public function ledgerint(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.ledgerint', ['comp' => $comp]);
@@ -10416,7 +10416,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 6. Daily Cash Register (Roz Namcha) — Legacy: RozNamcha
+   // 6. Daily Cash Register (Roz Namcha) â€” Legacy: RozNamcha
    public function roznamcha(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.roznamcha', ['comp' => $comp]);
@@ -10434,7 +10434,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data, 'receipts' => $receipts, 'payments' => $payments, 'balance' => $receipts + $payments]);
    }
 
-   // 7. Goods Receipt Challan — Legacy: GRC
+   // 7. Goods Receipt Challan â€” Legacy: GRC
    public function grc(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.grc', ['comp' => $comp]);
@@ -10450,7 +10450,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 8. GSTR-1 Report — Legacy: GSTR1
+   // 8. GSTR-1 Report â€” Legacy: GSTR1
    public function gstr1report(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.gstr1report', ['comp' => $comp]);
@@ -10474,7 +10474,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data, 'summary' => $invoiced]);
    }
 
-   // 9. PLU File Export — Legacy: PLUFile
+   // 9. PLU File Export â€” Legacy: PLUFile
    public function plufile(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       return view('property.plufile', ['comp' => $comp]);
@@ -10491,7 +10491,7 @@ class Reporting extends Controller
       return response()->json(['data' => $data]);
    }
 
-   // 10. General Ledger 2 — Legacy: Led
+   // 10. General Ledger 2 â€” Legacy: Led
    public function generalledger2(Request $request) {
       $comp = Companyreg::where('propertyid', $this->propertyid)->first();
       $accounts = DB::table('subgroup')->where('propertyid', $this->propertyid)->where('activeyn', 'Y')->orderBy('name')->get();
@@ -10509,6 +10509,354 @@ class Reporting extends Controller
          ->orderBy('vdate')->get();
       $opening = $q->where('vdate', '<', $fd)->sum('amount');
       return response()->json(['data' => $data, 'opening' => $opening]);
+   }
+
+   /* =====================================================================
+     |  HMS.text MISSING REPORTS BATCH A â€” FRONT OFFICE + RESERVATION       |
+     |  Added 2026-08-23 : BookingDetail, DaysForecastRep, GuestBillDetails |
+     |  GuestChgJournal(+Log), GuestObservRep, InsHouseCount, GuestInHouse, |
+     |  DelBillUnsetBill, ResvAdvRecd(+Arr,+InHouse)                        |
+     ===================================================================== */
+
+   // A1. Booking Detail Register â€” Legacy: FrmBookingDetail / GRepFormName "BookingDetail"
+   public function bookingdetail(Request $request)
+   {
+      $p = revokeopen(131214);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.bookingdetail');
+   }
+
+   public function bookingdetailfetch(Request $request)
+   {
+      $p = revokeopen(131214);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $status = $request->input('resstatus', '');
+      $q = DB::table('booking')->where('Property_ID', $this->propertyid)->whereBetween('vdate', [$fd, $td]);
+      if ($status != '') $q->where('ResStatus', $status);
+      if ($request->input('inccancelled', 'N') != 'Y') $q->where('Cancel', 'N');
+      $rows = $q->orderBy('BookNo')->get();
+      return response()->json(['data' => $rows]);
+   }
+
+   // A2. Days Forecast Report â€” Legacy: GRepFormName "DaysForecastRep"
+   public function daysforecastrep(Request $request)
+   {
+      $p = revokeopen(131215);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.daysforecastrep');
+   }
+
+   public function daysforecastrepfetch(Request $request)
+   {
+      $p = revokeopen(131215);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $rooms = [];
+      $cur = strtotime($fd);
+      $end = strtotime($td);
+      while ($cur <= $end && count($rooms) < 120) {
+         $d = date('Y-m-d', $cur);
+         $occupied = DB::table('roomocc')->where('propertyid', $this->propertyid)
+            ->where('chkindate', '<=', $d)->where(function ($w) use ($d) {
+               $w->whereNull('chkoutdate')->orWhere('chkoutdate', '>', $d);
+            })->count();
+         $arrivals = DB::table('roomocc')->where('propertyid', $this->propertyid)
+            ->whereDate('chkindate', $d)->count();
+         $arrPax = DB::table('roomocc')->where('propertyid', $this->propertyid)
+            ->whereDate('chkindate', $d)->selectRaw('IFNULL(SUM(adult+children),0) AS px')->value('px');
+         $bookings = DB::table('booking')->where('Property_ID', $this->propertyid)
+            ->where('Cancel', 'N')->whereBetween('vdate', [$fd, $d])->count();
+         $rooms[] = ['fdate' => $d, 'occupied' => $occupied, 'arrivals' => $arrivals,
+                     'arrpax' => (int)$arrPax, 'bookings' => $bookings];
+         $cur = strtotime('+1 day', $cur);
+      }
+      return response()->json(['data' => $rooms]);
+   }
+
+   // A3. Guest Bill Details â€” Legacy: GRepFormName "GuestBillDetails"
+   public function guestbilldetails(Request $request)
+   {
+      $p = revokeopen(131216);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      $folios = DB::table('guestfolio')->where('propertyid', $this->propertyid)->orderBy('folio_no')->get();
+      return view('property.guestbilldetails', ['folios' => $folios]);
+   }
+
+   public function guestbilldetailsfetch(Request $request)
+   {
+      $p = revokeopen(131216);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $folio = $request->input('foliono', '');
+      $rows = DB::table('paycharge AS PC')
+         ->leftJoin('guestfolio AS GF', function ($j) {
+            $j->on('GF.propertyid', '=', 'PC.propertyid')->on('GF.docid', '=', 'PC.docid');
+         })
+         ->where('PC.propertyid', $this->propertyid)->whereBetween('PC.vdate', [$fd, $td])
+         ->when($folio !== '', fn ($qq) => $qq->where('PC.foliono', $folio))
+         ->orderBy('PC.foliono')->orderBy('PC.vdate')->orderBy('PC.sno')
+         ->select('PC.foliono','PC.vdate','PC.vtype','PC.paycode','PC.paytype',
+                  'PC.amtcr','PC.amtdr','PC.roomno','PC.u_name','GF.name')
+         ->get();
+      $bal = []; $data = [];
+      foreach ($rows as $r) {
+         $f = $r->foliono;
+         $bal[$f] = ($bal[$f] ?? 0) + $r->amtdr - $r->amtcr;
+         $data[] = ['foliono'=>$f,'name'=>$r->name,'vdate'=>$r->vdate,'vtype'=>$r->vtype,
+                    'particulars'=>trim($r->paytype.' '.$r->paycode),'dr'=>$r->amtdr,
+                    'cr'=>$r->amtcr,'balance'=>round($bal[$f],2),'user'=>$r->u_name];
+      }
+      return response()->json(['data' => $data]);
+   }
+
+   // A4. Guest Charge Journal â€” Legacy: GRepFormName "GuestChgJournal"
+   public function guestchgjournal(Request $request)
+   {
+      $p = revokeopen(131217);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.guestchgjournal');
+   }
+
+   public function guestchgjournalfetch(Request $request)
+   {
+      $p = revokeopen(131217);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $rows = DB::table('paycharge')->where('propertyid', $this->propertyid)
+         ->whereIn('vtype', ['CHG', 'RCP', 'ADV'])
+         ->whereBetween('vdate', [$fd, $td])
+         ->groupBy('vdate', 'paycode', 'paytype')
+         ->orderBy('vdate')->orderBy('paycode')
+         ->selectRaw("vdate, paycode, paytype, COUNT(*) docs, IFNULL(SUM(amtdr),0) debit, IFNULL(SUM(amtcr),0) credit")
+         ->get();
+      return response()->json(['data' => $rows]);
+   }
+
+   // A5. Guest Charge Journal Log (audit view) â€” Legacy: "GuestChgJournalLog"
+   public function guestchgjournallog(Request $request)
+   {
+      $p = revokeopen(131218);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.guestchgjournallog');
+   }
+
+   public function guestchgjournallogfetch(Request $request)
+   {
+      $p = revokeopen(131218);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $rows = DB::table('paycharge')->where('propertyid', $this->propertyid)
+         ->whereIn('vtype', ['CHG', 'RCP', 'ADV'])
+         ->whereBetween('u_entdt', [$fd . ' 00:00:00', $td . ' 23:59:59'])
+         ->orderBy('u_entdt')
+         ->select('u_entdt','vdate','docid','vtype','paycode','paytype','amtdr','amtcr','roomno','u_name')
+         ->limit(5000)->get();
+      return response()->json(['data' => $rows]);
+   }
+
+   // A6. Guest Observation Report â€” Legacy: "GuestObservRep"
+   public function guestobservrep(Request $request)
+   {
+      $p = revokeopen(131219);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.guestobservrep');
+   }
+
+   public function guestobservrepfetch(Request $request)
+   {
+      $p = revokeopen(131219);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $rows = DB::table('roomocc AS RO')
+         ->leftJoin('guestprof AS GP', function ($j) {
+            $j->on('GP.propertyid', '=', 'RO.propertyid')->on('GP.docid', '=', 'RO.docid');
+         })
+         ->where('RO.propertyid', $this->propertyid)
+         ->whereBetween('RO.chkindate', [$fd, $td])
+         ->where(function ($w) {
+            $w->whereNotNull('RO.reasonrchange')->where('RO.reasonrchange', '!=', '')
+              ->orWhere('RO.extrabed', '>', 0)
+              ->orWhere('RO.rodisc', '>', 0)->orWhere('RO.rsdisc', '>', 0)
+              ->orWhere('GP.guest_status', 'VIP');
+         })
+         ->orderBy('RO.roomno')
+         ->select('RO.roomno','RO.name','RO.chkindate','RO.depdate','RO.roomrate',
+                  'RO.reasonrchange','RO.extrabed','RO.rodisc','RO.rsdisc','GP.mobile_no','GP.guest_status')
+         ->get();
+      return response()->json(['data' => $rows]);
+   }
+
+   // A7. Instant House Count â€” Legacy: "InsHouseCount"
+   public function inhousecount(Request $request)
+   {
+      $p = revokeopen(131220);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.inhousecount');
+   }
+
+   public function inhousecountfetch(Request $request)
+   {
+      $p = revokeopen(131220);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $pid = $this->propertyid;
+      $totalRooms = DB::table('room_mast')->where('propertyid', $pid)->count();
+      $occupiedQ = DB::table('roomocc')->where('propertyid', $pid)
+         ->where('activeyn', 'Y')->whereNull('chkoutdate');
+      $occupied = (clone $occupiedQ)->distinct()->count('roomno');
+      $pax = (clone $occupiedQ)->selectRaw('IFNULL(SUM(adult+children),0) AS px')->value('px');
+      $male = (clone $occupiedQ)->sum('adult');
+      $blocked = DB::table('roomblockout')->where('propertyid', $pid)->where('block', 'B')
+         ->where(function ($w) {
+            $w->whereNull('todate')->orWhere('todate', '>=', date('Y-m-d'));
+         })->count();
+      $vacant = max($totalRooms - $occupied - $blocked, 0);
+      $arrToday = DB::table('roomocc')->where('propertyid', $pid)->whereDate('chkindate', date('Y-m-d'))->count();
+      $depToday = DB::table('roomocc')->where('propertyid', $pid)->whereDate('depdate', date('Y-m-d'))->whereNull('chkoutdate')->count();
+      return response()->json(['data' => [[
+         'total_rooms' => $totalRooms, 'occupied' => $occupied, 'vacant' => $vacant,
+         'blocked' => $blocked, 'pax' => (int)$pax, 'adults' => (int)$male,
+         'expected_arrivals' => $arrToday, 'expected_departures' => $depToday,
+      ]]]);
+   }
+
+   // A8. Guest In House List â€” Legacy: "GuestInHouse"
+   public function guestinhousereport(Request $request)
+   {
+      $p = revokeopen(131221);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.guestinhousereport');
+   }
+
+   public function guestinhousereportfetch(Request $request)
+   {
+      $p = revokeopen(131221);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $pid = $this->propertyid;
+      $rows = DB::table('roomocc AS RO')
+         ->leftJoin('guestprof AS GP', function ($j) {
+            $j->on('GP.propertyid', '=', 'RO.propertyid')->on('GP.docid', '=', 'RO.docid');
+         })
+         ->leftJoin(DB::raw("(SELECT propertyid, foliono,
+                IFNULL(SUM(amtdr),0)-IFNULL(SUM(amtcr),0) bal
+                FROM paycharge WHERE propertyid = $pid GROUP BY foliono) PB"),
+               function ($j) { $j->on('PB.foliono', '=', 'RO.folioNo'); })
+         ->where('RO.propertyid', $pid)
+         ->where('RO.activeyn', 'Y')->whereNull('RO.chkoutdate')
+         ->when($request->filled('fromdate'), fn ($q) => $q->where('RO.chkindate', '>=', $request->fromdate))
+         ->orderBy('RO.roomno')
+         ->select('RO.roomno','RO.name','GP.city','GP.mobile_no','RO.chkindate','RO.depdate',
+                  'RO.adult','RO.children','RO.roomrate','RO.roomcat',
+                  DB::raw('IFNULL(PB.bal,0) AS balance'))
+         ->get();
+      return response()->json(['data' => $rows]);
+   }
+
+   // A9. Deleted / Unsettled Bills â€” Legacy: "DelBillUnsetBill"
+   public function delbillunsetbill(Request $request)
+   {
+      $p = revokeopen(131222);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.delbillunsetbill');
+   }
+
+   public function delbillunsetbillfetch(Request $request)
+   {
+      $p = revokeopen(131222);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $pid = $this->propertyid;
+      $unsettled = DB::table(DB::raw("(SELECT foliono, docid, MAX(vdate) vd,
+             IFNULL(SUM(amtdr),0)-IFNULL(SUM(amtcr),0) bal
+             FROM paycharge WHERE propertyid = $pid AND foliono > 0
+             GROUP BY foliono, docid HAVING bal <> 0) T"))
+         ->whereBetween('vd', [$fd, $td])->orderBy('vd')->get();
+      $deleted = [];
+      try {
+         $deleted = DB::table('paychargeh')->where('propertyid', $pid)
+            ->whereBetween('vdate', [$fd, $td])->orderBy('u_entdt', 'desc')
+            ->limit(2000)->get()->all();
+      } catch (\Exception $e) { $deleted = []; }
+      return response()->json(['unsettled' => $unsettled, 'deleted' => $deleted]);
+   }
+
+   // A10-A12. Reservation Advance Received â€” Legacy: "ResvAdvRecd" (+Arr / +InHouse)
+   public function resvadvrecdcommon(Request $request, $mode)
+   {
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $q = DB::table('paycharge AS PC')
+         ->leftJoin('booking AS BK', function ($j) {
+            $j->on('BK.Property_ID', '=', 'PC.propertyid')->on('BK.DocId', '=', 'PC.docid');
+         })
+         ->where('PC.propertyid', $this->propertyid)->where('PC.vtype', 'ADV')
+         ->whereBetween('PC.vdate', [$fd, $td]);
+      if ($mode == 'arr') {
+         $q->whereIn('PC.docid', function ($sq) use ($fd, $td) {
+            $sq->select('docid')->from('roomocc')
+               ->whereColumn('roomocc.docid', 'PC.docid')
+               ->whereBetween('chkindate', [$fd, $td]);
+         });
+      } elseif ($mode == 'inh') {
+         $q->whereIn('PC.docid', function ($sq) {
+            $sq->select('docid')->from('roomocc')
+               ->whereColumn('roomocc.docid', 'PC.docid')
+               ->where('activeyn', 'Y')->whereNull('chkoutdate');
+         });
+      }
+      return $q->orderBy('PC.vdate')
+         ->select('PC.vdate','PC.docid','BK.BookNo','BK.GuestName',
+                  DB::raw('PC.amtdr AS amount'),'PC.modeset','PC.u_name')
+         ->get();
+   }
+
+   public function resvadvrecd(Request $request)
+   {
+      $p = revokeopen(131223);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.resvadvrecd');
+   }
+
+   public function resvadvrecdfetch(Request $request)
+   {
+      $p = revokeopen(131223);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      return response()->json(['data' => $this->resvadvrecdcommon($request, 'all')]);
+   }
+
+   public function resvadvrecdarr(Request $request)
+   {
+      $p = revokeopen(131224);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.resvadvrecdarr');
+   }
+
+   public function resvadvrecdarrfetch(Request $request)
+   {
+      $p = revokeopen(131224);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      return response()->json(['data' => $this->resvadvrecdcommon($request, 'arr')]);
+   }
+
+   public function resvadvrecdinhouse(Request $request)
+   {
+      $p = revokeopen(131225);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.resvadvrecdinhouse');
+   }
+
+   public function resvadvrecdinhousefetch(Request $request)
+   {
+      $p = revokeopen(131225);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      return response()->json(['data' => $this->resvadvrecdcommon($request, 'inh')]);
    }
 
 }

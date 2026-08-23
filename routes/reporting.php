@@ -601,3 +601,40 @@ Route::post('travelagentanalysisfetch', [Reporting::class, 'travelagentanalysisf
    // 10. General Ledger (if not exists)
    Route::get('generalledger2', [Reporting::class, 'generalledger2']);
    Route::post('generalledger2fetch', [Reporting::class, 'generalledger2fetch']);
+
+   // ===== HMS.text Missing Reports - Batch A (Front Office + Reservation) =====
+   Route::get('bookingdetail', [Reporting::class, 'bookingdetail']);
+   Route::post('bookingdetailfetch', [Reporting::class, 'bookingdetailfetch']);
+
+   Route::get('daysforecastrep', [Reporting::class, 'daysforecastrep']);
+   Route::post('daysforecastrepfetch', [Reporting::class, 'daysforecastrepfetch']);
+
+   Route::get('guestbilldetails', [Reporting::class, 'guestbilldetails']);
+   Route::post('guestbilldetailsfetch', [Reporting::class, 'guestbilldetailsfetch']);
+
+   Route::get('guestchgjournal', [Reporting::class, 'guestchgjournal']);
+   Route::post('guestchgjournalfetch', [Reporting::class, 'guestchgjournalfetch']);
+
+   Route::get('guestchgjournallog', [Reporting::class, 'guestchgjournallog']);
+   Route::post('guestchgjournallogfetch', [Reporting::class, 'guestchgjournallogfetch']);
+
+   Route::get('guestobservrep', [Reporting::class, 'guestobservrep']);
+   Route::post('guestobservrepfetch', [Reporting::class, 'guestobservrepfetch']);
+
+   Route::get('inhousecount', [Reporting::class, 'inhousecount']);
+   Route::post('inhousecountfetch', [Reporting::class, 'inhousecountfetch']);
+
+   Route::get('guestinhousereport', [Reporting::class, 'guestinhousereport']);
+   Route::post('guestinhousereportfetch', [Reporting::class, 'guestinhousereportfetch']);
+
+   Route::get('delbillunsetbill', [Reporting::class, 'delbillunsetbill']);
+   Route::post('delbillunsetbillfetch', [Reporting::class, 'delbillunsetbillfetch']);
+
+   Route::get('resvadvrecd', [Reporting::class, 'resvadvrecd']);
+   Route::post('resvadvrecdfetch', [Reporting::class, 'resvadvrecdfetch']);
+
+   Route::get('resvadvrecdarr', [Reporting::class, 'resvadvrecdarr']);
+   Route::post('resvadvrecdarrfetch', [Reporting::class, 'resvadvrecdarrfetch']);
+
+   Route::get('resvadvrecdinhouse', [Reporting::class, 'resvadvrecdinhouse']);
+   Route::post('resvadvrecdinhousefetch', [Reporting::class, 'resvadvrecdinhousefetch']);
