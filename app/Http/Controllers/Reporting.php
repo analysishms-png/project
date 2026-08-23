@@ -9242,7 +9242,7 @@ class Reporting extends Controller
       if (is_null($p) || $p->view == 0) { return response()->json(["error"=>"No permission"]); }
       $fd = $request->input("fromdate",date("Y-m-d"));
       $td = $request->input("todate",date("Y-m-d"));
-      $r = DB::select("SELECT SG.Name AS SubGroupName, LA.Name AS AccountName, IFNULL(SUM(L.Debit),0) AS TotalDebit, IFNULL(SUM(L.Credit),0) AS TotalCredit FROM ledger AS L LEFT JOIN ledgeraccount AS LA ON L.AccCode=LA.Code LEFT JOIN subgroup AS SG ON LA.SubGroup=SG.Code WHERE L.propertyid=? AND L.Vdate BETWEEN ? AND ? GROUP BY SG.Name,LA.Name ORDER BY SG.Name,LA.Name", [$this->propertyid,$fd,$td]);
+      $r = DB::select("SELECT SG.name AS SubGroupName, IFNULL(SUM(L.amtdr),0) AS TotalDebit, IFNULL(SUM(L.amtcr),0) AS TotalCredit FROM ledger AS L LEFT JOIN subgroup AS SG ON L.subcode = SG.sub_code AND SG.propertyid = L.propertyid WHERE L.propertyid=? AND L.vdate BETWEEN ? AND ? GROUP BY SG.name ORDER BY SG.name", [$this->propertyid,$fd,$td]);
       return response()->json($r);
    }
 
@@ -10706,9 +10706,9 @@ class Reporting extends Controller
       $p = revokeopen(131220);
       if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
       $pid = $this->propertyid;
-      $totalRooms = DB::table('room_mast')->where('propertyid', $pid)->count();
-      $occupiedQ = DB::table('roomocc')->where('propertyid', $pid)
-         ->where('activeyn', 'Y')->whereNull('chkoutdate');
+       $totalRooms = DB::table('room_mast')->where('propertyid', $pid)->count();
+       $occupiedQ = DB::table('roomocc')->where('propertyid', $pid)
+          ->whereNull('chkoutdate');
       $occupied = (clone $occupiedQ)->distinct()->count('roomno');
       $pax = (clone $occupiedQ)->selectRaw('IFNULL(SUM(adult+children),0) AS px')->value('px');
       $male = (clone $occupiedQ)->sum('adult');
@@ -10747,9 +10747,9 @@ class Reporting extends Controller
                 IFNULL(SUM(amtdr),0)-IFNULL(SUM(amtcr),0) bal
                 FROM paycharge WHERE propertyid = $pid GROUP BY foliono) PB"),
                function ($j) { $j->on('PB.foliono', '=', 'RO.folioNo'); })
-         ->where('RO.propertyid', $pid)
-         ->where('RO.activeyn', 'Y')->whereNull('RO.chkoutdate')
-         ->when($request->filled('fromdate'), fn ($q) => $q->where('RO.chkindate', '>=', $request->fromdate))
+          ->where('RO.propertyid', $pid)
+          ->whereNull('RO.chkoutdate')
+          ->when($request->filled('fromdate'), fn ($q) => $q->where('RO.chkindate', '>=', $request->fromdate))
          ->orderBy('RO.roomno')
          ->select('RO.roomno','RO.name','GP.city','GP.mobile_no','RO.chkindate','RO.depdate',
                   'RO.adult','RO.children','RO.roomrate','RO.roomcat',
@@ -10804,13 +10804,13 @@ class Reporting extends Controller
                ->whereColumn('roomocc.docid', 'PC.docid')
                ->whereBetween('chkindate', [$fd, $td]);
          });
-      } elseif ($mode == 'inh') {
-         $q->whereIn('PC.docid', function ($sq) {
-            $sq->select('docid')->from('roomocc')
-               ->whereColumn('roomocc.docid', 'PC.docid')
-               ->where('activeyn', 'Y')->whereNull('chkoutdate');
-         });
-      }
+       } elseif ($mode == 'inh') {
+          $q->whereIn('PC.docid', function ($sq) {
+             $sq->select('docid')->from('roomocc')
+                ->whereColumn('roomocc.docid', 'PC.docid')
+                ->whereNull('chkoutdate');
+          });
+       }
       return $q->orderBy('PC.vdate')
          ->select('PC.vdate','PC.docid','BK.BookNo','BK.GuestName',
                   DB::raw('PC.amtdr AS amount'),'PC.modeset','PC.u_name')
@@ -10857,6 +10857,336 @@ class Reporting extends Controller
       $p = revokeopen(131225);
       if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
       return response()->json(['data' => $this->resvadvrecdcommon($request, 'inh')]);
+   }
+
+   // ==================== BATCH B: ACCOUNTS (HMS.text missing reports) ====================
+   // Legacy refs: "BankReg", "LedCred", "CONTROLLED", "PartyWiseOutStanding", "PmtByCashier"
+   // Data conventions: suntran (suncode/partycode/amount/sunappdate), subgroup.nature,
+   // ledger amtdr/amtcr per subcode, paycharge receipts by u_name.
+
+   // B1. Bank Register - cheque/txn-wise bank book w/ clearance status
+   public function bankreg(Request $request)
+   {
+      $p = revokeopen(131226);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      $banks = DB::table('subgroup')->where('propertyid', $this->propertyid)
+         ->where('nature', 'Bank')->orderBy('name')
+         ->select('sub_code', 'name')->get();
+      return view('property.bankreg', ['banks' => $banks]);
+   }
+
+   public function bankregfetch(Request $request)
+   {
+      $p = revokeopen(131226);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $status = $request->input('clrstatus', '');       // '' | C | P
+      $bank = $request->input('bankcode', '');
+      $bankCodes = DB::table('subgroup')->where('propertyid', $this->propertyid)
+         ->where('nature', 'Bank')->pluck('sub_code')->all();
+      if (empty($bankCodes)) { return response()->json(['data' => [], 'total' => 0]); }
+      $q = DB::table('suntran AS ST')
+         ->leftJoin('subgroup AS SG', function ($j) {
+            $j->on('SG.sub_code', '=', 'ST.suncode')->on('SG.propertyid', '=', 'ST.propertyid');
+         })
+         ->where('ST.propertyid', $this->propertyid)
+         ->where('ST.delflag', 'N')
+         ->whereIn('ST.suncode', $bankCodes)
+         ->whereBetween('ST.vdate', [$fd, $td]);
+      if ($bank) { $q->where('ST.suncode', $bank); }
+      if ($status == 'C') { $q->whereNotNull('ST.sunappdate'); }
+      if ($status == 'P') { $q->whereNull('ST.sunappdate'); }
+      $rows = $q->orderBy('ST.vdate')->orderBy('ST.sn')
+         ->select('ST.docid','ST.vdate','ST.vno','ST.vtype','ST.suncode',
+                  DB::raw("IFNULL(SG.name,'') AS bankname"),
+                  'ST.dispname','ST.amount','ST.sunappdate','ST.u_name',
+                  DB::raw("CASE WHEN ST.sunappdate IS NULL THEN 'Pending' ELSE 'Cleared' END AS clrstatus"))
+         ->get();
+      $total = $rows->sum('amount');
+      return response()->json(['data' => $rows, 'total' => $total]);
+   }
+
+   // B2. Ledger Creditors - party transactions (creditors/debtors view)
+   public function ledgercred(Request $request)
+   {
+      $p = revokeopen(131227);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      $accounts = DB::table('subgroup')->where('propertyid', $this->propertyid)
+         ->whereIn('nature', ['Supplier', 'Customer'])->where('activeyn', 'Y')
+         ->orderBy('name')->select('sub_code', 'name', 'nature')->get();
+      return view('property.ledgercred', ['accounts' => $accounts]);
+   }
+
+   public function ledgercredfetch(Request $request)
+   {
+      $p = revokeopen(131227);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $ptype = $request->input('partytype', 'Supplier');  // Supplier | Customer
+      $party = $request->input('partycode', '');
+      $parties = DB::table('subgroup')->where('propertyid', $this->propertyid)
+         ->where('nature', $ptype)->pluck('sub_code')->all();
+      if (empty($parties)) { return response()->json(['data' => [], 'total' => 0]); }
+      $q = DB::table('ledger AS L')
+         ->leftJoin('subgroup AS PG', function ($j) {
+            $j->on('PG.sub_code', '=', 'L.subcode')->on('PG.propertyid', '=', 'L.propertyid');
+         })
+         ->where('L.propertyid', $this->propertyid)
+         ->whereIn('L.subcode', $parties)
+         ->whereBetween('L.vdate', [$fd, $td]);
+      if ($party) { $q->where('L.subcode', $party); }
+      $rows = $q->orderBy('L.vdate')->orderBy('L.sn')
+         ->select('L.docid','L.vdate','L.vno','L.vtype','L.subcode AS partycode',
+                  DB::raw("IFNULL(PG.name,'') AS partyname"),
+                  'L.narration','L.chqno','L.amtdr','L.amtcr','L.u_name',
+                  DB::raw('(IFNULL(L.amtdr,0)-IFNULL(L.amtcr,0)) AS net'))
+         ->get();
+      $total = $rows->sum('net');
+      return response()->json(['data' => $rows, 'total' => $total]);
+   }
+
+   // B3. Controlled Accounts - system-controlled a/c closing balances by nature
+   public function controlledaccounts(Request $request)
+   {
+      $p = revokeopen(131228);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.controlledaccounts');
+   }
+
+   public function controlledaccountsfetch(Request $request)
+   {
+      $p = revokeopen(131228);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $nature = $request->input('nature', '');
+      $controlled = ['Cash','Bank','TDS','Expenditure','Sale','Purchase','Others'];
+      $q = DB::table('subgroup AS SG')
+         ->leftJoin('ledger AS L', function ($j) use ($fd, $td) {
+            $j->on('L.subcode', '=', 'SG.sub_code')->on('L.propertyid', '=', 'SG.propertyid')
+              ->whereBetween('L.vdate', [$fd, $td]);
+         })
+         ->where('SG.propertyid', $this->propertyid)
+         ->whereIn('SG.nature', $controlled);
+      if ($nature) { $q->where('SG.nature', $nature); }
+      $rows = $q->groupBy('SG.sub_code', 'SG.name', 'SG.nature')
+         ->orderBy('SG.nature')->orderBy('SG.name')
+         ->select('SG.sub_code','SG.name','SG.nature',
+                  DB::raw('IFNULL(SUM(L.amtdr),0) AS dr'),
+                  DB::raw('IFNULL(SUM(L.amtcr),0) AS cr'),
+                  DB::raw('IFNULL(SUM(L.amtdr),0)-IFNULL(SUM(L.amtcr),0) AS balance'))
+         ->havingRaw('dr <> 0 OR cr <> 0')
+         ->get();
+      $totDr = $rows->sum('dr'); $totCr = $rows->sum('cr');
+      return response()->json(['data' => $rows, 'totdr' => $totDr, 'totcr' => $totCr]);
+   }
+
+   // B4. Party-wise Outstanding - receivable/payable per party
+   public function partywiseoutstanding(Request $request)
+   {
+      $p = revokeopen(131229);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.partywiseoutstanding');
+   }
+
+   public function partywiseoutstandingfetch(Request $request)
+   {
+      $p = revokeopen(131229);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $asof = $request->input('todate', date('Y-m-d'));
+      $balType = $request->input('baltype', '');          // '' | R | P
+      $ntype = $request->input('nature', '');             // '' | Customer | Supplier
+      $q = DB::table('subgroup AS SG')
+         ->leftJoin('ledger AS L', function ($j) use ($asof) {
+            $j->on('L.subcode', '=', 'SG.sub_code')->on('L.propertyid', '=', 'SG.propertyid')
+              ->where('L.vdate', '<=', $asof);
+         })
+         ->where('SG.propertyid', $this->propertyid)
+         ->whereIn('SG.nature', ['Customer', 'Supplier']);
+      if ($ntype) { $q->where('SG.nature', $ntype); }
+      $q->groupBy('SG.sub_code', 'SG.name', 'SG.nature')
+        ->orderByDesc(DB::raw('ABS(IFNULL(SUM(L.amtdr),0)-IFNULL(SUM(L.amtcr),0))'))
+        ->select('SG.sub_code','SG.name','SG.nature',
+                 DB::raw('IFNULL(SUM(L.amtdr),0) AS dr'),
+                 DB::raw('IFNULL(SUM(L.amtcr),0) AS cr'),
+                 DB::raw('IFNULL(SUM(L.amtdr),0)-IFNULL(SUM(L.amtcr),0) AS outstanding'));
+      if ($balType == 'R') { $q->havingRaw('outstanding > 0'); }
+      elseif ($balType == 'P') { $q->havingRaw('outstanding < 0'); }
+      else { $q->havingRaw('outstanding <> 0'); }
+      $rows = $q->get();
+      $totR = $rows->where('outstanding', '>', 0)->sum('outstanding');
+      $totP = abs($rows->where('outstanding', '<', 0)->sum('outstanding'));
+      return response()->json(['data' => $rows, 'totrecvd' => $totR, 'totpayble' => $totP]);
+   }
+
+   // B5. Payments by Cashier - receipt register grouped cashier/mode/day
+   public function pmtbycashier(Request $request)
+   {
+      $p = revokeopen(131230);
+      if (is_null($p) || $p->view == 0) { return redirect()->back()->with('error', 'You have no permission'); }
+      return view('property.pmtbycashier');
+   }
+
+   public function pmtbycashierfetch(Request $request)
+   {
+      $p = revokeopen(131230);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+      $fd = $request->input('fromdate', date('Y-m-d'));
+      $td = $request->input('todate', date('Y-m-d'));
+      $groupby = $request->input('groupby', 'cashier');   // cashier | mode | date
+      $map = [
+         'cashier' => ['u_name', 'Cashier'],
+         'mode'    => ['paytype', 'Mode'],
+         'date'    => ['vdate', 'Date'],
+      ];
+      if (!isset($map[$groupby])) { $groupby = 'cashier'; }
+      $col = $map[$groupby][0];
+      $rows = DB::table('paycharge AS PC')
+         ->where('PC.propertyid', $this->propertyid)
+         ->where('PC.amtcr', '>', 0)
+         ->whereBetween('PC.vdate', [$fd, $td])
+         ->groupBy(DB::raw('PC.' . $col))
+         ->orderByDesc('totamt')
+         ->select('PC.' . $col . ' AS grpval',
+                  DB::raw("MAX(PC.paytype) AS paytype"),
+                  DB::raw("MAX(PC.modeset) AS modeset"),
+                  DB::raw('COUNT(*) AS docs'),
+                  DB::raw('SUM(PC.amtcr) AS totamt'))
+         ->get();
+      $total = $rows->sum('totamt');
+      return response()->json(['data' => $rows, 'total' => $total, 'groupby' => $groupby]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // SALES DAY BOOK — HMS.text: "SalesDayBook"
+   // Shows day-wise POS sales with tax breakdown
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function salesdaybook(Request $request)
+   {
+      $fromdate = $this->ncurdate;
+      $todate = $this->ncurdate;
+      return view('property.salesdaybook', compact('fromdate', 'todate'));
+   }
+
+   public function salesdaybookfetch(Request $request)
+   {
+      $p = revokeopen(131225);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+
+      $fromdate = $request->input('fromdate', $this->ncurdate);
+      $todate = $request->input('todate', $this->ncurdate);
+
+      $rows = DB::table('sale1')
+         ->join('sale2 as S2', 'S2.docid', '=', 'sale1.docid')
+         ->leftJoin('rest_mast as RM', 'RM.restcode', '=', 'sale1.restcode')
+         ->leftJoin('room_mast as room', 'room.roomno', '=', 'sale1.roomno')
+         ->where('sale1.propertyid', $this->propertyid)
+         ->whereBetween('sale1.saledate', [$fromdate, $todate])
+         ->select(
+            'sale1.saledate',
+            'sale1.docid',
+            'sale1.billno',
+            'RM.restname as outlet',
+            'sale1.roomno',
+            'sale1.guestname',
+            'sale1.pMode',
+            DB::raw('SUM(S2.amt) AS grossamt'),
+            DB::raw('SUM(S2.taxamt) AS taxamt'),
+            DB::raw('SUM(S2.discamt) AS discamt'),
+            DB::raw('SUM(S2.amt + S2.taxamt - S2.discamt) AS netamt'),
+            'sale1.u_name as user'
+         )
+         ->groupBy('sale1.docid', 'sale1.saledate', 'sale1.billno', 'sale1.restcode',
+                   'sale1.roomno', 'sale1.guestname', 'sale1.pMode', 'RM.restname', 'sale1.u_name')
+         ->orderBy('sale1.saledate')
+         ->orderBy('sale1.billno')
+         ->get();
+
+      $total = $rows->sum('netamt');
+      return response()->json(['data' => $rows, 'total' => $total]);
+   }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // STOCK LEDGER — HMS.text: "StockLedger"
+   // Shows item-wise opening, receipt, issue, closing
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   public function stockledger(Request $request)
+   {
+      $fromdate = $this->ncurdate;
+      $todate = $this->ncurdate;
+      return view('property.stockledger', compact('fromdate', 'todate'));
+   }
+
+   public function stockledgerfetch(Request $request)
+   {
+      $p = revokeopen(131225);
+      if (is_null($p) || $p->view == 0) { return response()->json(['error' => 'No permission']); }
+
+      $fromdate = $request->input('fromdate', $this->ncurdate);
+      $todate = $request->input('todate', $this->ncurdate);
+      $itemcode = $request->input('itemcode', '');
+
+      // Opening stock from suntran before fromdate
+      $opening = DB::table('suntran')
+         ->leftJoin('itemmast as IM', 'IM.itemcode', '=', 'suntran.itemcode')
+         ->where('suntran.propertyid', $this->propertyid)
+         ->where('suntran.sundate', '<', $fromdate)
+         ->when($itemcode, function ($q) use ($itemcode) { $q->where('suntran.itemcode', $itemcode); })
+         ->select(
+            'suntran.itemcode',
+            DB::raw('MAX(IM.itemname) AS itemname'),
+            DB::raw('MAX(IM.unit) AS unit'),
+            DB::raw("SUM(CASE WHEN suntran.suntypes = 'R' THEN suntran.qty ELSE 0 END) AS openingreceipt"),
+            DB::raw("SUM(CASE WHEN suntran.suntypes = 'I' THEN suntran.qty ELSE 0 END) AS openingissue")
+         )
+         ->groupBy('suntran.itemcode')
+         ->get();
+
+      // Transactions in period
+      $transactions = DB::table('suntran')
+         ->leftJoin('itemmast as IM', 'IM.itemcode', '=', 'suntran.itemcode')
+         ->where('suntran.propertyid', $this->propertyid)
+         ->whereBetween('suntran.sundate', [$fromdate, $todate])
+         ->when($itemcode, function ($q) use ($itemcode) { $q->where('suntran.itemcode', $itemcode); })
+         ->select(
+            'suntran.itemcode',
+            DB::raw('MAX(IM.itemname) AS itemname'),
+            DB::raw('MAX(IM.unit) AS unit'),
+            'suntran.sundate',
+            'suntran.vtype',
+            'suntran.vno',
+            'suntran.suntypes',
+            DB::raw('SUM(suntran.qty) AS qty'),
+            DB::raw('SUM(suntran.rate * suntran.qty) AS amount')
+         )
+         ->groupBy('suntran.itemcode', 'suntran.sundate', 'suntran.vtype', 'suntran.vno', 'suntran.suntypes')
+         ->orderBy('suntran.itemcode')
+         ->orderBy('suntran.sundate')
+         ->get();
+
+      // Group by item for summary
+      $items = $transactions->groupBy('itemcode')->map(function ($rows, $code) {
+         $receipt = $rows->where('suntypes', 'R')->sum('qty');
+         $issue = $rows->where('suntypes', 'I')->sum('qty');
+         return [
+            'itemcode' => $code,
+            'itemname' => $rows->first()->itemname ?? '',
+            'unit' => $rows->first()->unit ?? '',
+            'receipt' => $receipt,
+            'issue' => $issue,
+            'balance' => $receipt - $issue,
+         ];
+      })->values();
+
+      return response()->json([
+         'opening' => $opening,
+         'transactions' => $transactions,
+         'items' => $items,
+      ]);
    }
 
 }

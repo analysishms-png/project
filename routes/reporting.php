@@ -638,3 +638,25 @@ Route::post('travelagentanalysisfetch', [Reporting::class, 'travelagentanalysisf
 
    Route::get('resvadvrecdinhouse', [Reporting::class, 'resvadvrecdinhouse'])->name('resvadvrecdinhouse');
    Route::post('resvadvrecdinhousefetch', [Reporting::class, 'resvadvrecdinhousefetch'])->name('resvadvrecdinhousefetch');
+
+   // ===== HMS.text Missing Reports - Batch B (Accounts) =====
+   Route::get('bankreg', [Reporting::class, 'bankreg']);
+   Route::post('bankregfetch', [Reporting::class, 'bankregfetch']);
+
+   Route::get('ledgercred', [Reporting::class, 'ledgercred']);
+   Route::post('ledgercredfetch', [Reporting::class, 'ledgercredfetch']);
+
+   Route::get('controlledaccounts', [Reporting::class, 'controlledaccounts']);
+   Route::post('controlledaccountsfetch', [Reporting::class, 'controlledaccountsfetch']);
+
+   Route::get('partywiseoutstanding', [Reporting::class, 'partywiseoutstanding']);
+   Route::post('partywiseoutstandingfetch', [Reporting::class, 'partywiseoutstandingfetch']);
+
+   Route::get('pmtbycashier', [Reporting::class, 'pmtbycashier']);
+   Route::post('pmtbycashierfetch', [Reporting::class, 'pmtbycashierfetch']);
+
+   // ===== SALES DAY BOOK + STOCK LEDGER (HMS.text missing reports) =====
+   Route::get('salesdaybook', [Reporting::class, 'salesdaybook'])->name('salesdaybook');
+   Route::post('salesdaybookfetch', [Reporting::class, 'salesdaybookfetch'])->name('salesdaybookfetch');
+   Route::get('stockledger', [Reporting::class, 'stockledger'])->name('stockledger');
+   Route::post('stockledgerfetch', [Reporting::class, 'stockledgerfetch'])->name('stockledgerfetch');
