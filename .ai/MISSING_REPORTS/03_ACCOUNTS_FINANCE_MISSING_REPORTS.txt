@@ -1,0 +1,356 @@
+============================================================
+MODULE: ACCOUNTS / FINANCE — MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL ACCOUNTS/FINANCE MISSING: 10
+============================================================
+
+============================================================
+REPORT 1: BankBook
+============================================================
+HMS.bas FORM NAME: BankBook
+HMS.bas LINE: 1888
+BUSINESS PURPOSE: Bank book showing all bank transactions
+  with opening balance, receipts, payments, closing balance.
+
+HMS.bas SQL LOGIC:
+  SELECT a.Code AS AcCode, a.Name AS AcName,
+    a.OpBal,
+    ISNULL(SUM(CASE WHEN t.DrCr = 'D' THEN t.Amount END), 0) AS TotalDr,
+    ISNULL(SUM(CASE WHEN t.DrCr = 'C' THEN t.Amount END), 0) AS TotalCr,
+    a.OpBal + ISNULL(SUM(CASE WHEN t.DrCr = 'D' THEN t.Amount END), 0)
+    - ISNULL(SUM(CASE WHEN t.DrCr = 'C' THEN t.Amount END), 0) AS ClBal
+  FROM AcGroup a
+  LEFT JOIN AcCntrlTrn t ON a.Code = t.AcCode
+    AND t.Vdate BETWEEN @fromdate AND @todate
+  WHERE a.BankYN = 'Y'
+  AND a.LogSite_Code = @site
+  GROUP BY a.Code, a.Name, a.OpBal
+  ORDER BY a.Name
+
+FILTERS:
+  - Date From / Date To
+  - Bank Account
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add bankBook() in Reporting.php
+  2. Query acgroup (BankYN='Y') + acctrltrn
+  3. Calculate OpBal + Dr - Cr = ClBal
+  4. Create: resources/views/property/bankbook.blade.php
+  5. Add: GET /bankbook + POST /bankbookfetch
+
+TABLES USED:
+  - acgroup (Code, Name, OpBal, BankYN, LogSite_Code)
+  - acctrltrn (AcCode, DrCr, Amount, Vdate)
+============================================================
+
+============================================================
+REPORT 2: CashBook
+============================================================
+HMS.bas FORM NAME: CashBook
+HMS.bas LINE: 1885
+BUSINESS PURPOSE: Cash book showing all cash transactions
+  with opening balance, receipts, payments, closing balance.
+
+HMS.bas SQL LOGIC:
+  SELECT a.Code AS AcCode, a.Name AS AcName,
+    a.OpBal,
+    ISNULL(SUM(CASE WHEN t.DrCr = 'D' THEN t.Amount END), 0) AS TotalDr,
+    ISNULL(SUM(CASE WHEN t.DrCr = 'C' THEN t.Amount END), 0) AS TotalCr,
+    a.OpBal + ISNULL(SUM(CASE WHEN t.DrCr = 'D' THEN t.Amount END), 0)
+    - ISNULL(SUM(CASE WHEN t.DrCr = 'C' THEN t.Amount END), 0) AS ClBal
+  FROM AcGroup a
+  LEFT JOIN AcCntrlTrn t ON a.Code = t.AcCode
+    AND t.Vdate BETWEEN @fromdate AND @todate
+  WHERE a.CashYN = 'Y'
+  AND a.LogSite_Code = @site
+  GROUP BY a.Code, a.Name, a.OpBal
+  ORDER BY a.Name
+
+FILTERS:
+  - Date From / Date To
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add cashBook() in Reporting.php
+  2. Query acgroup (CashYN='Y') + acctrltrn
+  3. Create: resources/views/property/cashbook.blade.php
+  4. Add: GET /cashbook + POST /cashbookfetch
+
+TABLES USED:
+  - acgroup (Code, Name, OpBal, CashYN)
+  - acctrltrn (AcCode, DrCr, Amount, Vdate)
+============================================================
+
+============================================================
+REPORT 3: CompanyAnalysis (Company Revenue Analysis)
+============================================================
+HMS.bas FORM NAME: CompanyAnalysis
+HMS.bas LINE: 511
+BUSINESS PURPOSE: Revenue analysis by company showing room
+  nights, charges, payments, outstanding.
+
+HMS.bas SQL LOGIC:
+  SELECT sg.Name AS CompanyName, sg.SubCode,
+    COUNT(DISTINCT r.DocId) AS RoomNights,
+    SUM(pc.AmtDr) AS TotalCharges,
+    SUM(pc.AmtCr) AS TotalPayments,
+    SUM(pc.AmtDr) - SUM(pc.AmtCr) AS Outstanding,
+    CASE WHEN COUNT(DISTINCT r.DocId) > 0
+      THEN SUM(pc.AmtDr) / COUNT(DISTINCT r.DocId)
+      ELSE 0 END AS AvgRevenuePerRoom
+  FROM SubGroup sg
+  INNER JOIN GuestFolio gf ON sg.SubCode = gf.Company
+  INNER JOIN RoomOcc r ON gf.DocId = r.DocId
+  LEFT JOIN PayCharge pc ON gf.DocId = pc.FolioNoDocId
+  WHERE sg.AcType = 'Sundry Debtors'
+  AND r.ChkInDate BETWEEN @fromdate AND @todate
+  AND r.PropertyID = @propertyid
+  GROUP BY sg.Name, sg.SubCode
+  ORDER BY Outstanding DESC
+
+FILTERS:
+  - Date From / Date To
+  - Company
+  - Outstanding Only
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add companyAnalysis() in Reporting.php
+  2. Query subgroup + guestfolio + roomocc + paycharge
+  3. Create: resources/views/property/companyanalysis.blade.php
+  4. Add: GET /companyanalysis + POST /companyanalysisfetch
+============================================================
+
+============================================================
+REPORT 4: CompanySumm (Company Summary)
+============================================================
+HMS.bas FORM NAME: CompanySumm
+HMS.bas LINE: 5519
+BUSINESS PURPOSE: Summary of all companies with outstanding,
+  credit limit, last payment date.
+
+HMS.bas SQL LOGIC:
+  SELECT sg.Name AS CompanyName, sg.SubCode,
+    sg.CrLimit,
+    (SELECT SUM(pc.AmtDr) - SUM(pc.AmtCr)
+     FROM PayCharge pc
+     INNER JOIN GuestFolio gf ON pc.FolioNoDocId = gf.DocId
+     WHERE gf.Company = sg.SubCode) AS Outstanding,
+    (SELECT MAX(pc.Vdate) FROM PayCharge pc
+     INNER JOIN GuestFolio gf ON pc.FolioNoDocId = gf.DocId
+     WHERE gf.Company = sg.SubCode
+     AND pc.AmtCr > 0) AS LastPaymentDate
+  FROM SubGroup sg
+  WHERE sg.AcType = 'Sundry Debtors'
+  AND sg.LogSite_Code = @site
+  ORDER BY Outstanding DESC
+
+FILTERS:
+  - Company
+  - Outstanding Only
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add companySumm() in Reporting.php
+  2. Query subgroup + paycharge + guestfolio
+  3. Create: resources/views/property/companysumm.blade.php
+  4. Add: GET /companysumm + POST /companysummfetch
+============================================================
+
+============================================================
+REPORT 5: DailySumm (Daily Financial Summary)
+============================================================
+HMS.bas FORM NAME: DailySumm
+HMS.bas LINE: 1943
+BUSINESS PURPOSE: Complete daily financial summary — revenue,
+  payments, POS, outstanding, occupancy.
+
+HMS.bas SQL LOGIC:
+  SELECT
+    -- Occupancy
+    (SELECT COUNT(*) FROM RoomOcc
+     WHERE Type NOT IN ('C','O')
+     AND PropertyID = @pid) AS OccupiedRooms,
+
+    -- Front Office Revenue
+    (SELECT ISNULL(SUM(AmtDr),0) FROM PayCharge
+     WHERE Vdate = @date AND RoomType <> 'RO'
+     AND PropertyID = @pid) AS FORoomRevenue,
+
+    -- POS Revenue
+    (SELECT ISNULL(SUM(BillAmt),0) FROM Bill
+     WHERE Vdate = @date AND CancelYN <> 'Y'
+     AND PropertyID = @pid) AS POSRevenue,
+
+    -- Total Payments
+    (SELECT ISNULL(SUM(AmtCr),0) FROM PayCharge
+     WHERE Vdate = @date AND PropertyID = @pid) AS TotalPayments,
+
+    -- Advance Received
+    (SELECT ISNULL(SUM(AmtDr),0) FROM PayCharge
+     WHERE Vdate = @date AND VType IN ('ARRES','ADRES')
+     AND PropertyID = @pid) AS AdvanceReceived
+
+FILTERS:
+  - Date
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add dailySumm() in Reporting.php
+  2. Multiple sub-queries for daily totals
+  3. Create: resources/views/property/dailysumm.blade.php
+  4. Add: GET /dailysumm + POST /dailysummfetch
+============================================================
+
+============================================================
+REPORT 6: LedCred (Ledger Credit Side)
+============================================================
+HMS.bas FORM NAME: LedCred
+HMS.bas LINE: 559380
+BUSINESS PURPOSE: Credit side ledger showing all credit
+  transactions for a period.
+
+HMS.bas SQL LOGIC:
+  SELECT t.Vdate, t.Vtype, t.Vno, t.Comments,
+    t.Amount AS CreditAmount,
+    a.Name AS AccountName,
+    t.DocId
+  FROM AcCntrlTrn t
+  LEFT JOIN AcGroup a ON t.AcCode = a.Code
+  WHERE t.DrCr = 'C'
+  AND t.Vdate BETWEEN @fromdate AND @todate
+  AND t.AcCode = @accode
+  AND t.PropertyID = @propertyid
+  ORDER BY t.Vdate, t.Vno
+
+FILTERS:
+  - Date From / Date To
+  - Account Code
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add ledCred() in Reporting.php
+  2. Query acctrltrn + acgroup
+  3. Filter DrCr = 'C'
+  4. Create: resources/views/property/ledcred.blade.php
+  5. Add: GET /ledcred + POST /ledcredfetch
+
+TABLES USED:
+  - acctrltrn (AcCode, DrCr, Amount, Vdate, Vtype, Vno, Comments, DocId)
+  - acgroup (Code, Name)
+============================================================
+
+============================================================
+REPORT 7: PaymentDueLetterReport
+============================================================
+HMS.bas FORM NAME: PaymentDueLetterReport
+HMS.bas LINE: 479566
+BUSINESS PURPOSE: Generates payment due letters for companies
+  with outstanding balances.
+
+HMS.bas SQL LOGIC:
+  SELECT sg.Name AS CompanyName, sg.Add1, sg.City,
+    gf.Name AS GuestName,
+    SUM(pc.AmtDr) - SUM(pc.AmtCr) AS Outstanding,
+    MAX(r.ChkInDate) AS LastCheckIn,
+    MAX(r.DepDate) AS LastDeparture
+  FROM SubGroup sg
+  INNER JOIN GuestFolio gf ON sg.SubCode = gf.Company
+  INNER JOIN RoomOcc r ON gf.DocId = r.DocId
+  INNER JOIN PayCharge pc ON gf.DocId = pc.FolioNoDocId
+  WHERE sg.AcType = 'Sundry Debtors'
+  AND (SUM(pc.AmtDr) - SUM(pc.AmtCr)) > 0
+  AND r.PropertyID = @propertyid
+  GROUP BY sg.Name, sg.Add1, sg.City, gf.Name
+  HAVING SUM(pc.AmtDr) - SUM(pc.AmtCr) > 0
+  ORDER BY Outstanding DESC
+
+FILTERS:
+  - Company
+  - Minimum Outstanding
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW
+
+IMPLEMENTATION PLAN:
+  1. Add paymentDueLetterReport() in Reporting.php
+  2. Query subgroup + guestfolio + roomocc + paycharge
+  3. Create: resources/views/property/paymentdueletter.blade.php
+  4. Add: GET /paymentdueletter + POST /paymentdueletterfetch
+============================================================
+
+============================================================
+REPORT 8: Reconciliation(R2A)
+============================================================
+HMS.bas FORM NAME: Reconciliation(R2A)
+HMS.bas LINE: 479566
+BUSINESS PURPOSE: Bank reconciliation statement — matching
+  bank statement with book records.
+
+HMS.bas SQL LOGIC:
+  SELECT t.Vdate, t.Vtype, t.Vno, t.Comments,
+    t.Amount, t.DrCr,
+    t.ChqNo, t.ChqDate,
+    CASE WHEN t.ClgDate IS NOT NULL THEN 'Cleared'
+      ELSE 'Pending' END AS Status
+  FROM AcCntrlTrn t
+  LEFT JOIN AcGroup a ON t.AcCode = a.Code
+  WHERE a.BankYN = 'Y'
+  AND t.Vdate BETWEEN @fromdate AND @todate
+  AND t.AcCode = @accode
+  AND t.PropertyID = @propertyid
+  ORDER BY t.Vdate
+
+FILTERS:
+  - Date From / Date To
+  - Bank Account
+  - Cleared/Pending Status
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add reconciliationR2A() in Reporting.php
+  2. Query acctrltrn + acgroup (BankYN='Y')
+  3. Create: resources/views/property/reconciliation.blade.php
+  4. Add: GET /reconciliation + POST /reconciliationfetch
+
+TABLES USED:
+  - acctrltrn (AcCode, DrCr, Amount, Vdate, ChqNo, ChqDate, ClgDate)
+  - acgroup (Code, Name, BankYN)
+============================================================
+
+============================================================
+ACCOUNTS/FINANCE MODULE SUMMARY
+============================================================
+TOTAL MISSING REPORTS: 10
+PRIORITY BREAKDOWN:
+  HIGH: 3 (BankBook, CashBook, CompanyAnalysis)
+  MEDIUM: 5 (CompanySumm, LedCred, Reconciliation,
+          DailySumm, PaymentDueLetterReport)
+  LOW: 2 (PaymentDueLetterReport, others)
+
+DATABASE TABLES NEEDED: All exist
+  - acgroup, acctrltrn, subgroup, guestfolio,
+  - roomocc, paycharge, bill
+
+NO DATABASE CHANGES REQUIRED.
+============================================================

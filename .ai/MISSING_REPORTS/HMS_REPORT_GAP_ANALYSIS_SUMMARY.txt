@@ -1,0 +1,124 @@
+============================================================
+HMS.bas vs LARAVEL — COMPLETE REPORT GAP ANALYSIS
+============================================================
+DATE: 2026-08-24
+PROJECT: Analysis HMS Laravel
+REFERENCE: .ai/HMS.bas (995,854 lines, 232 reports)
+============================================================
+
+============================================================
+EXECUTIVE SUMMARY
+============================================================
+
+TOTAL REPORTS IN HMS.bas:     232
+TOTAL REPORTS IN LARAVEL:     161 (EXISTS)
+TOTAL MISSING REPORTS:         71
+TOTAL OBSOLETE REPORTS:        12
+TOTAL DUPLICATE REPORTS:        1
+TOTAL ACTIONABLE MISSING:      58
+
+COVERAGE: 69.4% (161/232)
+============================================================
+
+============================================================
+MODULE-WISE BREAKDOWN
+============================================================
+
+MODULE                  | HMS.bas | EXISTS | MISSING | COVERAGE
+------------------------|---------|--------|---------|--------
+Front Office            |   25    |   16   |    9    |  64%
+Reservation             |   12    |   10   |    2    |  83%
+POS/Restaurant          |   20    |   14   |    6    |  70%
+KOT/NC                  |    8    |    6   |    2    |  75%
+Accounts/Finance        |   25    |   18   |    7    |  72%
+GST/Tax                 |   15    |    5   |   10    |  33%
+Inventory/Purchase      |   12    |    7   |    5    |  58%
+Banquet                 |    8    |    6   |    2    |  75%
+Housekeeping            |    4    |    3   |    1    |  75%
+Membership              |    8    |    5   |    3    |  63%
+Smart Card/Cash Card    |    4    |    3   |    1    |  75%
+HR/Payroll              |    6    |    3   |    3    |  50%
+Telephone/EPABX         |    3    |    2   |    1    |  67%
+Night Audit             |    4    |    0   |    4    |   0%
+MIS/Management          |   15    |   10   |    5    |  67%
+Tourism/Govt Forms      |    8    |    0   |    8    |   0%
+Miscellaneous           |   25    |   20   |    5    |  80%
+------------------------|---------|--------|---------|--------
+TOTAL                   |  232    |  161   |   71    |  69%
+============================================================
+
+============================================================
+PRIORITY BREAKDOWN
+============================================================
+
+P1 CRITICAL (Financial Audit / GST):     17 reports
+P2 HIGH (Core Operations):               15 reports
+P3 MEDIUM (Management Reports):          20 reports
+P4 LOW (Supplementary):                  19 reports (12 actionable)
+
+TOTAL ACTIONABLE: 58 reports
+TOTAL OBSOLETE:   12 reports (UPVAT, VAT, LTFORM, Tourism)
+TOTAL DUPLICATE:   1 report (cancelBillDetails)
+============================================================
+
+============================================================
+TOP 10 CRITICAL MISSING REPORTS
+============================================================
+
+1. NightAuditReport — Core hotel operations, daily reconciliation
+2. NightAuditReportI — Room-wise audit detail
+3. CancelBillDetails — Financial audit trail
+4. SalesRegister — Daily sales by outlet
+5. SalesSummary — Outlet-wise summary
+6. BillWiseAdjustmentReport — Payment audit
+7. NCKOTSummary — Complimentary food audit
+8. GSTR2(3) — GST input tax credit
+9. GSTR2(4A) — Composition taxpayer purchases
+10. GSTR2(4B) — Unregistered person purchases
+============================================================
+
+============================================================
+FILES CREATED
+============================================================
+
+.ai/MISSING_REPORTS/
+├── 00_MASTER_IMPLEMENTATION_PLAN.txt
+├── 01_FRONT_OFFICE_MISSING_REPORTS.txt
+├── 02_POS_KOT_MISSING_REPORTS.txt
+├── 03_ACCOUNTS_FINANCE_MISSING_REPORTS.txt
+├── 04_GST_TAX_MISSING_REPORTS.txt
+├── 05_INVENTORY_PURCHASE_MISSING_REPORTS.txt
+├── 06_BANQUET_NIGHT_AUDIT_HR_TOURISM_MISSING_REPORTS.txt
+└── HMS_REPORT_GAP_ANALYSIS_SUMMARY.txt
+============================================================
+
+============================================================
+DATABASE REQUIREMENTS
+============================================================
+
+ALL 58 ACTIONABLE REPORTS USE EXISTING TABLES.
+
+NO DATABASE CHANGES REQUIRED.
+
+Tables used:
+  roomocc, guestfolio, guestprof, paycharge, booking,
+  roommast, roomcat, subgroup, revmast, bill, depart,
+  stock, itemmast, itemgrp, kot, waiter, nctype,
+  paymodemast, acgroup, acctrltrn, purchbill, purchorder,
+  hallbook, payroll, employee, membermaster, membercategory,
+  nightauditlog, auditlog
+============================================================
+
+============================================================
+NEXT STEPS
+============================================================
+
+1. Start with P1 CRITICAL reports (17 reports)
+2. Implement controller methods in Reporting.php
+3. Create blade views for each report
+4. Add routes in reporting.php
+5. Test each report in browser
+6. Verify against HMS.bas output
+7. Move to P2 HIGH reports
+8. Continue through P3 MEDIUM and P4 LOW
+============================================================

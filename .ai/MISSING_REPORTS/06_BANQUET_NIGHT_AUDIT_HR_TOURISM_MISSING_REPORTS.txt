@@ -1,0 +1,324 @@
+============================================================
+MODULE: BANQUET / MIS / NIGHT AUDIT / HR / TOURISM — MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL BANQUET/MIS/NIGHT AUDIT/HR/TOURISM MISSING: 18
+============================================================
+
+============================================================
+REPORT 1: DailyFuncSheet (Daily Function Sheet)
+============================================================
+HMS.bas FORM NAME: DailyFuncSheet
+HMS.bas LINE: 2434
+BUSINESS PURPOSE: Daily banquet function sheet showing all
+  functions scheduled for the day with details.
+
+HMS.bas SQL LOGIC:
+  SELECT h.DocId, h.Vdate, h.PartyName,
+    h.FuncName, h.HallName, h.FunctionTime,
+    h.MenuPlan, h.CoverRate, h.Covers,
+    h.TotalAmount, h.Advance,
+    h.ContactPerson, h.Mobile,
+    h.Notes, h.Status
+  FROM HallBook h
+  WHERE h.Vdate = @date
+  AND h.PropertyID = @propertyid
+  ORDER BY h.FunctionTime
+
+FILTERS:
+  - Date
+  - Hall
+  - Status
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add dailyFuncSheet() in Reporting.php
+  2. Query hallbook
+  3. Create: resources/views/property/dailyfuncsheet.blade.php
+  4. Add: GET /dailyfuncsheet + POST /dailyfuncsheetfetch
+
+TABLES USED:
+  - hallbook (DocId, Vdate, PartyName, FuncName, HallName,
+    FunctionTime, MenuPlan, CoverRate, Covers, TotalAmount,
+    Advance, ContactPerson, Mobile, Notes, Status)
+============================================================
+
+============================================================
+REPORT 2: NightAuditReport
+============================================================
+HMS.bas FORM NAME: NightAuditReport
+HMS.bas LINE: 40
+BUSINESS PURPOSE: Night audit report showing daily reconciliation
+  — room revenue, POS, payments, outstanding, occupancy.
+
+HMS.bas SQL LOGIC:
+  SELECT
+    -- Occupancy
+    (SELECT COUNT(*) FROM RoomOcc
+     WHERE Type NOT IN ('C','O')
+     AND PropertyID = @pid) AS OccupiedRooms,
+
+    -- Revenue
+    (SELECT ISNULL(SUM(AmtDr),0) FROM PayCharge
+     WHERE Vdate = @date AND RoomType <> 'RO'
+     AND PropertyID = @pid) AS FORoomRevenue,
+
+    -- POS
+    (SELECT ISNULL(SUM(BillAmt),0) FROM Bill
+     WHERE Vdate = @date AND CancelYN <> 'Y'
+     AND PropertyID = @pid) AS POSRevenue,
+
+    -- Payments
+    (SELECT ISNULL(SUM(AmtCr),0) FROM PayCharge
+     WHERE Vdate = @date AND PropertyID = @pid) AS TotalPayments,
+
+    -- Audit Trail
+    SELECT * FROM NightAuditLog
+    WHERE AuditDate = @date AND PropertyID = @pid
+
+FILTERS:
+  - Date
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add nightAuditReport() in Reporting.php
+  2. Multiple sub-queries for reconciliation
+  3. Query nightauditlog for audit trail
+  4. Create: resources/views/property/nightauditreport.blade.php
+  5. Add: GET /nightauditreport + POST /nightauditreportfetch
+
+TABLES USED:
+  - paycharge, bill, roomocc, nightauditlog
+============================================================
+
+============================================================
+REPORT 3: NightAuditReportI (Night Audit Report I)
+============================================================
+HMS.bas FORM NAME: NightAuditReportI
+HMS.bas LINE: 40
+BUSINESS PURPOSE: Night audit report variant — detailed room-wise
+  audit with charge and payment reconciliation.
+
+HMS.bas SQL LOGIC:
+  SELECT r.RoomNo, r.RoomCat, r.RoomRate,
+    gf.Name AS GuestName,
+    pc.AmtDr AS Charges, pc.AmtCr AS Payments,
+    pc.AmtDr - pc.AmtCr AS Balance,
+    r.ChkInDate, r.DepDate
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  LEFT JOIN PayCharge pc ON gf.DocId = pc.FolioNoDocId
+  WHERE r.Type NOT IN ('C','O')
+  AND r.PropertyID = @propertyid
+  ORDER BY r.RoomNo
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add nightAuditReportI() in Reporting.php
+  2. Query roomocc + guestfolio + paycharge
+  3. Create: resources/views/property/nightauditreporti.blade.php
+  4. Add: GET /nightauditreporti + POST /nightauditreportifetch
+============================================================
+
+============================================================
+REPORT 4: OccAnalysis (Occupancy Analysis)
+============================================================
+HMS.bas FORM NAME: OccAnalysis
+HMS.bas LINE: 661102
+BUSINESS PURPOSE: Period-wise occupancy analysis with %
+  occupancy, ADR, RevPAR, revenue.
+
+HMS.bas SQL LOGIC:
+  SELECT
+    @date AS AuditDate,
+    (SELECT COUNT(*) FROM RoomMast WHERE Type='RO'
+     AND LogSite_Code=@site) AS TotalRooms,
+    (SELECT COUNT(DISTINCT RoomNo) FROM RoomOcc
+     WHERE Type NOT IN ('C','O')
+     AND PropertyID=@pid) AS OccupiedRooms,
+    CAST((SELECT COUNT(DISTINCT RoomNo) FROM RoomOcc
+     WHERE Type NOT IN ('C','O')
+     AND PropertyID=@pid) AS FLOAT)
+    / (SELECT COUNT(*) FROM RoomMast WHERE Type='RO'
+     AND LogSite_Code=@site) * 100 AS OccPercent,
+    (SELECT ISNULL(SUM(AmtDr),0) FROM PayCharge
+     WHERE Vdate=@date AND RoomType<>'RO'
+     AND PropertyID=@pid) AS Revenue
+
+FILTERS:
+  - Date From / Date To
+  - Room Type
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add occAnalysis() in Reporting.php
+  2. Calculate occupancy %, ADR, RevPAR
+  3. Create: resources/views/property/occanalysis.blade.php
+  4. Add: GET /occanalysis + POST /occanalysisfetch
+============================================================
+
+============================================================
+REPORT 5: PayrollReg (Payroll Register)
+============================================================
+HMS.bas FORM NAME: PayrollReg
+HMS.bas LINE: 4448
+BUSINESS PURPOSE: Monthly payroll register with employee-wise
+  salary breakdown.
+
+HMS.bas SQL LOGIC:
+  SELECT e.Code AS EmpCode, e.Name AS EmpName,
+    e.Department, e.Designation,
+    p.Basic, p.HRA, p.ConvAllow, p.MedAllow,
+    p.OtherAllow, p.GrossSalary,
+    p.PFDed, p.ESIDed, p.TDSDed, p.OtherDed,
+    p.NetSalary, p.PaidDate
+  FROM Payroll p
+  LEFT JOIN Employee e ON p.EmpCode = e.Code
+  WHERE p.PayMonth = @month
+  AND p.PayYear = @year
+  AND p.PropertyID = @propertyid
+  ORDER BY e.Department, e.Name
+
+FILTERS:
+  - Month / Year
+  - Department
+  - Employee
+
+LARAVEL STATUS: MISSING (PARTIAL - exists as route but may be incomplete)
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add payrollReg() in Reporting.php (if not exists)
+  2. Query payroll + employee
+  3. Create: resources/views/property/payrollreg.blade.php
+  4. Add: GET /payrollreg + POST /payrollregfetch
+
+TABLES USED:
+  - payroll (EmpCode, PayMonth, PayYear, Basic, HRA, GrossSalary, NetSalary)
+  - employee (Code, Name, Department, Designation)
+============================================================
+
+============================================================
+REPORT 6-10: Tourism Reports (Form1-6)
+============================================================
+HMS.bas FORM NAMES: Form1TourismReport, Form2TourismReport,
+  Form4TourismReport, Form5TourismReport, Form6TourismReport
+BUSINESS PURPOSE: Government tourism department statistical
+  returns — guest nationality, room nights, revenue.
+
+STATUS: Government compliance reports (state-specific)
+RECOMMENDATION: Implement only if required by state tourism dept.
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW (only if government compliance required)
+
+IMPLEMENTATION PLAN:
+  1. Check if property is registered with state tourism
+  2. If yes → implement Form C style reports
+  3. If no → mark as NOT APPLICABLE
+============================================================
+
+============================================================
+REPORT 11: Form24AnnexureA
+============================================================
+HMS.bas FORM NAME: Form24AnnexureA
+HMS.bas LINE: 388
+BUSINESS PURPOSE: Form 24 Annexure A — Excise/liquor license
+  compliance report showing liquor sales.
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW (only if liquor license required)
+
+IMPLEMENTATION PLAN:
+  1. Check if property has liquor license
+  2. If yes → implement liquor sale register
+  3. If no → mark as NOT APPLICABLE
+============================================================
+
+============================================================
+REPORT 12-13: LTFORMII, LTFORMIV
+============================================================
+HMS.bas FORM NAMES: LTFORMII, LTFORMIV
+BUSINESS PURPOSE: Luxury Tax forms (state-specific).
+
+STATUS: OBSOLETE under GST regime
+RECOMMENDATION: Mark as NOT APPLICABLE if property uses GST.
+============================================================
+
+============================================================
+REPORT 14: MemBirthAnnvDtls (Member Birth Anniversary)
+============================================================
+HMS.bas FORM NAME: MemBirthAnnvDtls
+HMS.bas LINE: 480624
+BUSINESS PURPOSE: List of members with birthdays/anniversaries
+  in a date range for greeting/campaign.
+
+HMS.bas SQL LOGIC:
+  SELECT m.Code, m.Name, m.BirthDate, m.AnnivDate,
+    m.Mobile, m.Email, m.Address,
+    m.Category, mc.Name AS CategoryName
+  FROM MemberMaster m
+  LEFT JOIN MemberCategory mc ON m.Category = mc.Code
+  WHERE (MONTH(m.BirthDate) = @month
+    OR MONTH(m.AnnivDate) = @month)
+  AND m.PropertyID = @propertyid
+  ORDER BY DAY(m.BirthDate), DAY(m.AnnivDate)
+
+FILTERS:
+  - Month
+  - Category
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW
+
+IMPLEMENTATION PLAN:
+  1. Add memBirthAnnvDtls() in Reporting.php
+  2. Query membermaster + membercategory
+  3. Create: resources/views/property/membirthannv.blade.php
+  4. Add: GET /membirthannv + POST /membirthannvfetch
+============================================================
+
+============================================================
+REPORT 15: MemMalingLabels (Member Mailing Labels)
+============================================================
+HMS.bas FORM NAME: MemMalingLabels
+HMS.bas LINE: 480624
+BUSINESS PURPOSE: Mailing labels for members — printable labels
+  for postal mailings.
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW
+
+IMPLEMENTATION PLAN:
+  1. Add memMailingLabels() in Reporting.php
+  2. Query membermaster
+  3. Create printable label layout (Avery labels format)
+  4. Create: resources/views/property/memmailinglabels.blade.php
+  5. Add: GET /memmailinglabels + POST /memmailinglabelsfetch
+============================================================
+
+============================================================
+BANQUET/MIS/NIGHT AUDIT/HR/TOURISM SUMMARY
+============================================================
+TOTAL MISSING REPORTS: 18
+PRIORITY BREAKDOWN:
+  HIGH: 3 (DailyFuncSheet, NightAuditReport, NightAuditReportI)
+  MEDIUM: 2 (OccAnalysis, PayrollReg)
+  LOW/Obsolete: 13 (Tourism Form1-6, Form24AnnexureA, LTFORMII,
+    LTFORMIV, MemBirthAnnvDtls, MemMailingLabels)
+
+DATABASE TABLES NEEDED: All exist
+  - hallbook, paycharge, bill, roomocc, nightauditlog,
+  - payroll, employee, membermaster, membercategory
+
+NO DATABASE CHANGES REQUIRED.
+============================================================

@@ -1,0 +1,235 @@
+============================================================
+MODULE: INVENTORY / PURCHASE — MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL INVENTORY/PURCHASE MISSING: 5
+============================================================
+
+============================================================
+REPORT 1: IndentReg (Indent Register)
+============================================================
+HMS.bas FORM NAME: IndentReg
+HMS.bas LINE: 479168
+BUSINESS PURPOSE: Register of all indents (requisitions) with
+  status — pending, approved, issued, cancelled.
+
+HMS.bas SQL LOGIC:
+  SELECT i.DocId, i.Vdate, i.Vtype,
+    i.FromGodown, i.ToGodown,
+    im.Name AS ItemName, im.Unit,
+    i.Qty AS IndentQty,
+    i.IssuedQty,
+    i.Status,
+    i.U_Name AS CreatedBy, i.U_EntDt
+  FROM Indent i
+  LEFT JOIN ItemMast im ON i.Item = im.Code AND i.RestCode = im.RestCode
+  WHERE i.Vdate BETWEEN @fromdate AND @todate
+  AND i.PropertyID = @propertyid
+  ORDER BY i.Vdate DESC, i.DocId
+
+FILTERS:
+  - Date From / Date To
+  - From Godown
+  - To Godown
+  - Status (Pending/Approved/Issued)
+  - Item
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add indentReg() in Reporting.php
+  2. Query indent + itemmast
+  3. Create: resources/views/property/indentreg.blade.php
+  4. Add: GET /indentreg + POST /indentregfetch
+
+TABLES USED:
+  - indent (DocId, Vdate, Vtype, FromGodown, ToGodown, Item,
+    RestCode, Qty, IssuedQty, Status, U_Name, U_EntDt)
+  - itemmast (Code, Name, Unit, RestCode)
+============================================================
+
+============================================================
+REPORT 2: PurchOrder (Purchase Order)
+============================================================
+HMS.bas FORM NAME: PurchOrder
+HMS.bas LINE: 6922
+BUSINESS PURPOSE: Purchase order report showing all POs with
+  supplier, items, quantities, amounts, delivery status.
+
+HMS.bas SQL LOGIC:
+  SELECT po.DocId, po.Vdate, po.Vtype,
+    po.PartyName, po.PartyCode,
+    im.Name AS ItemName, im.Unit,
+    po.Qty, po.Rate, po.Amount,
+    po.TaxAmt, po.NetAmount,
+    po.DeliveryStatus,
+    po.U_Name AS CreatedBy
+  FROM PurchOrder po
+  LEFT JOIN ItemMast im ON po.Item = im.Code
+  WHERE po.Vdate BETWEEN @fromdate AND @todate
+  AND po.PropertyID = @propertyid
+  ORDER BY po.Vdate DESC, po.DocId
+
+FILTERS:
+  - Date From / Date To
+  - Supplier
+  - Item
+  - Status (Pending/Delivered/Cancelled)
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add purchOrder() in Reporting.php
+  2. Query purchorder + itemmast
+  3. Create: resources/views/property/purchorder.blade.php
+  4. Add: GET /purchorder + POST /purchorderfetch
+
+TABLES USED:
+  - purchorder (DocId, Vdate, PartyName, PartyCode, Item, Qty,
+    Rate, Amount, TaxAmt, NetAmount, DeliveryStatus)
+  - itemmast (Code, Name, Unit)
+============================================================
+
+============================================================
+REPORT 3: RStockRegister (Return Stock Register)
+============================================================
+HMS.bas FORM NAME: RStockRegister
+HMS.bas LINE: 479168
+BUSINESS PURPOSE: Register of all stock returns — items returned
+  to suppliers with reasons and amounts.
+
+HMS.bas SQL LOGIC:
+  SELECT s.Vdate, s.Vno, s.Vtype,
+    im.Name AS ItemName, im.Unit,
+    s.Qty, s.Rate, s.Amount,
+    s.PartyName, s.RestCode,
+    d.Name AS OutletName,
+    s.U_Name AS ReturnedBy
+  FROM Stock s
+  LEFT JOIN ItemMast im ON s.Item = im.Code AND s.ItemRestCode = im.RestCode
+  LEFT JOIN Depart d ON s.RestCode = d.Code
+  WHERE s.VType LIKE 'X%R%'  -- Return type
+  AND s.Vdate BETWEEN @fromdate AND @todate
+  AND s.PropertyID = @propertyid
+  ORDER BY s.Vdate DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Item
+  - Supplier
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add rStockRegister() in Reporting.php
+  2. Query stock + itemmast + depart
+  3. Filter VType for returns
+  4. Create: resources/views/property/rstockregister.blade.php
+  5. Add: GET /rstockregister + POST /rstockregisterfetch
+
+TABLES USED:
+  - stock (Vdate, Vno, Vtype, Item, ItemRestCode, Qty, Rate, Amount, PartyName, RestCode)
+  - itemmast
+  - depart
+============================================================
+
+============================================================
+REPORT 4: RStockSummary (Return Stock Summary)
+============================================================
+HMS.bas FORM NAME: RStockSummary
+HMS.bas LINE: 479168
+BUSINESS PURPOSE: Summary of all stock returns by item and
+  outlet with totals.
+
+HMS.bas SQL LOGIC:
+  SELECT im.Name AS ItemName, im.Unit,
+    d.Name AS OutletName,
+    COUNT(*) AS ReturnCount,
+    SUM(s.Qty) AS TotalQty,
+    SUM(s.Amount) AS TotalAmount
+  FROM Stock s
+  LEFT JOIN ItemMast im ON s.Item = im.Code AND s.ItemRestCode = im.RestCode
+  LEFT JOIN Depart d ON s.RestCode = d.Code
+  WHERE s.VType LIKE 'X%R%'
+  AND s.Vdate BETWEEN @fromdate AND @todate
+  AND s.PropertyID = @propertyid
+  GROUP BY im.Name, im.Unit, d.Name
+  ORDER BY TotalAmount DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Item Group
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW
+
+IMPLEMENTATION PLAN:
+  1. Add rStockSummary() in Reporting.php
+  2. Query stock + itemmast + depart
+  3. Group by item + outlet
+  4. Create: resources/views/property/rstocksummary.blade.php
+  5. Add: GET /rstocksummary + POST /rstocksummaryfetch
+============================================================
+
+============================================================
+REPORT 5: StockSummaryP/SBasis (Stock Summary Purchase/Sale Basis)
+============================================================
+HMS.bas FORM NAME: StockSummaryP/SBasis
+HMS.bas LINE: 479168
+BUSINESS PURPOSE: Stock summary based on purchase and sale
+  showing opening, purchase, consumption, closing.
+
+HMS.bas SQL LOGIC:
+  SELECT im.Name AS ItemName, im.Unit,
+    SUM(CASE WHEN s.VType LIKE 'X%' THEN s.Qty ELSE 0 END) AS PurchaseQty,
+    SUM(CASE WHEN s.VType LIKE 'X%' THEN s.Amount ELSE 0 END) AS PurchaseAmt,
+    SUM(CASE WHEN s.VType LIKE 'Y%' THEN s.Qty ELSE 0 END) AS IssueQty,
+    SUM(CASE WHEN s.VType LIKE 'Y%' THEN s.Amount ELSE 0 END) AS IssueAmt,
+    SUM(CASE WHEN s.VType LIKE 'X%' THEN s.Qty ELSE 0 END)
+    - SUM(CASE WHEN s.VType LIKE 'Y%' THEN s.Qty ELSE 0 END) AS ClosingQty
+  FROM Stock s
+  LEFT JOIN ItemMast im ON s.Item = im.Code AND s.ItemRestCode = im.RestCode
+  WHERE s.Vdate BETWEEN @fromdate AND @todate
+  AND s.PropertyID = @propertyid
+  GROUP BY im.Name, im.Unit
+  ORDER BY im.Name
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Item Group
+  - Item Category
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add stockSummaryPSBasis() in Reporting.php
+  2. Query stock + itemmast
+  3. Pivot by VType (X=purchase, Y=issue)
+  4. Create: resources/views/property/stocksummaryps.blade.php
+  5. Add: GET /stocksummaryps + POST /stocksummarypsfetch
+
+TABLES USED:
+  - stock (Item, ItemRestCode, Qty, Amount, VType)
+  - itemmast (Code, Name, Unit)
+============================================================
+
+============================================================
+INVENTORY/PURCHASE MODULE SUMMARY
+============================================================
+TOTAL MISSING REPORTS: 5
+PRIORITY BREAKDOWN:
+  MEDIUM: 4 (IndentReg, PurchOrder, RStockRegister, StockSummaryPS)
+  LOW: 1 (RStockSummary)
+
+DATABASE TABLES NEEDED: All exist
+  - indent, purchorder, stock, itemmast, depart
+
+NO DATABASE CHANGES REQUIRED.
+============================================================

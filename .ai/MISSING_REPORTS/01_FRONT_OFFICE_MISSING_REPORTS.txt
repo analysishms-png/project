@@ -1,0 +1,831 @@
+============================================================
+MODULE: FRONT OFFICE — MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL HMS.bas REPORTS: 232
+FRONT OFFICE MISSING: 19
+============================================================
+
+============================================================
+REPORT 1: AcCheckList (Account Check List)
+============================================================
+HMS.bas FORM NAME: AcCheckList
+HMS.bas LINE: 559380
+BUSINESS PURPOSE: Lists all ledger accounts with opening balance,
+  transactions and closing balance for verification.
+
+HMS.bas SQL LOGIC:
+  SELECT AcCode, AcName, OpBal, Dr, Cr, ClBal
+  FROM AcGroup
+  WHERE Site_Code = 'sitecode'
+  AND PropertyID = propertyid
+  ORDER BY AcCode
+
+FILTERS:
+  - Date From / Date To
+  - Account Group
+  - Account Name
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add acCheckList() method in Reporting.php
+  2. Query: acgroup + acctrn join
+  3. Calculate: OpBal + Sum(Dr) - Sum(Cr) = ClBal
+  4. Create: resources/views/property/acchecklist.blade.php
+  5. Add: GET /acchecklist + POST /acchecklistfetch
+  6. Route name: acchecklist
+
+FILES TO CREATE/EDIT:
+  - app/Http/Controllers/Reporting.php (add method)
+  - resources/views/property/acchecklist.blade.php (new)
+  - routes/reporting.php (add routes)
+
+TABLES USED:
+  - acgroup (Code, Name, OpBal, AcType)
+  - acctrn (AcCode, Dr, Cr, Vdate, Vtype)
+============================================================
+
+============================================================
+REPORT 2: ArrivalDepList (Arrival Departure List)
+============================================================
+HMS.bas FORM NAME: ArrivalDepList
+HMS.bas LINE: 661052
+BUSINESS PURPOSE: Combined list of arrivals and departures for a
+  date range with room details, guest names and amounts.
+
+HMS.bas SQL LOGIC:
+  -- For arrivals:
+  SELECT b.DocId, b.BookNo, b.VDate, b.ArrDate, b.DepDate,
+    b.RoomNo, b.RoomType, b.RoomCat, b.RoomRate,
+    g.Name AS GuestName, g.Mobile, g.Company
+  FROM Booking b
+  LEFT JOIN GuestProf g ON b.GuestProf = g.Code
+  WHERE b.ArrDate BETWEEN @fromdate AND @todate
+  AND b.Cancel IS NULL OR b.Cancel <> 'Y'
+  AND b.PropertyID = @propertyid
+
+  -- For departures:
+  SELECT r.DocId, r.RoomNo, r.RoomCat, r.RoomRate,
+    r.ChkInDate, r.ChkOutDate,
+    g.Name AS GuestName, g.Mobile, g.Company
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  LEFT JOIN GuestProf g ON gf.GuestProf = g.Code
+  WHERE r.ChkOutDate BETWEEN @fromdate AND @todate
+  AND r.Type NOT IN ('C','O')
+  AND r.PropertyID = @propertyid
+
+FILTERS:
+  - Date From / Date To
+  - Room Category
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add arrivalDeplist() + arrivalDeplistFetch() in Reporting.php
+  2. Two queries: arrivals from booking, departures from roomocc
+  3. Create: resources/views/property/arrivaldeplist.blade.php
+  4. Add: GET /arrivaldeplist + POST /arrivaldeplistfetch
+  5. Route name: arrivaldeplist
+
+FILES TO CREATE/EDIT:
+  - app/Http/Controllers/Reporting.php (add methods)
+  - resources/views/property/arrivaldeplist.blade.php (new)
+  - routes/reporting.php (add routes)
+
+TABLES USED:
+  - booking (DocId, BookNo, VDate, ArrDate, DepDate, RoomNo, RoomType, RoomCat, RoomRate, GuestProf, Cancel)
+  - roomocc (DocId, RoomNo, RoomCat, RoomRate, ChkInDate, ChkOutDate, Type)
+  - guestfolio (DocId, GuestProf, Name)
+  - guestprof (Code, Name, Mobile, Company)
+============================================================
+
+============================================================
+REPORT 3: BussSourceOccupancyReport (Business Source Occupancy)
+============================================================
+HMS.bas FORM NAME: BussSourceOccupancyReport
+HMS.bas LINE: 480700
+BUSINESS PURPOSE: Shows occupancy breakdown by business source
+  (Direct, Corporate, Travel Agent, Online, Walk-in).
+
+HMS.bas SQL LOGIC:
+  SELECT Source, COUNT(*) AS Rooms,
+    SUM(RoomRate * NoDays) AS Revenue,
+    AVG(RoomRate) AS AvgRate
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  LEFT JOIN SubGroup sg ON gf.Company = sg.SubCode
+  WHERE r.ChkInDate <= @todate
+  AND (r.ChkOutDate IS NULL OR r.ChkOutDate >= @fromdate)
+  AND r.PropertyID = @propertyid
+  GROUP BY Source
+
+FILTERS:
+  - Date From / Date To
+  - Business Source
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add bussSourceOccupancyReport() in Reporting.php
+  2. Query roomocc + guestfolio + subgroup
+  3. Group by business source
+  4. Create: resources/views/property/bussoccupancy.blade.php
+  5. Add: GET /bussoccupancy + POST /bussoccupancyfetch
+
+TABLES USED:
+  - roomocc
+  - guestfolio
+  - subgroup (business source)
+============================================================
+
+============================================================
+REPORT 4: CancelBillDetails (Cancel Bill Details)
+============================================================
+HMS.bas FORM NAME: CancelBillDetails
+HMS.bas LINE: 5712
+BUSINESS PURPOSE: Lists all cancelled POS bills with reasons,
+  amounts, user who cancelled and timestamp.
+
+HMS.bas SQL LOGIC:
+  SELECT b.Bill_No, b.Vdate, b.RestCode, b.BillAmt,
+    b.CancelReason, b.CancelUser, b.CancelDate,
+    d.Name AS OutletName
+  FROM Bill b
+  LEFT JOIN Depart d ON b.RestCode = d.Code
+  WHERE b.CancelYN = 'Y'
+  AND b.Vdate BETWEEN @fromdate AND @todate
+  AND b.PropertyID = @propertyid
+  ORDER BY b.Vdate, b.Bill_No
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (Financial audit)
+
+IMPLEMENTATION PLAN:
+  1. Add cancelBillDetails() in Reporting.php
+  2. Query bill table where CancelYN = 'Y'
+  3. Create: resources/views/property/cancelbilldetails.blade.php
+  4. Add: GET /cancelbilldetails + POST /cancelbilldetailsfetch
+
+TABLES USED:
+  - bill (Bill_No, Vdate, RestCode, BillAmt, CancelYN, CancelReason, CancelUser, CancelDate)
+  - depart (Code, Name)
+============================================================
+
+============================================================
+REPORT 5: CheckedInGuestDtl (Checked In Guest Detail)
+============================================================
+HMS.bas FORM NAME: CheckedInGuestDtl
+HMS.bas LINE: 5829
+BUSINESS PURPOSE: Detailed list of all currently checked-in guests
+  with room, rate, company, arrival date, expected departure.
+
+HMS.bas SQL LOGIC:
+  SELECT r.RoomNo, r.RoomCat, r.RoomRate, r.ChkInDate,
+    r.DepDate, r.Adult, r.Children,
+    gf.Name, gf.Add1, gf.City, gf.Mobile,
+    gf.Company, gf.RoomType,
+    sg.Name AS CompanyName
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  LEFT JOIN SubGroup sg ON gf.Company = sg.SubCode
+  WHERE r.Type NOT IN ('C','O')
+  AND r.PropertyID = @propertyid
+  ORDER BY r.RoomNo
+
+FILTERS:
+  - Room Category
+  - Company
+  - Room No
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add checkedInGuestDtl() in Reporting.php
+  2. Query roomocc + guestfolio + subgroup
+  3. Create: resources/views/property/checkedinguestdtl.blade.php
+  4. Add: GET /checkedinguestdtl + POST /checkedinguestdtlfetch
+
+TABLES USED:
+  - roomocc (RoomNo, RoomCat, RoomRate, ChkInDate, DepDate, Adult, Children, Type, DocId)
+  - guestfolio (DocId, Name, Add1, City, Mobile, Company, RoomType)
+  - subgroup (SubCode, Name)
+============================================================
+
+============================================================
+REPORT 6: ChkInRegister (Check-In Register)
+============================================================
+HMS.bas FORM NAME: ChkInRegister
+HMS.bas LINE: 5802
+BUSINESS PURPOSE: Daily/monthly check-in register with guest
+  details, room assigned, rate, advance received, source.
+
+HMS.bas SQL LOGIC:
+  SELECT r.DocId, r.RoomNo, r.RoomCat, r.RoomRate,
+    r.ChkInDate, r.ChkInTime, r.Adult, r.Children,
+    gf.Name, gf.Mobile, gf.Nationality,
+    r.RoomType, r.VPrefix,
+    (SELECT SUM(AmtDr) FROM PayCharge pc
+     WHERE pc.RefDocId = r.RefDocId
+     AND pc.VType IN ('ARRES','ADRES')) AS Advance
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  WHERE r.ChkInDate BETWEEN @fromdate AND @todate
+  AND r.PropertyID = @propertyid
+  ORDER BY r.ChkInDate, r.RoomNo
+
+FILTERS:
+  - Date From / Date To
+  - Room Category
+  - Source
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add chkInRegister() in Reporting.php
+  2. Query roomocc + guestfolio + paycharge (for advance)
+  3. Create: resources/views/property/chkinregister.blade.php
+  4. Add: GET /chkinregister + POST /chkinregisterfetch
+
+TABLES USED:
+  - roomocc
+  - guestfolio
+  - paycharge (for advance calculation)
+============================================================
+
+============================================================
+REPORT 7: CompanyAnalysis (Company Analysis)
+============================================================
+HMS.bas FORM NAME: CompanyAnalysis
+HMS.bas LINE: 511
+BUSINESS PURPOSE: Revenue analysis by company/corporate showing
+  room nights, revenue, average rate, market share.
+
+HMS.bas SQL LOGIC:
+  SELECT gf.Company, sg.Name AS CompanyName,
+    COUNT(*) AS RoomNights,
+    SUM(pc.AmtDr) AS TotalCharges,
+    AVG(r.RoomRate) AS AvgRate,
+    SUM(pc.AmtDr) / COUNT(*) AS RevPAR
+  FROM RoomOcc r
+  INNER JOIN GuestFolio gf ON r.DocId = gf.DocId
+  INNER JOIN SubGroup sg ON gf.Company = sg.SubCode
+  INNER JOIN PayCharge pc ON r.DocId = pc.RefDocId
+  WHERE r.ChkInDate BETWEEN @fromdate AND @todate
+  AND r.PropertyID = @propertyid
+  GROUP BY gf.Company, sg.Name
+  ORDER BY TotalCharges DESC
+
+FILTERS:
+  - Date From / Date To
+  - Company
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add companyAnalysis() in Reporting.php
+  2. Query roomocc + guestfolio + subgroup + paycharge
+  3. Group by company
+  4. Create: resources/views/property/companyanalysis.blade.php
+  5. Add: GET /companyanalysis + POST /companyanalysisfetch
+
+TABLES USED:
+  - roomocc
+  - guestfolio (Company)
+  - subgroup (SubCode, Name)
+  - paycharge (RefDocId, AmtDr)
+============================================================
+
+============================================================
+REPORT 8: CompanySumm (Company Summary)
+============================================================
+HMS.bas FORM NAME: CompanySumm
+HMS.bas LINE: 5519
+BUSINESS PURPOSE: Summary of all companies with total revenue,
+  room nights, outstanding balance.
+
+HMS.bas SQL LOGIC:
+  SELECT sg.Name AS CompanyName, sg.SubCode,
+    COUNT(DISTINCT r.DocId) AS RoomNights,
+    SUM(pc.AmtDr) AS TotalCharges,
+    SUM(pc.AmtCr) AS TotalPayments,
+    SUM(pc.AmtDr) - SUM(pc.AmtCr) AS Outstanding
+  FROM SubGroup sg
+  LEFT JOIN GuestFolio gf ON sg.SubCode = gf.Company
+  LEFT JOIN RoomOcc r ON gf.DocId = r.DocId
+  LEFT JOIN PayCharge pc ON gf.DocId = pc.FolioNoDocId
+  WHERE sg.AcType = 'Sundry Debtors'
+  AND r.PropertyID = @propertyid
+  GROUP BY sg.Name, sg.SubCode
+  ORDER BY Outstanding DESC
+
+FILTERS:
+  - Date From / Date To
+  - Company
+  - Outstanding Only
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add companySumm() in Reporting.php
+  2. Query subgroup + guestfolio + roomocc + paycharge
+  3. Create: resources/views/property/companysumm.blade.php
+  4. Add: GET /companysumm + POST /companysummfetch
+============================================================
+
+============================================================
+REPORT 9: ConfirmLetter (Confirmation Letter)
+============================================================
+HMS.bas FORM NAME: ConfirmLetter
+HMS.bas LINE: 2076
+BUSINESS PURPOSE: Generates reservation confirmation letter
+  for a specific booking with guest details, room, rate, dates.
+
+HMS.bas SQL LOGIC:
+  SELECT b.DocId, b.BookNo, b.VDate, b.ArrDate, b.DepDate,
+    b.RoomNo, b.RoomType, b.RoomCat, b.RoomRate,
+    b.NoDays, b.RoomDet, b.Adults, b.Childs,
+    b.Remarks, b.RDisc, b.RSDisc,
+    g.Name, g.Add1, g.Add2, g.City, g.Mobile, g.Email,
+    rc.Name AS RoomCategory
+  FROM Booking b
+  LEFT JOIN GuestProf g ON b.GuestProf = g.Code
+  LEFT JOIN RoomCat rc ON b.RoomCat = rc.Code
+  WHERE b.DocId = @bookingdocid
+  AND b.PropertyID = @propertyid
+
+FILTERS:
+  - Booking DocId
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW (Letter generation)
+
+IMPLEMENTATION PLAN:
+  1. Add confirmLetter() in Reporting.php
+  2. Query booking + guestprof + roomcat
+  3. Create: resources/views/property/confirmletter.blade.php
+  4. Add: GET /confirmletter
+  5. Add print-friendly layout
+
+TABLES USED:
+  - booking
+  - guestprof
+  - roomcat
+============================================================
+
+============================================================
+REPORT 10: DailySumm (Daily Summary)
+============================================================
+HMS.bas FORM NAME: DailySumm
+HMS.bas LINE: 1943
+BUSINESS PURPOSE: Daily financial summary showing total revenue,
+  payments, outstanding, occupancy % for a single day.
+
+HMS.bas SQL LOGIC:
+  SELECT
+    (SELECT COUNT(*) FROM RoomOcc WHERE Type NOT IN ('C','O')
+     AND PropertyID = @pid) AS OccupiedRooms,
+    (SELECT COUNT(*) FROM RoomMast WHERE Type = 'RO'
+     AND LogSite_Code = @site) AS TotalRooms,
+    (SELECT SUM(AmtDr) FROM PayCharge WHERE Vdate = @date
+     AND PropertyID = @pid) AS TotalCharges,
+    (SELECT SUM(AmtCr) FROM PayCharge WHERE Vdate = @date
+     AND PropertyID = @pid) AS TotalPayments,
+    (SELECT SUM(BillAmt) FROM Bill WHERE Vdate = @date
+     AND PropertyID = @pid) AS POSBilling
+
+FILTERS:
+  - Date
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add dailySumm() in Reporting.php
+  2. Multiple sub-queries for daily totals
+  3. Create: resources/views/property/dailysumm.blade.php
+  4. Add: GET /dailysumm + POST /dailysummfetch
+============================================================
+
+============================================================
+REPORT 11: ExpectedDeparture (Expected Departure)
+============================================================
+HMS.bas FORM NAME: ExpectedDeparture
+HMS.bas LINE: 5811
+BUSINESS PURPOSE: List of guests expected to depart on a
+  specific date with room, balance, payment status.
+
+HMS.bas SQL LOGIC:
+  SELECT r.RoomNo, r.RoomCat, r.RoomRate, r.ChkInDate,
+    r.DepDate, r.RoomType,
+    gf.Name, gf.Mobile, gf.Company,
+    (SELECT SUM(AmtDr) - SUM(AmtCr) FROM PayCharge pc
+     WHERE pc.FolioNoDocId = gf.DocId) AS Balance
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  WHERE r.DepDate = @date
+  AND r.Type NOT IN ('C','O')
+  AND r.PropertyID = @propertyid
+  ORDER BY r.RoomNo
+
+FILTERS:
+  - Date (departure date)
+  - Room Category
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add expectedDeparture() in Reporting.php
+  2. Query roomocc + guestfolio + paycharge
+  3. Create: resources/views/property/expecteddeparture.blade.php
+  4. Add: GET /expecteddeparture + POST /expecteddeparturefetch
+
+TABLES USED:
+  - roomocc (DepDate, RoomNo, RoomCat, RoomRate)
+  - guestfolio (DocId, Name, Mobile, Company)
+  - paycharge (FolioNoDocId, AmtDr, AmtCr)
+============================================================
+
+============================================================
+REPORT 12: FOMTaxWiseChargeDetail
+============================================================
+HMS.bas FORM NAME: FOMTaxWiseChargeDetail
+HMS.bas LINE: 5212
+BUSINESS PURPOSE: Tax-wise breakdown of all Front Office charges
+  showing each tax component and amount.
+
+HMS.bas SQL LOGIC:
+  SELECT pc.PayCode, rm.Name AS RevenueName,
+    pc.TaxCode1, pc.TaxAmt1,
+    pc.TaxCode2, pc.TaxAmt2,
+    pc.TaxCode3, pc.TaxAmt3,
+    pc.AmtDr, pc.AmtCr
+  FROM PayCharge pc
+  LEFT JOIN RevMast rm ON pc.PayCode = rm.Code
+  WHERE pc.Vdate BETWEEN @fromdate AND @todate
+  AND pc.RoomType <> 'RO'
+  AND pc.PropertyID = @propertyid
+
+FILTERS:
+  - Date From / Date To
+  - Revenue Head
+  - Tax Code
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add fomTaxWiseChargeDetail() in Reporting.php
+  2. Query paycharge + revmast
+  3. Create: resources/views/property/fomtaxwisecharge.blade.php
+  4. Add: GET /fomtaxwisecharge + POST /fomtaxwisefetch
+============================================================
+
+============================================================
+REPORT 13: ReservStatusArrival
+============================================================
+HMS.bas FORM NAME: ReservStatusArrival
+HMS.bas LINE: 661216
+BUSINESS PURPOSE: Reservation status for expected arrivals —
+  confirmed, tentative, cancelled status with room details.
+
+HMS.bas SQL LOGIC:
+  SELECT b.DocId, b.BookNo, b.VDate, b.ArrDate, b.DepDate,
+    b.RoomNo, b.RoomType, b.RoomCat, b.RoomRate,
+    b.NoDays, b.RoomDet, b.Adults, b.Childs,
+    b.Remarks, b.Cancel, b.NoShow,
+    g.Name AS GuestName, g.Mobile,
+    rc.Name AS RoomCategory
+  FROM Booking b
+  LEFT JOIN GuestProf g ON b.GuestProf = g.Code
+  LEFT JOIN RoomCat rc ON b.RoomCat = rc.Code
+  WHERE b.ArrDate BETWEEN @fromdate AND @todate
+  AND (b.Cancel IS NULL OR b.Cancel <> 'Y')
+  AND b.PropertyID = @propertyid
+  ORDER BY b.ArrDate, b.RoomNo
+
+FILTERS:
+  - Date From / Date To
+  - Status (Confirmed/Tentative)
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add reservStatusArrival() in Reporting.php
+  2. Query booking + guestprof + roomcat
+  3. Create: resources/views/property/reservstatusarrival.blade.php
+  4. Add: GET /reservstatusarrival + POST /reservstatusarrivalfetch
+
+TABLES USED:
+  - booking (ArrDate, Cancel, NoShow)
+  - guestprof
+  - roomcat
+============================================================
+
+============================================================
+REPORT 14: ReservStatusInHouse
+============================================================
+HMS.bas FORM NAME: ReservStatusInHouse
+HMS.bas LINE: 661240
+BUSINESS PURPOSE: Guests currently in-house with their original
+  reservation details, rate, company, duration.
+
+HMS.bas SQL LOGIC:
+  SELECT r.RoomNo, r.RoomCat, r.RoomRate, r.ChkInDate,
+    r.DepDate, r.RoomType, r.Adult, r.Children,
+    r.NoDays, r.RoomDet,
+    gf.Name, gf.Mobile, gf.Company,
+    b.BookNo, b.VDate AS BookingDate,
+    rc.Name AS RoomCategory
+  FROM RoomOcc r
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  LEFT JOIN Booking b ON r.RefDocId = b.DocId
+  LEFT JOIN RoomCat rc ON r.RoomCat = rc.Code
+  WHERE r.Type NOT IN ('C','O')
+  AND r.PropertyID = @propertyid
+  ORDER BY r.RoomNo
+
+FILTERS:
+  - Room Category
+  - Company
+  - Source
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add reservStatusInHouse() in Reporting.php
+  2. Query roomocc + guestfolio + booking + roomcat
+  3. Create: resources/views/property/reservstatusinhouse.blade.php
+  4. Add: GET /reservstatusinhouse + POST /reservstatusinhousefetch
+
+TABLES USED:
+  - roomocc
+  - guestfolio
+  - booking
+  - roomcat
+============================================================
+
+============================================================
+REPORT 15: RevAnalysis (Revenue Analysis)
+============================================================
+HMS.bas FORM NAME: RevAnalysis
+HMS.bas LINE: 457
+BUSINESS PURPOSE: Revenue analysis by revenue head showing
+  charges, payments, tax, discount for a period.
+
+HMS.bas SQL LOGIC:
+  SELECT pc.PayCode, rm.Name AS RevenueName,
+    SUM(pc.AmtDr) AS TotalCharges,
+    SUM(pc.AmtCr) AS TotalPayments,
+    SUM(pc.TaxAmt1 + pc.TaxAmt2 + pc.TaxAmt3) AS TotalTax,
+    SUM(pc.DiscAmt) AS TotalDiscount
+  FROM PayCharge pc
+  LEFT JOIN RevMast rm ON pc.PayCode = rm.Code
+  WHERE pc.Vdate BETWEEN @fromdate AND @todate
+  AND pc.RoomType <> 'RO'
+  AND pc.PropertyID = @propertyid
+  GROUP BY pc.PayCode, rm.Name
+  ORDER BY TotalCharges DESC
+
+FILTERS:
+  - Date From / Date To
+  - Revenue Head
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add revAnalysis() in Reporting.php
+  2. Query paycharge + revmast group by revenue head
+  3. Create: resources/views/property/revanalysis.blade.php
+  4. Add: GET /revanalysis + POST /revanalysisfetch
+
+TABLES USED:
+  - paycharge (PayCode, AmtDr, AmtCr, TaxAmt1-3, DiscAmt)
+  - revmast (Code, Name)
+============================================================
+
+============================================================
+REPORT 16: RoomOccDisp (Room Occupancy Display)
+============================================================
+HMS.bas FORM NAME: RoomOccDisp
+HMS.bas LINE: 661102
+BUSINESS PURPOSE: Visual grid display of room occupancy status
+  — occupied, vacant, dirty, clean, blocked.
+
+HMS.bas SQL LOGIC:
+  SELECT rm.Code AS RoomNo, rm.RoomCat,
+    rc.Name AS RoomCategory,
+    CASE
+      WHEN r.Type = 'I' THEN 'Occupied'
+      WHEN r.Type = 'C' THEN 'Checkout'
+      WHEN r.Type = 'O' THEN 'Out of Order'
+      ELSE 'Vacant'
+    END AS Status,
+    gf.Name AS GuestName,
+    r.RoomRate, r.ChkInDate, r.DepDate
+  FROM RoomMast rm
+  LEFT JOIN RoomOcc r ON rm.Code = r.RoomNo
+    AND r.Type NOT IN ('C','O')
+  LEFT JOIN GuestFolio gf ON r.DocId = gf.DocId
+  LEFT JOIN RoomCat rc ON rm.RoomCat = rc.Code
+  WHERE rm.Type = 'RO'
+  AND rm.LogSite_Code = @site
+  ORDER BY rm.RoomCat, rm.Code
+
+FILTERS:
+  - Room Category
+  - Status
+  - Floor
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add roomOccDisp() in Reporting.php
+  2. Query roommast + roomocc + guestfolio + roomcat
+  3. Create: resources/views/property/roomoccdisp.blade.php
+  4. Add: GET /roomoccdisp + POST /roomoccdispfetch
+  5. Visual grid layout with color coding
+
+TABLES USED:
+  - roommast (Code, RoomCat, Type, LogSite_Code)
+  - roomocc (RoomNo, Type, DocId, RoomRate, ChkInDate, DepDate)
+  - guestfolio (DocId, Name)
+  - roomcat (Code, Name)
+============================================================
+
+============================================================
+REPORT 17: RoomTypeOccupancyAnalysis
+============================================================
+HMS.bas FORM NAME: RoomTypeOccupancyAnalysis
+HMS.bas LINE: 661102
+BUSINESS PURPOSE: Occupancy analysis by room type showing
+  available, occupied, revenue, ADR, RevPAR.
+
+HMS.bas SQL LOGIC:
+  SELECT rc.Name AS RoomType,
+    COUNT(DISTINCT rm.Code) AS TotalRooms,
+    COUNT(DISTINCT CASE WHEN ro.Type = 'I' THEN rm.Code END) AS Occupied,
+    COUNT(DISTINCT CASE WHEN ro.Type <> 'I' OR ro.RoomNo IS NULL THEN rm.Code END) AS Vacant,
+    SUM(CASE WHEN ro.Type = 'I' THEN pc.AmtDr ELSE 0 END) AS Revenue,
+    AVG(CASE WHEN ro.Type = 'I' THEN ro.RoomRate END) AS ADR
+  FROM RoomMast rm
+  INNER JOIN RoomCat rc ON rm.RoomCat = rc.Code
+  LEFT JOIN RoomOcc ro ON rm.Code = ro.RoomNo
+    AND ro.Type NOT IN ('C','O')
+  LEFT JOIN GuestFolio gf ON ro.DocId = gf.DocId
+  LEFT JOIN PayCharge pc ON gf.DocId = pc.FolioNoDocId
+  WHERE rm.Type = 'RO'
+  AND rm.LogSite_Code = @site
+  GROUP BY rc.Name
+
+FILTERS:
+  - Date
+  - Room Type
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add roomTypeOccupancyAnalysis() in Reporting.php
+  2. Query roommast + roomcat + roomocc + guestfolio + paycharge
+  3. Create: resources/views/property/roomtypeoccupancyanalysis.blade.php
+  4. Add: GET /roomtypeoccupancyanalysis + POST /rtoccfetch
+
+TABLES USED:
+  - roommast, roomcat, roomocc, guestfolio, paycharge
+============================================================
+
+============================================================
+REPORT 18: RoomOccupancyReportSummary
+============================================================
+HMS.bas FORM NAME: RoomOccupancyReportSummary
+HMS.bas LINE: 661102
+BUSINESS PURPOSE: Summary of room occupancy with percentages,
+  revenue, ADR, RevPAR, tax, total.
+
+HMS.bas SQL LOGIC:
+  SELECT
+    (SELECT COUNT(*) FROM RoomMast WHERE Type='RO'
+     AND LogSite_Code=@site) AS TotalRooms,
+    (SELECT COUNT(DISTINCT RoomNo) FROM RoomOcc
+     WHERE Type NOT IN ('C','O')
+     AND PropertyID=@pid) AS OccupiedRooms,
+    (SELECT SUM(AmtDr) FROM PayCharge
+     WHERE Vdate BETWEEN @from AND @to
+     AND PropertyID=@pid) AS TotalRevenue,
+    (SELECT SUM(AmtCr) FROM PayCharge
+     WHERE Vdate BETWEEN @from AND @to
+     AND PropertyID=@pid) AS TotalPayments
+
+FILTERS:
+  - Date From / Date To
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add roomOccupancyReportSummary() in Reporting.php
+  2. Multiple sub-queries
+  3. Create: resources/views/property/roomoccreportsummary.blade.php
+  4. Add: GET /roomoccreportsummary + POST /roomoccrsfetch
+============================================================
+
+============================================================
+REPORT 19: RoomWiseRoomRevenueReport
+============================================================
+HMS.bas FORM NAME: RoomWiseRoomRevenueReport
+HMS.bas LINE: 661102
+BUSINESS PURPOSE: Room-wise revenue report showing each room's
+  total revenue, charges, payments, tax for a period.
+
+HMS.bas SQL LOGIC:
+  SELECT r.RoomNo, rc.Name AS RoomCategory,
+    r.RoomRate,
+    gf.Name AS GuestName,
+    SUM(pc.AmtDr) AS TotalCharges,
+    SUM(pc.AmtCr) AS TotalPayments,
+    SUM(pc.TaxAmt1+pc.TaxAmt2+pc.TaxAmt3) AS TotalTax,
+    SUM(pc.AmtDr) - SUM(pc.AmtCr) AS Balance
+  FROM RoomOcc r
+  INNER JOIN GuestFolio gf ON r.DocId = gf.DocId
+  INNER JOIN RoomCat rc ON r.RoomCat = rc.Code
+  LEFT JOIN PayCharge pc ON gf.DocId = pc.FolioNoDocId
+  WHERE r.ChkInDate <= @todate
+  AND (r.ChkOutDate IS NULL OR r.ChkOutDate >= @fromdate)
+  AND r.PropertyID = @propertyid
+  GROUP BY r.RoomNo, rc.Name, r.RoomRate, gf.Name
+  ORDER BY r.RoomNo
+
+FILTERS:
+  - Date From / Date To
+  - Room Category
+  - Room No
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add roomWiseRoomRevenueReport() in Reporting.php
+  2. Query roomocc + guestfolio + roomcat + paycharge
+  3. Create: resources/views/property/roomwiserevenue.blade.php
+  4. Add: GET /roomwiserevenue + POST /roomwiserevenuefetch
+
+TABLES USED:
+  - roomocc, guestfolio, roomcat, paycharge
+============================================================
+
+============================================================
+FRONT OFFICE MODULE SUMMARY
+============================================================
+TOTAL MISSING REPORTS: 19
+PRIORITY BREAKDOWN:
+  HIGH: 12 (ArrivalDepList, CancelBillDetails, CheckedInGuestDtl,
+         ChkInRegister, ExpectedDeparture, DailySumm,
+         ReservStatusArrival, ReservStatusInHouse, RevAnalysis,
+         RoomOccDisp, RoomTypeOccupancyAnalysis, RoomTypeOccupancyReport)
+  MEDIUM: 6 (AcCheckList, BussSourceOccupancyReport,
+          CompanyAnalysis, CompanySumm, FOMTaxWiseChargeDetail,
+          RoomOccupancyReportSummary, RoomWiseRoomRevenueReport)
+  LOW: 1 (ConfirmLetter)
+
+DATABASE TABLES NEEDED:
+  - roomocc (existing)
+  - guestfolio (existing)
+  - guestprof (existing)
+  - paycharge (existing)
+  - booking (existing)
+  - roommast (existing)
+  - roomcat (existing)
+  - subgroup (existing)
+  - revmast (existing)
+  - acgroup (existing)
+  - acctrn (existing)
+  - depart (existing)
+
+NO DATABASE CHANGES REQUIRED — all tables exist.
+============================================================

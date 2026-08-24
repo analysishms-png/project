@@ -1,0 +1,603 @@
+============================================================
+MODULE: POS / RESTAURANT / KOT — MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL POS/KOT MISSING: 14
+============================================================
+
+============================================================
+REPORT 1: BillWiseAdjustmentReport
+============================================================
+HMS.bas FORM NAME: BillWiseAdjustmentReport
+HMS.bas LINE: 2777
+BUSINESS PURPOSE: Shows bill-wise payment adjustments — how
+  each bill was paid (cash, card, room charge, credit).
+
+HMS.bas SQL LOGIC:
+  SELECT b.Bill_No, b.Vdate, b.RestCode, b.BillAmt,
+    d.Name AS OutletName,
+    b.RoomNo, b.FolioNo,
+    pc.PayCode, pm.Name AS PayMode,
+    pc.AmtCr AS PaidAmount, pc.Vdate AS PayDate
+  FROM Bill b
+  LEFT JOIN Depart d ON b.RestCode = d.Code
+  LEFT JOIN PayCharge pc ON b.Bill_No = pc.Bill_No
+    AND pc.VType = 'SALERET'
+  LEFT JOIN PayModeMast pm ON pc.PayCode = pm.Code
+  WHERE b.Vdate BETWEEN @fromdate AND @todate
+  AND b.PropertyID = @propertyid
+  ORDER BY b.Vdate, b.Bill_No
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Payment Mode
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (Financial audit)
+
+IMPLEMENTATION PLAN:
+  1. Add billWiseAdjustmentReport() in Reporting.php
+  2. Query bill + depart + paycharge + paymodemast
+  3. Create: resources/views/property/billwiseadjustment.blade.php
+  4. Add: GET /billwiseadjustment + POST /billwiseadjustmentfetch
+
+TABLES USED:
+  - bill (Bill_No, Vdate, RestCode, BillAmt, RoomNo, FolioNo)
+  - depart (Code, Name)
+  - paycharge (Bill_No, VType, PayCode, AmtCr)
+  - paymodemast (Code, Name)
+============================================================
+
+============================================================
+REPORT 2: cancelBillDetails
+============================================================
+HMS.bas FORM NAME: cancelBillDetails
+HMS.bas LINE: 7744
+BUSINESS PURPOSE: Same as CancelBillDetails — cancelled bills
+  with reasons and user details.
+
+STATUS: SAME AS REPORT 4 IN FRONT OFFICE
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  Reuse CancelBillDetails implementation.
+  Route: GET /cancelBillDetails (already planned)
+============================================================
+
+============================================================
+REPORT 3: DiscountPartyWiseReg (Party Wise Discount Register)
+============================================================
+HMS.bas FORM NAME: DiscountPartyWiseReg
+HMS.bas LINE: 2715
+BUSINESS PURPOSE: Party/company-wise discount register showing
+  total discount given to each party.
+
+HMS.bas SQL LOGIC:
+  SELECT b.RoomNo, b.FolioNo, gf.Name AS GuestName,
+    gf.Company, sg.Name AS CompanyName,
+    b.Bill_No, b.Vdate, b.BillAmt,
+    b.DiscAmt, b.DiscPer, b.DiscReason,
+    d.Name AS OutletName
+  FROM Bill b
+  LEFT JOIN GuestFolio gf ON b.FolioNo = gf.FolioNo
+  LEFT JOIN SubGroup sg ON gf.Company = sg.SubCode
+  LEFT JOIN Depart d ON b.RestCode = d.Code
+  WHERE b.DiscAmt > 0
+  AND b.Vdate BETWEEN @fromdate AND @todate
+  AND b.PropertyID = @propertyid
+  ORDER BY gf.Company, b.Vdate
+
+FILTERS:
+  - Date From / Date To
+  - Company/Party
+  - Outlet
+  - Discount Range
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add discountPartyWiseReg() in Reporting.php
+  2. Query bill + guestfolio + subgroup + depart
+  3. Filter where DiscAmt > 0
+  4. Create: resources/views/property/discountpartywise.blade.php
+  5. Add: GET /discountpartywise + POST /discountpartywisefetch
+
+TABLES USED:
+  - bill (DiscAmt, DiscPer, DiscReason)
+  - guestfolio
+  - subgroup
+  - depart
+============================================================
+
+============================================================
+REPORT 4: DiscountSumm (Discount Summary)
+============================================================
+HMS.bas FORM NAME: DiscountSumm
+HMS.bas LINE: 7762
+BUSINESS PURPOSE: Summary of all discounts given — by outlet,
+  by user, by reason with total amounts.
+
+HMS.bas SQL LOGIC:
+  SELECT d.Name AS OutletName,
+    b.DiscReason,
+    COUNT(*) AS BillCount,
+    SUM(b.DiscAmt) AS TotalDiscount,
+    AVG(b.DiscPer) AS AvgDiscountPer,
+    SUM(b.BillAmt) AS TotalBilling,
+    (SUM(b.DiscAmt) / SUM(b.BillAmt) * 100) AS DiscRatio
+  FROM Bill b
+  LEFT JOIN Depart d ON b.RestCode = d.Code
+  WHERE b.DiscAmt > 0
+  AND b.Vdate BETWEEN @fromdate AND @todate
+  AND b.PropertyID = @propertyid
+  GROUP BY d.Name, b.DiscReason
+  ORDER BY TotalDiscount DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - DiscReason
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add discountSumm() in Reporting.php
+  2. Query bill + depart, group by outlet + reason
+  3. Create: resources/views/property/discountsumm.blade.php
+  4. Add: GET /discountsumm + POST /discountsummfetch
+
+TABLES USED:
+  - bill (DiscAmt, DiscPer, DiscReason, BillAmt)
+  - depart (Code, Name)
+============================================================
+
+============================================================
+REPORT 5: ItemSale (Item Sale Report)
+============================================================
+HMS.bas FORM NAME: ItemSale
+HMS.bas LINE: 883968
+BUSINESS PURPOSE: Item-wise sale report showing each item's
+  quantity sold, revenue, tax for a period.
+
+HMS.bas SQL LOGIC:
+  SELECT s.Item, im.Name AS ItemName, im.Unit,
+    s.RestCode, d.Name AS OutletName,
+    SUM(s.Qty) AS TotalQty,
+    SUM(s.Amount) AS TotalAmount,
+    SUM(s.TaxAmt) AS TotalTax,
+    SUM(s.Amount - s.DiscAmt) AS NetAmount
+  FROM Stock s
+  LEFT JOIN ItemMast im ON s.Item = im.Code AND s.ItemRestCode = im.RestCode
+  LEFT JOIN Depart d ON s.RestCode = d.Code
+  WHERE s.Vdate BETWEEN @fromdate AND @todate
+  AND s.VType LIKE 'Y%'
+  AND s.PropertyID = @propertyid
+  GROUP BY s.Item, im.Name, im.Unit, s.RestCode, d.Name
+  ORDER BY TotalAmount DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Item Group
+  - Item Category
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add itemSale() in Reporting.php
+  2. Query stock + itemmast + depart
+  3. Group by item
+  4. Create: resources/views/property/itemsale.blade.php
+  5. Add: GET /itemsale + POST /itemsalefetch
+
+TABLES USED:
+  - stock (Item, RestCode, Qty, Amount, TaxAmt, DiscAmt, VType, Vdate)
+  - itemmast (Code, Name, Unit, RestCode)
+  - depart (Code, Name)
+============================================================
+
+============================================================
+REPORT 6: ItemWiseGroupWiseSaleReport
+============================================================
+HMS.bas FORM NAME: ItemWiseGroupWiseSaleReport
+HMS.bas LINE: 479566
+BUSINESS PURPOSE: Sales grouped by item group showing group-wise
+  totals with item details.
+
+HMS.bas SQL LOGIC:
+  SELECT ig.Name AS ItemGroup, im.Name AS ItemName,
+    s.RestCode, d.Name AS OutletName,
+    SUM(s.Qty) AS TotalQty,
+    SUM(s.Amount) AS TotalAmount,
+    SUM(s.Amount - s.DiscAmt) AS NetAmount
+  FROM Stock s
+  LEFT JOIN ItemMast im ON s.Item = im.Code AND s.ItemRestCode = im.RestCode
+  LEFT JOIN ItemGrp ig ON im.ItemGroup = ig.Code
+  LEFT JOIN Depart d ON s.RestCode = d.Code
+  WHERE s.Vdate BETWEEN @fromdate AND @todate
+  AND s.VType LIKE 'Y%'
+  AND s.PropertyID = @propertyid
+  GROUP BY ig.Name, im.Name, s.RestCode, d.Name
+  ORDER BY ig.Name, TotalAmount DESC
+
+FILTERS:
+  - Date From / Date To
+  - Item Group
+  - Outlet
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add itemWiseGroupWiseSaleReport() in Reporting.php
+  2. Query stock + itemmast + itemgrp + depart
+  3. Group by item group then item
+  4. Create: resources/views/property/itemwisegroupwise.blade.php
+  5. Add: GET /itemwisegroupwise + POST /itemwisegroupwisefetch
+
+TABLES USED:
+  - stock, itemmast, itemgrp, depart
+============================================================
+
+============================================================
+REPORT 7: JournalBookLog (Journal Book Log)
+============================================================
+HMS.bas FORM NAME: JournalBookLog
+HMS.bas LINE: 558827
+BUSINESS PURPOSE: Audit log of all journal entries with
+  user, timestamp, original and modified values.
+
+HMS.bas SQL LOGIC:
+  SELECT al.*,
+    u.Name AS UserName,
+    ag.Name AS AccountName
+  FROM AuditLog al
+  LEFT JOIN Users u ON al.UserID = u.ID
+  LEFT JOIN AcGroup ag ON al.AcCode = ag.Code
+  WHERE al.Module = 'Journal'
+  AND al.Vdate BETWEEN @fromdate AND @todate
+  AND al.PropertyID = @propertyid
+  ORDER BY al.Vdate DESC, al.Time DESC
+
+FILTERS:
+  - Date From / Date To
+  - User
+  - Account
+
+LARAVEL STATUS: MISSING
+PRIORITY: LOW
+
+IMPLEMENTATION PLAN:
+  1. Add journalBookLog() in Reporting.php
+  2. Query auditlog + users + acgroup
+  3. Create: resources/views/property/journalbooklog.blade.php
+  4. Add: GET /journalbooklog + POST /journalbooklogfetch
+
+TABLES USED:
+  - auditlog (if exists) or activity_log
+  - users
+  - acgroup
+============================================================
+
+============================================================
+REPORT 8: KOTWiseDetails
+============================================================
+HMS.bas FORM NAME: KOTWiseDetails
+HMS.bas LINE: 2616
+BUSINESS PURPOSE: Detailed KOT report showing all items in each
+  KOT with quantities, rates, amounts.
+
+HMS.bas SQL LOGIC:
+  SELECT k.DocId, k.VNo, k.Vdate, k.Vtime,
+    k.RoomNo AS TableNo, k.Waiter,
+    im.Name AS ItemName, im.Unit,
+    k.Qty, k.Rate, k.Amount,
+    k.TaxAmt, k.DiscAmt, k.NetAmount,
+    d.Name AS OutletName, w.Name AS WaiterName
+  FROM KOT k
+  LEFT JOIN ItemMast im ON k.Item = im.Code AND k.ItemRestCode = im.RestCode
+  LEFT JOIN Depart d ON k.RestCode = d.Code
+  LEFT JOIN Waiter w ON k.Waiter = w.Code
+  WHERE k.Vdate BETWEEN @fromdate AND @todate
+  AND k.VoidYN = 'N'
+  AND k.DelFlag <> 'Y'
+  AND k.NCKot = 'N'
+  AND k.PropertyID = @propertyid
+  ORDER BY k.Vdate, k.VNo, k.SNo
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Waiter
+  - Table/Room
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add kotWiseDetails() in Reporting.php
+  2. Query kot + itemmast + depart + waiter
+  3. Create: resources/views/property/kotwisedetails.blade.php
+  4. Add: GET /kotwisedetails + POST /kotwisedetailsfetch
+
+TABLES USED:
+  - kot (DocId, VNo, Vdate, Vtime, RoomNo, Waiter, Item, Qty, Rate, Amount, TaxAmt, DiscAmt, VoidYN, DelFlag, NCKot)
+  - itemmast (Code, Name, Unit, RestCode)
+  - depart (Code, Name)
+  - waiter (Code, Name)
+============================================================
+
+============================================================
+REPORT 9: NCKOTSummary
+============================================================
+HMS.bas FORM NAME: NCKOTSummary
+HMS.bas LINE: 7762
+BUSINESS PURPOSE: Summary of all Non-Chargeable KOTs with
+  reasons, user, total amount.
+
+HMS.bas SQL LOGIC:
+  SELECT k.RestCode, d.Name AS OutletName,
+    k.NCCode, nc.Name AS NCReason,
+    COUNT(*) AS KOTCount,
+    SUM(k.Amount) AS TotalAmount,
+    k.U_Name AS CreatedBy
+  FROM KOT k
+  LEFT JOIN Depart d ON k.RestCode = d.Code
+  LEFT JOIN NCType nc ON k.NCCode = nc.Code
+  WHERE k.NCKot = 'Y'
+  AND k.VoidYN = 'N'
+  AND k.DelFlag <> 'Y'
+  AND k.Vdate BETWEEN @fromdate AND @todate
+  AND k.PropertyID = @propertyid
+  GROUP BY k.RestCode, d.Name, k.NCCode, nc.Name, k.U_Name
+  ORDER BY TotalAmount DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - NC Reason
+  - User
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (Financial audit — NC items affect food cost)
+
+IMPLEMENTATION PLAN:
+  1. Add ncKotSummary() in Reporting.php
+  2. Query kot + depart + nctype
+  3. Filter NCKot = 'Y'
+  4. Create: resources/views/property/nckotsummary.blade.php
+  5. Add: GET /nckotsummary + POST /nckotsummaryfetch
+
+TABLES USED:
+  - kot (NCKot, NCCode, Amount, RestCode, U_Name)
+  - depart (Code, Name)
+  - nctype (Code, Name)
+============================================================
+
+============================================================
+REPORT 10: NCKOTWiseDetails
+============================================================
+HMS.bas FORM NAME: NCKOTWiseDetails
+HMS.bas LINE: 7762
+BUSINESS PURPOSE: Detail-wise NC KOT report showing each item
+  in NC KOTs with quantities and amounts.
+
+HMS.bas SQL LOGIC:
+  SELECT k.DocId, k.VNo, k.Vdate,
+    im.Name AS ItemName, im.Unit,
+    k.Qty, k.Rate, k.Amount,
+    nc.Name AS NCReason, d.Name AS OutletName,
+    k.U_Name AS CreatedBy
+  FROM KOT k
+  LEFT JOIN ItemMast im ON k.Item = im.Code AND k.ItemRestCode = im.RestCode
+  LEFT JOIN NCType nc ON k.NCCode = nc.Code
+  LEFT JOIN Depart d ON k.RestCode = d.Code
+  WHERE k.NCKot = 'Y'
+  AND k.VoidYN = 'N'
+  AND k.DelFlag <> 'Y'
+  AND k.Vdate BETWEEN @fromdate AND @todate
+  AND k.PropertyID = @propertyid
+  ORDER BY k.Vdate, k.VNo
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - NC Reason
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add ncKotWiseDetails() in Reporting.php
+  2. Query kot + itemmast + nctype + depart
+  3. Create: resources/views/property/nckotwisedetails.blade.php
+  4. Add: GET /nckotwisedetails + POST /nckotwisedetailsfetch
+============================================================
+
+============================================================
+REPORT 11: SalesRegister
+============================================================
+HMS.bas FORM NAME: SalesRegister
+HMS.bas LINE: 5739
+BUSINESS PURPOSE: Daily sales register with all bills, payments,
+  tax, discount for each outlet.
+
+HMS.bas SQL LOGIC:
+  SELECT b.Bill_No, b.Vdate, b.RestCode,
+    d.Name AS OutletName,
+    b.RoomNo, b.FolioNo,
+    b.BillAmt, b.DiscAmt, b.TaxAmt,
+    b.NetAmount, b.PayAmount,
+    b.CancelYN
+  FROM Bill b
+  LEFT JOIN Depart d ON b.RestCode = d.Code
+  WHERE b.Vdate BETWEEN @fromdate AND @todate
+  AND b.CancelYN <> 'Y'
+  AND b.PropertyID = @propertyid
+  ORDER BY b.Vdate, b.RestCode, b.Bill_No
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add salesRegister() in Reporting.php
+  2. Query bill + depart
+  3. Create: resources/views/property/salesregister.blade.php
+  4. Add: GET /salesregister + POST /salesregisterfetch
+
+TABLES USED:
+  - bill (Bill_No, Vdate, RestCode, BillAmt, DiscAmt, TaxAmt, NetAmount, PayAmount, CancelYN)
+  - depart (Code, Name)
+============================================================
+
+============================================================
+REPORT 12: SalesSummary
+============================================================
+HMS.bas FORM NAME: SalesSummary
+HMS.bas LINE: 480000
+BUSINESS PURPOSE: Summary of all sales by outlet with total
+  bills, total amount, tax, discount, net.
+
+HMS.bas SQL LOGIC:
+  SELECT d.Name AS OutletName,
+    COUNT(b.Bill_No) AS BillCount,
+    SUM(b.BillAmt) AS TotalBilling,
+    SUM(b.DiscAmt) AS TotalDiscount,
+    SUM(b.TaxAmt) AS TotalTax,
+    SUM(b.NetAmount) AS TotalNet,
+    SUM(b.PayAmount) AS TotalCollected,
+    SUM(b.BillAmt - b.PayAmount) AS Outstanding
+  FROM Bill b
+  LEFT JOIN Depart d ON b.RestCode = d.Code
+  WHERE b.Vdate BETWEEN @fromdate AND @todate
+  AND b.CancelYN <> 'Y'
+  AND b.PropertyID = @propertyid
+  GROUP BY d.Name
+  ORDER BY TotalBilling DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add salesSummary() in Reporting.php
+  2. Query bill + depart group by outlet
+  3. Create: resources/views/property/salessummary.blade.php
+  4. Add: GET /salessummary + POST /salessummaryfetch
+============================================================
+
+============================================================
+REPORT 13: SaleSummConsolidated
+============================================================
+HMS.bas FORM NAME: SaleSummConsolidated
+HMS.bas LINE: 480000
+BUSINESS PURPOSE: Consolidated sale summary across all outlets
+  with grand total.
+
+HMS.bas SQL LOGIC:
+  SELECT
+    COUNT(b.Bill_No) AS TotalBills,
+    SUM(b.BillAmt) AS GrandBilling,
+    SUM(b.DiscAmt) AS GrandDiscount,
+    SUM(b.TaxAmt) AS GrandTax,
+    SUM(b.NetAmount) AS GrandNet,
+    SUM(b.PayAmount) AS GrandCollected,
+    SUM(b.BillAmt - b.PayAmount) AS GrandOutstanding
+  FROM Bill b
+  WHERE b.Vdate BETWEEN @fromdate AND @todate
+  AND b.CancelYN <> 'Y'
+  AND b.PropertyID = @propertyid
+
+FILTERS:
+  - Date From / Date To
+  - Property
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add saleSummConsolidated() in Reporting.php
+  2. Query bill with grand totals
+  3. Create: resources/views/property/salesummconsolidated.blade.php
+  4. Add: GET /salesummconsolidated + POST /salesummconsolidatedfetch
+============================================================
+
+============================================================
+REPORT 14: WaiterWiseSale
+============================================================
+HMS.bas FORM NAME: WaiterWiseSale
+HMS.bas LINE: 2589
+BUSINESS PURPOSE: Waiter-wise sale report showing each waiter's
+  total KOTs, items sold, revenue.
+
+HMS.bas SQL LOGIC:
+  SELECT w.Code AS WaiterCode, w.Name AS WaiterName,
+    d.Name AS OutletName,
+    COUNT(DISTINCT k.DocId) AS KOTCount,
+    SUM(k.Qty) AS TotalQty,
+    SUM(k.Amount) AS TotalAmount,
+    SUM(k.TaxAmt) AS TotalTax,
+    SUM(k.NetAmount) AS TotalNet
+  FROM KOT k
+  LEFT JOIN Waiter w ON k.Waiter = w.Code
+  LEFT JOIN Depart d ON k.RestCode = d.Code
+  WHERE k.Vdate BETWEEN @fromdate AND @todate
+  AND k.VoidYN = 'N'
+  AND k.DelFlag <> 'Y'
+  AND k.NCKot = 'N'
+  AND k.PropertyID = @propertyid
+  GROUP BY w.Code, w.Name, d.Name
+  ORDER BY TotalAmount DESC
+
+FILTERS:
+  - Date From / Date To
+  - Outlet
+  - Waiter
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add waiterWiseSale() in Reporting.php
+  2. Query kot + waiter + depart
+  3. Group by waiter
+  4. Create: resources/views/property/waiterwisesale.blade.php
+  5. Add: GET /waiterwisesale + POST /waiterwisesalefetch
+
+TABLES USED:
+  - kot (Waiter, RestCode, Qty, Amount, TaxAmt, NetAmount)
+  - waiter (Code, Name)
+  - depart (Code, Name)
+============================================================
+
+============================================================
+POS/KOT MODULE SUMMARY
+============================================================
+TOTAL MISSING REPORTS: 14
+PRIORITY BREAKDOWN:
+  HIGH: 7 (BillWiseAdjustment, cancelBillDetails, ItemSale,
+         KOTWiseDetails, NCKOTSummary, SalesRegister, SalesSummary)
+  MEDIUM: 6 (DiscountPartyWise, DiscountSumm, ItemWiseGroupWise,
+          NCKOTWiseDetails, SaleSummConsolidated, WaiterWiseSale)
+  LOW: 1 (JournalBookLog)
+
+DATABASE TABLES NEEDED: All exist
+  - bill, stock, kot, depart, itemmast, itemgrp,
+  - waiter, nctype, paycharge, paymodemast,
+  - guestfolio, subgroup
+
+NO DATABASE CHANGES REQUIRED.
+============================================================

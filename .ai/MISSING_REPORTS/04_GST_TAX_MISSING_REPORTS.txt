@@ -1,0 +1,264 @@
+============================================================
+MODULE: GST / TAX — MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL GST/TAX MISSING: 10
+============================================================
+
+============================================================
+REPORT 1: GSTR2(3) — GSTR2 Section 3
+============================================================
+HMS.bas FORM NAME: GSTR2(3)
+HMS.bas LINE: 3911
+BUSINESS PURPOSE: GSTR-2 Section 3 — Inward supplies from
+  registered persons (B2B purchases).
+
+HMS.bas SQL LOGIC:
+  SELECT p.PartyName, p.GSTIN, p.StateCode,
+    p.InvoiceNo, p.InvoiceDate, p.InvoiceValue,
+    p.TaxableValue, p.InterStateTax, p.IntraStateTax,
+    p.CessAmount, p.PlaceOfSupply
+  FROM PurchBill p
+  WHERE p.Vdate BETWEEN @fromdate AND @todate
+  AND p.GSTApplicable = 'Y'
+  AND p.PropertyID = @propertyid
+  AND p.StateCode <> @homestate  -- Interstate
+
+FILTERS:
+  - Financial Year
+  - Month
+  - GSTIN
+  - Place of Supply
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (GST Compliance)
+
+IMPLEMENTATION PLAN:
+  1. Add gstr2_3() in Reporting.php
+  2. Query purchbill where GST applicable
+  3. Filter interstate purchases
+  4. Create: resources/views/property/gstr2_3.blade.php
+  5. Add: GET /gstr2_3 + POST /gstr2_3fetch
+
+TABLES USED:
+  - purchbill (PartyName, GSTIN, StateCode, InvoiceNo, InvoiceDate,
+    InvoiceValue, TaxableValue, InterStateTax, IntraStateTax, CessAmount)
+============================================================
+
+============================================================
+REPORT 2: GSTR2(4A) — GSTR2 Section 4A
+============================================================
+HMS.bas FORM NAME: GSTR2(4A)
+HMS.bas LINE: 3911
+BUSINESS PURPOSE: GSTR-2 Section 4A — Inward supplies from
+  composition taxpayers.
+
+HMS.bas SQL LOGIC:
+  SELECT p.PartyName, p.GSTIN, p.StateCode,
+    p.InvoiceNo, p.InvoiceDate, p.InvoiceValue
+  FROM PurchBill p
+  WHERE p.Vdate BETWEEN @fromdate AND @todate
+  AND p.CompositionTaxpayer = 'Y'
+  AND p.PropertyID = @propertyid
+
+FILTERS:
+  - Financial Year
+  - Month
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (GST Compliance)
+
+IMPLEMENTATION PLAN:
+  1. Add gstr2_4A() in Reporting.php
+  2. Query purchbill where CompositionTaxpayer = 'Y'
+  3. Create: resources/views/property/gstr2_4a.blade.php
+  4. Add: GET /gstr2_4a + POST /gstr2_4afetch
+============================================================
+
+============================================================
+REPORT 3: GSTR2(4B) — GSTR2 Section 4B
+============================================================
+HMS.bas FORM NAME: GSTR2(4B)
+HMS.bas LINE: 3911
+BUSINESS PURPOSE: GSTR-2 Section 4B — Inward supplies from
+  unregistered persons.
+
+HMS.bas SQL LOGIC:
+  SELECT p.PartyName, p.InvoiceNo, p.InvoiceDate,
+    p.InvoiceValue, p.TaxableValue
+  FROM PurchBill p
+  WHERE p.Vdate BETWEEN @fromdate AND @todate
+  AND (p.GSTIN IS NULL OR p.GSTIN = '')
+  AND p.PropertyID = @propertyid
+
+FILTERS:
+  - Financial Year
+  - Month
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (GST Compliance)
+
+IMPLEMENTATION PLAN:
+  1. Add gstr2_4B() in Reporting.php
+  2. Query purchbill where GSTIN is null
+  3. Create: resources/views/property/gstr2_4b.blade.php
+  4. Add: GET /gstr2_4b + POST /gstr2_4bfetch
+============================================================
+
+============================================================
+REPORT 4: LuxuryTaxRegister
+============================================================
+HMS.bas FORM NAME: LuxuryTaxRegister
+HMS.bas LINE: 5118
+BUSINESS PURPOSE: Luxury tax register showing all luxury tax
+  collected on room rent.
+
+HMS.bas SQL LOGIC:
+  SELECT pc.Vdate, pc.RoomNo, pc.Vno,
+    gf.Name AS GuestName,
+    pc.AmtDr AS RoomCharge,
+    pc.LuxTaxAmt AS LuxuryTax,
+    pc.TaxCode1, pc.TaxAmt1,
+    pc.TaxCode2, pc.TaxAmt2
+  FROM PayCharge pc
+  LEFT JOIN GuestFolio gf ON pc.FolioNoDocId = gf.DocId
+  WHERE pc.Vdate BETWEEN @fromdate AND @todate
+  AND pc.LuxTaxAmt > 0
+  AND pc.PropertyID = @propertyid
+  ORDER BY pc.Vdate, pc.RoomNo
+
+FILTERS:
+  - Date From / Date To
+  - Room Category
+  - Tax Code
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH (Tax Compliance)
+
+IMPLEMENTATION PLAN:
+  1. Add luxuryTaxRegister() in Reporting.php
+  2. Query paycharge + guestfolio
+  3. Filter LuxTaxAmt > 0
+  4. Create: resources/views/property/luxurytaxregister.blade.php
+  5. Add: GET /luxurytaxregister + POST /luxurytaxregisterfetch
+
+TABLES USED:
+  - paycharge (Vdate, RoomNo, Vno, AmtDr, LuxTaxAmt, TaxCode1-3, TaxAmt1-3, FolioNoDocId)
+  - guestfolio (DocId, Name)
+============================================================
+
+============================================================
+REPORT 5: LuxuryTaxRegisterI
+============================================================
+HMS.bas FORM NAME: LuxuryTaxRegisterI
+HMS.bas LINE: 5118
+BUSINESS PURPOSE: Luxury tax register — item-wise detail
+  showing each charge's luxury tax component.
+
+HMS.bas SQL LOGIC:
+  Similar to LuxuryTaxRegister but with PayCode detail
+  showing revenue head wise luxury tax.
+
+  SELECT pc.PayCode, rm.Name AS RevenueName,
+    pc.TaxCode1, pc.TaxAmt1,
+    pc.TaxCode2, pc.TaxAmt2,
+    pc.LuxTaxAmt,
+    COUNT(*) AS ChargeCount,
+    SUM(pc.AmtDr) AS TotalCharges
+  FROM PayCharge pc
+  LEFT JOIN RevMast rm ON pc.PayCode = rm.Code
+  WHERE pc.Vdate BETWEEN @fromdate AND @todate
+  AND pc.LuxTaxAmt > 0
+  AND pc.PropertyID = @propertyid
+  GROUP BY pc.PayCode, rm.Name, pc.TaxCode1, pc.TaxAmt1,
+    pc.TaxCode2, pc.TaxAmt2, pc.LuxTaxAmt
+
+LARAVEL STATUS: MISSING
+PRIORITY: MEDIUM
+
+IMPLEMENTATION PLAN:
+  1. Add luxuryTaxRegisterI() in Reporting.php
+  2. Query paycharge + revmast
+  3. Group by revenue head
+  4. Create: resources/views/property/luxurytaxregisteri.blade.php
+  5. Add: GET /luxurytaxregisteri + POST /luxurytaxregisterifetch
+============================================================
+
+============================================================
+REPORT 6: TaxInvoiceDetail
+============================================================
+HMS.bas FORM NAME: TaxInvoiceDetail
+HMS.bas LINE: 480000
+BUSINESS PURPOSE: Detailed tax invoice showing each tax
+  component on each charge.
+
+HMS.bas SQL LOGIC:
+  SELECT pc.Vdate, pc.Vno, pc.RoomNo,
+    gf.Name AS GuestName,
+    rm.Name AS RevenueName,
+    pc.AmtDr AS TaxableAmount,
+    pc.TaxCode1, pc.TaxAmt1,
+    pc.TaxCode2, pc.TaxAmt2,
+    pc.TaxCode3, pc.TaxAmt3,
+    pc.AmtDr + pc.TaxAmt1 + pc.TaxAmt2 + pc.TaxAmt3 AS TotalWithTax
+  FROM PayCharge pc
+  LEFT JOIN RevMast rm ON pc.PayCode = rm.Code
+  LEFT JOIN GuestFolio gf ON pc.FolioNoDocId = gf.DocId
+  WHERE pc.Vdate BETWEEN @fromdate AND @todate
+  AND (pc.TaxAmt1 > 0 OR pc.TaxAmt2 > 0 OR pc.TaxAmt3 > 0)
+  AND pc.PropertyID = @propertyid
+  ORDER BY pc.Vdate, pc.RoomNo
+
+FILTERS:
+  - Date From / Date To
+  - Revenue Head
+  - Tax Code
+
+LARAVEL STATUS: MISSING
+PRIORITY: HIGH
+
+IMPLEMENTATION PLAN:
+  1. Add taxInvoiceDetail() in Reporting.php
+  2. Query paycharge + revmast + guestfolio
+  3. Create: resources/views/property/taxinvoicedetail.blade.php
+  4. Add: GET /taxinvoicedetail + POST /taxinvoicedetailfetch
+
+TABLES USED:
+  - paycharge, revmast, guestfolio
+============================================================
+
+============================================================
+REPORT 7-10: UPVATXXIV, VATRegister, VATRegisterII, VATRegisterIII
+============================================================
+BUSINESS PURPOSE: VAT registers for UP VAT compliance
+  (legacy tax forms, may not be applicable under GST regime).
+
+STATUS: OBSOLETE under GST regime
+RECOMMENDATION: Mark as NOT APPLICABLE if property uses GST.
+  If legacy VAT compliance needed, implement similar to
+  LuxuryTaxRegister with VAT-specific columns.
+
+LARAVEL STATUS: MISSING (likely OBSOLETE)
+PRIORITY: LOW (only if legacy VAT compliance required)
+
+IMPLEMENTATION PLAN:
+  1. Check if property uses GST or legacy VAT
+  2. If GST only → mark as OBSOLETE
+  3. If legacy VAT needed → implement as tax register variants
+============================================================
+
+============================================================
+GST/TAX MODULE SUMMARY
+============================================================
+TOTAL MISSING REPORTS: 10
+PRIORITY BREAKDOWN:
+  HIGH: 5 (GSTR2_3, GSTR2_4A, GSTR2_4B, LuxuryTaxRegister,
+         TaxInvoiceDetail)
+  MEDIUM: 1 (LuxuryTaxRegisterI)
+  LOW/Obsolete: 4 (UPVATXXIV, VATRegister, VATRegisterII, VATRegisterIII)
+
+DATABASE TABLES NEEDED: All exist
+  - paycharge, revmast, guestfolio, purchbill
+
+NO DATABASE CHANGES REQUIRED.
+============================================================

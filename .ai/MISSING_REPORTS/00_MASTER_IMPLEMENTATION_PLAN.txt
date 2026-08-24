@@ -1,0 +1,278 @@
+============================================================
+MASTER IMPLEMENTATION PLAN — 71 MISSING REPORTS
+============================================================
+DATE: 2026-08-24
+TOTAL HMS.bas REPORTS: 232
+TOTAL EXISTS IN LARAVEL: 161
+TOTAL MISSING: 71
+============================================================
+
+============================================================
+PRIORITY 1 — CRITICAL (Financial Audit / GST Compliance)
+Reports that affect financial accuracy or legal compliance.
+============================================================
+
+NO. | REPORT NAME                    | MODULE      | STATUS
+----|-------------------------------|-------------|--------
+ 1  | CancelBillDetails             | POS         | MISSING
+ 2  | BillWiseAdjustmentReport      | POS         | MISSING
+ 3  | NCKOTSummary                  | POS         | MISSING
+ 4  | SalesRegister                 | POS         | MISSING
+ 5  | SalesSummary                  | POS         | MISSING
+ 6  | GSTR2(3)                      | GST         | MISSING
+ 7  | GSTR2(4A)                     | GST         | MISSING
+ 8  | GSTR2(4B)                     | GST         | MISSING
+ 9  | LuxuryTaxRegister             | Tax         | MISSING
+10  | TaxInvoiceDetail              | Tax         | MISSING
+11  | NightAuditReport              | Night Audit | MISSING
+12  | NightAuditReportI             | Night Audit | MISSING
+13  | DailySumm                     | Accounts    | MISSING
+14  | BankBook                      | Accounts    | MISSING
+15  | CashBook                      | Accounts    | MISSING
+16  | RoomRentAuditRpt              | Front Office| EXISTS (route only)
+17  | ChkInRegister                 | Front Office| MISSING
+
+TOTAL P1 CRITICAL: 17 reports
+============================================================
+
+============================================================
+PRIORITY 2 — HIGH (Core Business Operations)
+Reports needed for daily hotel operations.
+============================================================
+
+NO. | REPORT NAME                    | MODULE      | STATUS
+----|-------------------------------|-------------|--------
+18  | ArrivalDepList                | Front Office| MISSING
+19  | CheckedInGuestDtl             | Front Office| MISSING
+20  | ExpectedDeparture             | Front Office| MISSING
+21  | ReservStatusArrival           | Front Office| MISSING
+22  | ReservStatusInHouse           | Front Office| MISSING
+23  | RevAnalysis                   | Front Office| MISSING
+24  | RoomOccDisp                   | Front Office| MISSING
+25  | RoomTypeOccupancyAnalysis     | Front Office| MISSING
+26  | RoomTypeOccupancyReport       | Front Office| MISSING
+27  | CompanyAnalysis               | Accounts    | MISSING
+28  | CompanySumm                   | Accounts    | MISSING
+29  | ItemSale                      | POS         | MISSING
+30  | KOTWiseDetails                | POS         | MISSING
+31  | DailyFuncSheet                | Banquet     | MISSING
+32  | ExpectedDeparture             | Front Office| MISSING
+
+TOTAL P2 HIGH: 15 reports
+============================================================
+
+============================================================
+PRIORITY 3 — MEDIUM (Management Reports)
+Reports useful for management decision-making.
+============================================================
+
+NO. | REPORT NAME                    | MODULE      | STATUS
+----|-------------------------------|-------------|--------
+33  | AcCheckList                   | Accounts    | MISSING
+34  | BussSourceOccupancyReport     | Front Office| MISSING
+35  | FOMTaxWiseChargeDetail        | Front Office| MISSING
+36  | RoomOccupancyReportSummary    | Front Office| MISSING
+37  | RoomWiseRoomRevenueReport     | Front Office| MISSING
+38  | DiscountPartyWiseReg          | POS         | MISSING
+39  | DiscountSumm                  | POS         | MISSING
+40  | ItemWiseGroupWiseSaleReport   | POS         | MISSING
+41  | NCKOTWiseDetails              | POS         | MISSING
+42  | SaleSummConsolidated          | POS         | MISSING
+43  | WaiterWiseSale                | POS         | MISSING
+44  | LedCred                       | Accounts    | MISSING
+45  | Reconciliation(R2A)           | Accounts    | MISSING
+46  | LuxuryTaxRegisterI            | Tax         | MISSING
+47  | IndentReg                     | Inventory   | MISSING
+48  | PurchOrder                    | Purchase    | MISSING
+49  | RStockRegister                | Inventory   | MISSING
+50  | StockSummaryP/SBasis          | Inventory   | MISSING
+51  | OccAnalysis                   | MIS         | MISSING
+52  | PayrollReg                    | HR          | MISSING
+
+TOTAL P3 MEDIUM: 20 reports
+============================================================
+
+============================================================
+PRIORITY 4 — LOW (Supplementary / Compliance)
+Reports that are supplementary or compliance-specific.
+============================================================
+
+NO. | REPORT NAME                    | MODULE      | STATUS
+----|-------------------------------|-------------|--------
+53  | ConfirmLetter                 | Front Office| MISSING
+54  | BankReg                       | Accounts    | EXISTS
+55  | CashierSettlement             | POS         | EXISTS
+56  | JournalBookLog                | Accounts    | MISSING
+57  | PaymentDueLetterReport        | Accounts    | MISSING
+58  | MemBirthAnnvDtls              | Membership  | MISSING
+59  | MemMailingLabels              | Membership  | MISSING
+60  | RStockSummary                 | Inventory   | MISSING
+61  | CancelBillDetails (alt)       | POS         | DUPLICATE
+62  | UPVATXXIV                     | Tax         | OBSOLETE
+63  | VATRegister                   | Tax         | OBSOLETE
+64  | VATRegisterII                 | Tax         | OBSOLETE
+65  | VATRegisterIII                | Tax         | OBSOLETE
+66  | LTFORMII                      | Tax         | OBSOLETE
+67  | LTFORMIV                      | Tax         | OBSOLETE
+68  | Form1TourismReport            | Tourism     | OBSOLETE
+69  | Form2TourismReport            | Tourism     | OBSOLETE
+70  | Form4TourismReport            | Tourism     | OBSOLETE
+71  | Form5TourismReport            | Tourism     | OBSOLETE
+
+TOTAL P4 LOW: 19 reports (6 OBSOLETE, 1 DUPLICATE)
+============================================================
+
+============================================================
+SUMMARY
+============================================================
+P1 CRITICAL:  17 reports (MUST implement)
+P2 HIGH:      15 reports (SHOULD implement)
+P3 MEDIUM:    20 reports (NICE to have)
+P4 LOW:       19 reports (6 obsolete + 1 duplicate = 12 actionable)
+
+TOTAL ACTIONABLE: 59 reports
+TOTAL OBSOLETE:   12 reports
+============================================================
+
+============================================================
+IMPLEMENTATION SEQUENCE
+============================================================
+
+PHASE 1: P1 CRITICAL (17 reports)
+  Week 1:
+  - CancelBillDetails + BillWiseAdjustmentReport (POS)
+  - NCKOTSummary + SalesRegister + SalesSummary (POS)
+  - GSTR2_3 + GSTR2_4A + GSTR2_4B (GST)
+  - LuxuryTaxRegister + TaxInvoiceDetail (Tax)
+
+  Week 2:
+  - NightAuditReport + NightAuditReportI (Night Audit)
+  - DailySumm + BankBook + CashBook (Accounts)
+  - ChkInRegister (Front Office)
+
+PHASE 2: P2 HIGH (15 reports)
+  Week 3:
+  - ArrivalDepList + CheckedInGuestDtl (Front Office)
+  - ExpectedDeparture + ReservStatusArrival (Front Office)
+  - ReservStatusInHouse + RevAnalysis (Front Office)
+
+  Week 4:
+  - RoomOccDisp + RoomTypeOccupancyAnalysis (Front Office)
+  - RoomTypeOccupancyReport (Front Office)
+  - CompanyAnalysis + CompanySumm (Accounts)
+  - ItemSale + KOTWiseDetails (POS)
+
+  Week 5:
+  - DailyFuncSheet (Banquet)
+
+PHASE 3: P3 MEDIUM (20 reports)
+  Week 6-7:
+  - AcCheckList + BussSourceOccupancyReport (Front Office)
+  - FOMTaxWiseChargeDetail + RoomOccupancyReportSummary (Front Office)
+  - RoomWiseRoomRevenueReport (Front Office)
+  - DiscountPartyWiseReg + DiscountSumm (POS)
+  - ItemWiseGroupWiseSaleReport + NCKOTWiseDetails (POS)
+  - SaleSummConsolidated + WaiterWiseSale (POS)
+
+  Week 8:
+  - LedCred + Reconciliation (Accounts)
+  - LuxuryTaxRegisterI (Tax)
+  - IndentReg + PurchOrder (Inventory)
+  - RStockRegister + StockSummaryPS (Inventory)
+  - OccAnalysis + PayrollReg (HR/MIS)
+
+PHASE 4: P4 LOW (7 actionable reports)
+  Week 9:
+  - ConfirmLetter + JournalBookLog (Front Office/Accounts)
+  - PaymentDueLetterReport (Accounts)
+  - MemBirthAnnvDtls + MemMailingLabels (Membership)
+  - RStockSummary (Inventory)
+============================================================
+
+============================================================
+DATABASE REQUIREMENTS
+============================================================
+ALL 59 reports use EXISTING database tables.
+
+Tables used across all reports:
+  - roomocc, guestfolio, guestprof, paycharge, booking
+  - roommast, roomcat, subgroup, revmast
+  - bill, depart, stock, itemmast, itemgrp
+  - kot, waiter, nctype, paymodemast
+  - acgroup, acctrltrn, purchbill, purchorder
+  - hallbook, payroll, employee
+  - membermaster, membercategory
+  - nightauditlog, auditlog
+
+NO DATABASE CHANGES REQUIRED.
+============================================================
+
+============================================================
+TECHNICAL SPECIFICATIONS
+============================================================
+
+CONTROLLER PATTERN:
+  - All report methods in app/Http/Controllers/Reporting.php
+  - Each report has 2 methods:
+    - reportName() → returns blade view
+    - reportNameFetch() → returns JSON data for AJAX
+
+VIEW PATTERN:
+  - resources/views/property/reportname.blade.php
+  - Extends property.layouts.property
+  - Uses Bootstrap 5 + DataTables
+  - AJAX-based data loading
+  - Date pickers (from/to)
+  - Property filter (hidden)
+  - Export buttons (CSV/PDF/Print)
+
+ROUTE PATTERN:
+  - GET /reportname → ReportNameController@reportName
+  - POST /reportnamefetch → ReportNameController@reportNameFetch
+  - Route names: reportname, reportnamefetch
+
+PERMISSION PATTERN:
+  - Use revokeopen() for permission check
+  - Follow existing menuhelp code pattern
+============================================================
+
+============================================================
+FILES TO CREATE/EDIT FOR EACH REPORT
+============================================================
+
+1. CONTROLLER: app/Http/Controllers/Reporting.php
+   - Add method reportName()
+   - Add method reportNameFetch()
+
+2. VIEW: resources/views/property/reportname.blade.php
+   - Blade template with form + DataTable
+   - AJAX call to fetch endpoint
+
+3. ROUTE: routes/reporting.php
+   - GET /reportname
+   - POST /reportnamefetch
+
+4. SQL MENU: sql/menuhelp_property.sql
+   - Add menu entry for report
+
+NO MIGRATION NEEDED.
+NO MODEL NEEDED (raw queries).
+============================================================
+
+============================================================
+TESTING CHECKLIST (per report)
+============================================================
+[ ] Route loads without error
+[ ] View renders correctly
+[ ] Date filter works
+[ ] Property filter works
+[ ] Data loads via AJAX
+[ ] DataTable shows records
+[ ] Totals/grand totals correct
+[ ] Empty state handled
+[ ] Export CSV works
+[ ] Print layout works
+[ ] No JS console errors
+[ ] No SQL errors in log
+[ ] Matches HMS.bas output
+============================================================
