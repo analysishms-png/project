@@ -5,7 +5,6 @@
 var table=null;
 $(document).ready(function(){table=$("#reportTable").DataTable({dom:"Bfrtip",buttons:["excel","print"],pageLength:25,order:[]});fetchData();});
 function fetchData(){var d={_token:$("meta[name=csrf-token]").attr("content")};if($("#fromdate").length)d.fromdate=$("#fromdate").val();if($("#todate").length)d.todate=$("#todate").val();if($("#searchInput").length)d.search=$("#searchInput").val();$.post("loanledger.fetch",d,function(r){table.clear();if(r.success&&r.data.length>0){var keys=Object.keys(r.data[0]);$("#headerRow").html(keys.map(function(k){return"<th>"+k.toUpperCase().replace(/_/g," ")+"</th>"}).join(""));$.each(r.data,function(i,row){var tr="<tr>";keys.forEach(function(k){var v=row[k];tr+="<td>"+(typeof v=="number"?fmt(v):(v||""))+"</td>"});tr+="</tr>";table.row.add($(tr)).draw(false)})}table.draw()},"json")}
-function fmt(v){return Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
 function exportExcel(){$(".buttons-excel").click()}
 </script>
 @endsection

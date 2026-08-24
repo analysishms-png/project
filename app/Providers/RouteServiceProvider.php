@@ -43,7 +43,7 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/pointofsale.php'));
             Route::middleware('web')
                 ->group(base_path('routes/pointofsale/kot.php'));
-            Route::middleware('web')
+            Route::middleware('reporting')
                 ->group(base_path('routes/reporting.php'));
             Route::middleware('web')
                 ->group(base_path('routes/userparam.php'));

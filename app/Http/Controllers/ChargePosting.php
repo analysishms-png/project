@@ -72,7 +72,11 @@ class ChargePosting extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
         $result = $accountposting->accountpoststore($request->fromdate, $request->todate);
-        
+
+        if (!empty($result['success'])) {
+            \App\Services\CacheService::purgeReports($this->propertyid);
+        }
+
         // return $result;
         return back()->with(
             $result['success'] ? 'success' : 'error',

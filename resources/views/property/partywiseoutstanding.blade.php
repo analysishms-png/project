@@ -43,8 +43,6 @@
 </div>
 <script>
 $(document).ready(function() {
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function radioVal(name){return $("input[name='"+name+"']:checked").val()||'';}
    function fetch() {
       $.post('{{ route("partywiseoutstandingfetch") }}', {todate:$('#todate').val()
          ,baltype:radioVal('baltype'),nature:radioVal('nature')}

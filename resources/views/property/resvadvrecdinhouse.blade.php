@@ -1,4 +1,4 @@
-﻿@extends('property.layouts.main')
+@extends('property.layouts.main')
 @section('main-container')
 <div class="container-fluid" style="margin-top:90px;">
    <div class="card">
@@ -29,8 +29,6 @@
 </div>
 <script>
 $(document).ready(function() {
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function fmtDate(d){if(!d)return '';var x=new Date(d);return isNaN(x)?d:x.toLocaleDateString('en-GB');}
    $('#fetchBtn').click(function() {
       $.post('{{ route("resvadvrecdinhousefetch") }}', {fromdate:$('#fromdate').val(),todate:$('#todate').val()
          ,resstatus:($('#resstatus')?$('#resstatus').val():'')

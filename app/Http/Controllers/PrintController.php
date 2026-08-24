@@ -1104,6 +1104,8 @@ class PrintController extends Controller
 
             DB::table($tableName)->insert($insertdata);
 
+            \App\Services\CacheService::bump("mast:functiontype:{$this->propertyid}");
+
             return back()->with('success', 'Banquet Master Inserted successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Insert Banquet Master!' . $e->getMessage());
@@ -1122,6 +1124,7 @@ class PrintController extends Controller
                 ->where('code', $code)
                 ->where('sn', $sn)
                 ->delete();
+            \App\Services\CacheService::bump("mast:functiontype:{$this->propertyid}");
             if ($jaldiwahasehato📢) {
                 return back()->with('success', 'Banquet Master Deleted successfully!');
             } else {
@@ -1163,6 +1166,7 @@ class PrintController extends Controller
                 ->where('code', $request->input('updatecode'))
                 ->where('propertyid', $this->propertyid)
                 ->update($updatedata);
+            \App\Services\CacheService::bump("mast:functiontype:{$this->propertyid}");
             return back()->with('success', 'Banquet Master Updated successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'An error occurred: ' . $e->getMessage());

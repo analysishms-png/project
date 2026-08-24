@@ -23,8 +23,6 @@
 </div>
 <script>
 $(document).ready(function() {
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function fmtDate(d){if(!d)return '';var x=new Date(d);return isNaN(x)?d:x.toLocaleDateString('en-GB');}
    function sum(key){return rows.reduce(function(a,r){return a+Number(r[key]||0);},0);}
    var rows=[];
    function fetch() {
@@ -44,7 +42,6 @@ $(document).ready(function() {
          $('#rTable').DataTable({pageLength:25});
       });
    }
-   function radioVal(name){var el=document.querySelector("input[name='"+name+"']:checked");return el?el.value:'';}
    $('#fetchBtn').click(fetch);
    $('input[name=source]').change(fetch);
    fetch();

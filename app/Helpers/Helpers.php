@@ -109,11 +109,51 @@ if (!function_exists('ncurdate')) {
 if (!function_exists('revokefunction')) {
     function revokeopen($code)
     {
-        return MenuHelp::where([
-            ['propertyid', '=', Auth::user()->propertyid],
-            ['username', '=', Auth::user()->name],
-            ['code', '=', $code]
-        ])->first();
+        $propertyid = Auth::user()->propertyid;
+        $username = Auth::user()->name;
+        $pv = \App\Services\CacheService::version("permall:{$propertyid}");
+        $uv = \App\Services\CacheService::version("perm:{$propertyid}:{$username}");
+
+        return \App\Services\CacheService::remember(
+            "perm:{$propertyid}:p{$pv}:{$username}:{$code}:u{$uv}",
+            300,
+            function () use ($propertyid, $username, $code) {
+                return MenuHelp::where([
+                    ['propertyid', '=', $propertyid],
+                    ['username', '=', $username],
+                    ['code', '=', $code]
+                ])->first();
+            }
+        );
+    }
+}
+
+if (!function_exists('permCacheBump')) {
+    /**
+     * Invalidate cached permission lookups after menuhelp mutations.
+     * - permCacheBump()                      -> current user
+     * - permCacheBump(null, 'jane')          -> one user of current property
+     * - permCacheBump(103, 'jane')           -> explicit property + user
+     * - permCacheBump(103, '*')              -> EVERY user of the property
+     */
+    function permCacheBump($propertyid = null, $username = null)
+    {
+        $propertyid = $propertyid === '*' ? null : ($propertyid ?: optional(Auth::user())->propertyid);
+
+        if (!$propertyid) {
+            return;
+        }
+
+        if ($username === '*' || $username === null) {
+            if ($username === '*') {
+                \App\Services\CacheService::bump("permall:{$propertyid}");
+            }
+            $username = optional(Auth::user())->name;
+        }
+
+        if ($username) {
+            \App\Services\CacheService::bump("perm:{$propertyid}:{$username}");
+        }
     }
 }
 
@@ -173,20 +213,32 @@ if (!function_exists('maxvno')) {
 if (!function_exists('allcities')) {
     function allcities()
     {
-        $citydata = Cities::where('propertyid', Auth::user()->propertyid)->where('activeyn', '1')
-            ->orderBy('cityname', 'ASC')->get();
+        $propertyid = Auth::user()->propertyid;
 
-        return $citydata;
+        return \App\Services\CacheService::remember(
+            "mast:cities:{$propertyid}:v" . \App\Services\CacheService::version("mast:cities:{$propertyid}"),
+            900,
+            function () use ($propertyid) {
+                return Cities::where('propertyid', $propertyid)->where('activeyn', '1')
+                    ->orderBy('cityname', 'ASC')->get();
+            }
+        );
     }
 }
 
 if (!function_exists('allstates')) {
     function allstates()
     {
-        $citydata = States::where('propertyid', Auth::user()->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $propertyid = Auth::user()->propertyid;
 
-        return $citydata;
+        return \App\Services\CacheService::remember(
+            "mast:states:{$propertyid}:v" . \App\Services\CacheService::version("mast:states:{$propertyid}"),
+            900,
+            function () use ($propertyid) {
+                return States::where('propertyid', $propertyid)
+                    ->orderBy('name', 'ASC')->get();
+            }
+        );
     }
 }
 
@@ -204,10 +256,16 @@ if (!function_exists('travelagents')) {
 if (!function_exists('functiontypes')) {
     function functiontypes()
     {
-        $data = FunctionType::where('propertyid', Auth::user()->propertyid)
-            ->orderBy('name', 'ASC')->get();
+        $propertyid = Auth::user()->propertyid;
 
-        return $data;
+        return \App\Services\CacheService::remember(
+            "mast:functiontype:{$propertyid}:v" . \App\Services\CacheService::version("mast:functiontype:{$propertyid}"),
+            900,
+            function () use ($propertyid) {
+                return FunctionType::where('propertyid', $propertyid)
+                    ->orderBy('name', 'ASC')->get();
+            }
+        );
     }
 }
 

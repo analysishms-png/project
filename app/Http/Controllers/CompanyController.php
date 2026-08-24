@@ -3303,6 +3303,7 @@ class CompanyController extends Controller
         ];
 
         CompanyLog::InsertState($data);
+        \App\Services\CacheService::bump("mast:states:{$this->propertyid}");
         return back()->with('success', 'State Inserted successfully!');
     }
 
@@ -3319,6 +3320,7 @@ class CompanyController extends Controller
                 return back()->with('error', "This Entity Has Been Used for Some Items, So It Cannot Be Deleted. Please Delete Its Usages First.");
             }
             $jaldiwahasehato = DB::table('states')->where('state_code', $state_code)->delete();
+            \App\Services\CacheService::bump("mast:states:{$this->propertyid}");
             if ($jaldiwahasehato) {
                 return back()->with('success', 'State Deleted Successfully');
             } else {
@@ -3371,6 +3373,7 @@ class CompanyController extends Controller
         ];
 
         CompanyLog::InsertCity($data);
+        \App\Services\CacheService::bump("mast:cities:{$this->propertyid}");
         return back()->with('success', 'City Inserted successfully!');
     }
 
@@ -3387,6 +3390,7 @@ class CompanyController extends Controller
                 return back()->with('error', "This Entity Has Been Used for Some Items, So It Cannot Be Deleted. Please Delete Its Usages First.");
             }
             $jaldiwahasehato📢 = DB::table('cities')->where('city_code', $city_code)->delete();
+            \App\Services\CacheService::bump("mast:cities:{$this->propertyid}");
             if ($jaldiwahasehato📢) {
                 return back()->with('success', 'City Deleted Successfully');
             } else {
@@ -3479,6 +3483,7 @@ class CompanyController extends Controller
         ];
 
         $update = CompanyLog::update_state($state_code, $data);
+        \App\Services\CacheService::bump("mast:states:{$this->propertyid}");
         if ($update == true) {
             return back()->with('success', 'State Updated Successfully');
         } else {
@@ -3536,6 +3541,7 @@ class CompanyController extends Controller
         $update = Cities::where('propertyid', $this->propertyid)->where('city_code', $city_code)->update($data);
 
         // $update = CompanyLog::update_city($city_code, $data);
+        \App\Services\CacheService::bump("mast:cities:{$this->propertyid}");
         if ($update == true) {
             return back()->with('success', 'City Updated Successfully');
         } else {
@@ -9842,6 +9848,7 @@ class CompanyController extends Controller
                 ->where('outletcode', $dcode)
                 ->delete();
 
+            permCacheBump($this->propertyid, '*');
             # This code is so beautiful, it brings a tear to my eye. 💻
 
             if ($jaldiwahasehato📢) {
@@ -15436,6 +15443,7 @@ class CompanyController extends Controller
                 // Night audit moved depdates / cancelled no-shows — availability changed.
                 \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
                 DB::commit();
+                \App\Services\CacheService::purgeReports($this->propertyid);
                 return back()->with('success', 'Night Audit Completed');
             }
 
@@ -18137,6 +18145,7 @@ class CompanyController extends Controller
             // Room move / settle updated roomocc + grpbookingdetails — availability changed.
             \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
             DB::commit();
+            \App\Services\CacheService::purgeReports($this->propertyid);
             $wpenv = EnviroWhatsapp::where('propertyid', $this->propertyid)->first();
 
             if ($wpenv != null) {

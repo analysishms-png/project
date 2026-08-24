@@ -37,9 +37,6 @@
 </div>
 <script>
 $(document).ready(function() {
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function fmtDate(d){if(!d)return '';var x=new Date(d);return isNaN(x)?d:x.toLocaleDateString('en-GB');}
-   function radioVal(name){return $("input[name='"+name+"']:checked").val()||'';}
    function fetch() {
       $.post('{{ route("ledgercredfetch") }}', {fromdate:$('#fromdate').val(),todate:$('#todate').val()
          ,partytype:radioVal('partytype'),partycode:$('#partycode').val()}

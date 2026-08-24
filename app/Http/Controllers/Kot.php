@@ -883,6 +883,8 @@ class Kot extends Controller
 
                     DB::commit();
 
+                    \App\Services\CacheService::purgeReports($this->propertyid);
+
                     return response()->json([
                         'status' => 'success',
                         'docid' => $uniqueDocIDs,
@@ -1075,6 +1077,8 @@ class Kot extends Controller
             }
 
             DB::commit();
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
 
             // Broadcast real-time POS activity
             \App\Http\Controllers\RealtimeController::broadcastPosActivity(

@@ -12172,4 +12172,278 @@ class Reporting extends Controller
          ->orderBy('r.roomno')->get();
       return response()->json(['data'=>$rows,'totCharges'=>$rows->sum('totaldr'),'totPayments'=>$rows->sum('totalcr')]);
    }
+   // ═══════════════════════════════════════════════════════════════════════════
+   // P2 HIGH REPORTS — Core Operations Reports
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   // ── Arrival Departure List ──────────────────────────────────────────────
+   public function arrivaldeplist(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Arrival Departure List'; return view('property.arrivaldeplist', compact('fd','td','view')); }
+   public function arrivaldeplistfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $arrivals=DB::table('booking AS b')
+         ->leftJoin('guestprof AS gp','gp.code','=','b.guestprof')
+         ->leftJoin('roomcat AS rc','rc.code','=','b.roomcat')
+         ->where('b.propertyid',$pid)->whereBetween('b.arrdate',[$fd,$td])
+         ->where(function($q){$q->whereNull('b.cancel')->orWhere('b.cancel','<>','Y');})
+         ->select(DB::raw("'Arrival' AS type"),'b.docid AS searchcode','b.bookno',DB::raw('MAX(b.vdate) AS vdate'),
+            DB::raw('MAX(b.arrdate) AS arrdate'),DB::raw('MAX(b.depdate) AS depdate'),
+            DB::raw('MAX(b.roomno) AS roomno'),DB::raw('MAX(rc.name) AS roomcategory'),
+            DB::raw('MAX(b.roomrate) AS roomrate'),DB::raw('MAX(gp.name) AS guestname'),
+            DB::raw('MAX(gp.mobile) AS mobile'),DB::raw('MAX(b.nodays) AS nodays'))
+         ->groupBy('b.docid','b.bookno')->orderBy('b.arrdate');
+      $departures=DB::table('roomocc AS r')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','r.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','r.roomcat')
+         ->where('r.propertyid',$pid)->whereBetween('r.depdate',[$fd,$td])
+         ->where('r.type','NOT IN',['C','O'])
+         ->select(DB::raw("'Departure' AS type"),'r.docid AS searchcode',DB::raw("'' AS bookno"),
+            DB::raw('MAX(r.chkindate) AS vdate'),DB::raw('MAX(r.chkindate) AS arrdate'),
+            DB::raw('MAX(r.depdate) AS depdate'),DB::raw('MAX(r.roomno) AS roomno'),
+            DB::raw('MAX(rc.name) AS roomcategory'),DB::raw('MAX(r.roomrate) AS roomrate'),
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(gf.mobile) AS mobile'),
+            DB::raw('MAX(r.nodays) AS nodays'))
+         ->groupBy('r.docid');
+      $rows=$arrivals->union($departures)->orderBy('vdate')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   // ── Expected Departure ──────────────────────────────────────────────────
+   public function expecteddeparture(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Expected Departure'; return view('property.expecteddeparture', compact('fd','td','view')); }
+   public function expecteddeparturefetch(Request $r) {
+      $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('roomocc AS r')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','r.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','r.roomcat')
+         ->leftJoin('subgroup AS sg','sg.sub_code','=','gf.company')
+         ->where('r.propertyid',$pid)->where('r.depdate',$fd)
+         ->where('r.type','NOT IN',['C','O'])
+         ->select('r.roomno',DB::raw('MAX(rc.name) AS roomcategory'),DB::raw('MAX(r.roomrate) AS roomrate'),
+            DB::raw('MAX(r.chkindate) AS chkindate'),DB::raw('MAX(r.depdate) AS depdate'),
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(gf.mobile) AS mobile'),
+            DB::raw('MAX(sg.name) AS companyname'),DB::raw('MAX(r.roomtype) AS roomtype'),
+            DB::raw('(SELECT COALESCE(SUM(pc.amtdr),0)-COALESCE(SUM(pc.amtcr),0) FROM paycharge pc WHERE pc.folionodocid=gf.docid AND pc.propertyid='.$pid.') AS balance'))
+         ->groupBy('r.docid','r.roomno','gf.docid')->orderBy('r.roomno')->get();
+      return response()->json(['data'=>$rows,'totBalance'=>$rows->sum('balance')]);
+   }
+
+   // ── Room Occupancy Display ──────────────────────────────────────────────
+   public function roomoccdisp(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Room Occupancy Display'; return view('property.roomoccdisp', compact('fd','td','view')); }
+   public function roomoccdispfetch(Request $r) {
+      $pid=$this->propertyid;
+      $rows=DB::table('roommast AS rm')
+         ->leftJoin('roomocc AS ro',function($j) use($pid){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O']);})
+         ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','rm.roomcat')
+         ->where('rm.propertyid',$pid)->where('rm.type','RO')
+         ->select('rm.code AS roomno',DB::raw('MAX(rc.name) AS roomcategory'),
+            DB::raw("CASE WHEN ro.type='I' THEN 'Occupied' WHEN ro.type='V' THEN 'Vacant' WHEN ro.type='D' THEN 'Dirty' WHEN ro.type='B' THEN 'Blocked' WHEN ro.type='O' THEN 'Out of Order' ELSE 'Vacant' END AS status"),
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(ro.roomrate) AS roomrate'),
+            DB::raw('MAX(ro.chkindate) AS chkindate'),DB::raw('MAX(ro.depdate) AS depdate'))
+         ->groupBy('rm.code','rm.propertyid','ro.type','ro.docid')->orderBy('rc.name')->orderBy('rm.code')->get();
+      $summary=['occupied'=>$rows->where('status','Occupied')->count(),'vacant'=>$rows->where('status','Vacant')->count(),'dirty'=>$rows->where('status','Dirty')->count(),'blocked'=>$rows->where('status','Blocked')->count(),'ooo'=>$rows->where('status','Out of Order')->count(),'total'=>$rows->count()];
+      return response()->json(['data'=>$rows,'summary'=>$summary]);
+   }
+
+   // ── Company Analysis ────────────────────────────────────────────────────
+   public function companyanalysis(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Company Analysis'; return view('property.companyanalysis', compact('fd','td','view')); }
+   public function companyanalysisfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('subgroup AS sg')
+         ->leftJoin('guestfolio AS gf','gf.company','=','sg.sub_code')
+         ->leftJoin('roomocc AS r','r.docid','=','gf.docid')
+         ->leftJoin('paycharge AS pc','pc.folionodocid','=','gf.docid')
+         ->where('sg.ac_type','Sundry Debtors')->where('sg.propertyid',$pid)
+         ->whereBetween('r.chkindate',[$fd,$td])
+         ->select('sg.sub_code',DB::raw('MAX(sg.name) AS companyname'),
+            DB::raw('COUNT(DISTINCT r.docid) AS roomnights'),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END) AS totalcharges"),
+            DB::raw('SUM(pc.amtcr) AS totalpayments'),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END)-SUM(pc.amtcr) AS outstanding"))
+         ->groupBy('sg.sub_code')->orderBy(DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END)"),'desc')->get();
+      return response()->json(['data'=>$rows,'totCharges'=>$rows->sum('totalcharges'),'totPayments'=>$rows->sum('totalpayments'),'totOutstanding'=>$rows->sum('outstanding')]);
+   }
+
+   // ── Reservation Status Arrival ──────────────────────────────────────────
+   public function reservstatusarrival(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Reservation Status - Arrival'; return view('property.reservstatusarrival', compact('fd','td','view')); }
+   public function reservstatusarrivalfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('booking AS b')
+         ->leftJoin('guestprof AS gp','gp.code','=','b.guestprof')
+         ->leftJoin('roomcat AS rc','rc.code','=','b.roomcat')
+         ->where('b.propertyid',$pid)->whereBetween('b.arrdate',[$fd,$td])
+         ->where(function($q){$q->whereNull('b.cancel')->orWhere('b.cancel','<>','Y');})
+         ->select('b.docid AS searchcode','b.bookno',DB::raw('MAX(b.vdate) AS vdate'),
+            DB::raw('MAX(b.arrdate) AS arrdate'),DB::raw('MAX(b.depdate) AS depdate'),
+            DB::raw('MAX(b.roomno) AS roomno'),DB::raw('MAX(rc.name) AS roomcategory'),
+            DB::raw('MAX(b.roomrate) AS roomrate'),DB::raw('MAX(gp.name) AS guestname'),
+            DB::raw('MAX(gp.mobile) AS mobile'),DB::raw('MAX(b.nodays) AS nodays'),
+            DB::raw('MAX(b.roomdet) AS roomdet'),DB::raw('MAX(b.adults) AS adults'),
+            DB::raw('MAX(b.childs) AS childs'),DB::raw('MAX(b.remarks) AS remarks'),
+            DB::raw("MAX(CASE WHEN b.cancel='Y' THEN 'Cancelled' WHEN b.noshow='Y' THEN 'No Show' WHEN b.reststatus='Confirmed' THEN 'Confirmed' ELSE 'Tentative' END) AS status"))
+         ->groupBy('b.docid','b.bookno')->orderBy('b.arrdate')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   // ── Reservation Status In-House ─────────────────────────────────────────
+   public function reservstatusinhouse(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Reservation Status - In House'; return view('property.reservstatusinhouse', compact('fd','td','view')); }
+   public function reservstatusinhousefetch(Request $r) {
+      $pid=$this->propertyid;
+      $rows=DB::table('roomocc AS r')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','r.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','r.roomcat')
+         ->leftJoin('booking AS b','b.docid','=','r.refdocid')
+         ->where('r.propertyid',$pid)->where('r.type','NOT IN',['C','O'])
+         ->select('r.roomno',DB::raw('MAX(rc.name) AS roomcategory'),DB::raw('MAX(r.roomrate) AS roomrate'),
+            DB::raw('MAX(r.chkindate) AS chkindate'),DB::raw('MAX(r.depdate) AS depdate'),
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(gf.mobile) AS mobile'),
+            DB::raw('MAX(b.bookno) AS bookno'),DB::raw('MAX(r.roomtype) AS roomtype'),
+            DB::raw('MAX(r.adult) AS adult'),DB::raw('MAX(r.children) AS children'),
+            DB::raw('MAX(r.nodays) AS nodays'))
+         ->groupBy('r.docid','r.roomno')->orderBy('r.roomno')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   // ── Revenue Analysis ────────────────────────────────────────────────────
+   public function revanalysis(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Revenue Analysis'; return view('property.revanalysis', compact('fd','td','view')); }
+   public function revanalysisfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('paycharge AS pc')
+         ->leftJoin('revmast AS rm','rm.code','=','pc.paycode')
+         ->where('pc.propertyid',$pid)->whereBetween('pc.vdate',[$fd,$td])
+         ->where('pc.roomtype','<>','RO')
+         ->select('pc.paycode',DB::raw('MAX(rm.name) AS revenuename'),
+            DB::raw('SUM(pc.amtdr) AS totalcharges'),DB::raw('SUM(pc.amtcr) AS totalpayments'),
+            DB::raw('SUM(pc.taxamt1+pc.taxamt2+pc.taxamt3) AS totaltax'),
+            DB::raw('SUM(pc.discamt) AS totaldiscount'))
+         ->groupBy('pc.paycode')->orderBy(DB::raw('SUM(pc.amtdr)'),'desc')->get();
+      return response()->json(['data'=>$rows,'totCharges'=>$rows->sum('totalcharges'),'totPayments'=>$rows->sum('totalpayments'),'totTax'=>$rows->sum('totaltax'),'totDiscount'=>$rows->sum('totaldiscount')]);
+   }
+
+   // ── Room Type Occupancy Analysis ────────────────────────────────────────
+   public function roomtypeoccupancyanalysis(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Room Type Occupancy Analysis'; return view('property.roomtypeoccupancyanalysis', compact('fd','td','view')); }
+   public function roomtypeoccupancyanalysisfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('roommast AS rm')
+         ->leftJoin('roomcat AS rc','rc.code','=','rm.roomcat')
+         ->leftJoin('roomocc AS ro',function($j) use($pid,$fd,$td){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O'])->where('ro.chkindate','<=',$td)->where(function($q) use($td){$q->whereNull('ro.depdate')->orWhere('ro.depdate','>=',$fd);});})
+         ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
+         ->leftJoin('paycharge AS pc','pc.folionodocid','=','gf.docid')
+         ->where('rm.propertyid',$pid)->where('rm.type','RO')
+         ->select(DB::raw('MAX(rc.name) AS roomtype'),DB::raw('COUNT(DISTINCT rm.code) AS totalrooms'),
+            DB::raw("COUNT(DISTINCT CASE WHEN ro.type='I' THEN rm.code END) AS occupied"),
+            DB::raw("COUNT(DISTINCT CASE WHEN ro.type IS NULL OR ro.type IN ('V','D','B') THEN rm.code END) AS vacant"),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END) AS revenue"))
+         ->groupBy('rc.code','rc.name')->orderBy('rc.name')->get();
+      $rows=$rows->map(function($row){
+         $row->adr=$row->occupied>0?round($row->revenue/$row->occupied,2):0;
+         $row->revpar=$row->totalrooms>0?round($row->revenue/$row->totalrooms,2):0;
+         $row->occupancy=$row->totalrooms>0?round(($row->occupied/$row->totalrooms)*100,1):0;
+         return $row;
+      });
+      return response()->json(['data'=>$rows,'totRooms'=>$rows->sum('totalrooms'),'totOccupied'=>$rows->sum('occupied'),'totRevenue'=>$rows->sum('revenue')]);
+   }
+
+   // ── Room Type Occupancy Report ──────────────────────────────────────────
+   public function roomtypeoccupancyreport(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Room Type Occupancy Report'; return view('property.roomtypeoccupancyreport', compact('fd','td','view')); }
+   public function roomtypeoccupancyreportfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('roommast AS rm')
+         ->leftJoin('roomcat AS rc','rc.code','=','rm.roomcat')
+         ->leftJoin('roomocc AS ro',function($j) use($pid,$fd,$td){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O'])->where('ro.chkindate','<=',$td)->where(function($q) use($td){$q->whereNull('ro.depdate')->orWhere('ro.depdate','>=',$fd);});})
+         ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
+         ->leftJoin('paycharge AS pc','pc.folionodocid','=','gf.docid')
+         ->where('rm.propertyid',$pid)->where('rm.type','RO')
+         ->select(DB::raw('MAX(rc.name) AS roomtype'),DB::raw('COUNT(DISTINCT rm.code) AS totalrooms'),
+            DB::raw("COUNT(DISTINCT CASE WHEN ro.type='I' THEN rm.code END) AS occupied"),
+            DB::raw("COUNT(DISTINCT CASE WHEN ro.type IS NULL OR ro.type IN ('V','D','B') THEN rm.code END) AS vacant"),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END) AS revenue"),
+            DB::raw('SUM(pc.amtcr) AS payments'))
+         ->groupBy('rc.code','rc.name')->orderBy('rc.name')->get();
+      $totalRooms=$rows->sum('totalrooms'); $totalOcc=$rows->sum('occupied');
+      return response()->json(['data'=>$rows,'totalRooms'=>$totalRooms,'totalOccupied'=>$totalOcc,'occPercent'=>$totalRooms>0?round(($totalOcc/$totalRooms)*100,1):0,'totalRevenue'=>$rows->sum('revenue'),'totalPayments'=>$rows->sum('payments')]);
+   }
+
+   // ── Arrival Departure List ─────────────────────────────────────────────
+   public function arrivaldep(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Arrival Departure List'; return view('property.arrivaldep', compact('fd','td','view')); }
+   public function arrivaldepfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $pid=$this->propertyid;
+      $arrivals=DB::table('booking AS b')
+         ->leftJoin('guestprof AS gp','gp.code','=','b.guestprof')
+         ->leftJoin('roomcat AS rc','rc.code','=','b.roomcat')
+         ->where('b.propertyid',$pid)->whereBetween('b.arrdate',[$fd,$td])
+         ->where(function($q){$q->whereNull('b.cancel')->orWhere('b.cancel','<>','Y');})
+         ->select(DB::raw("'Arrival' AS type"),DB::raw('MAX(b.arrdate) AS vdate'),
+            DB::raw('MAX(b.roomno) AS roomno'),DB::raw('MAX(rc.name) AS roomcategory'),
+            DB::raw('MAX(b.roomrate) AS roomrate'),DB::raw('MAX(gp.name) AS guestname'),
+            DB::raw('MAX(b.bookno) AS refno'),DB::raw('MAX(b.nodays) AS nodays'),
+            DB::raw('MAX(b.adults) AS adults'),DB::raw('MAX(b.childs) AS childs'),
+            DB::raw('MAX(b.remarks) AS remarks'))
+         ->groupBy('b.docid','b.bookno');
+      $departures=DB::table('roomocc AS ro')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','ro.roomcat')
+         ->where('ro.propertyid',$pid)->where('ro.type','NOT IN',['C','O'])
+         ->whereBetween('ro.depdate',[$fd,$td])
+         ->select(DB::raw("'Departure' AS type"),DB::raw('MAX(ro.depdate) AS vdate'),
+            DB::raw('MAX(ro.roomno) AS roomno'),DB::raw('MAX(rc.name) AS roomcategory'),
+            DB::raw('MAX(ro.roomrate) AS roomrate'),DB::raw('MAX(gf.name) AS guestname'),
+            DB::raw('MAX(ro.docid) AS refno'),DB::raw('MAX(ro.nodays) AS nodays'),
+            DB::raw('MAX(ro.adult) AS adults'),DB::raw('MAX(ro.children) AS childs'),
+            DB::raw('MAX(gf.remarks) AS remarks'))
+         ->groupBy('ro.docid','ro.roomno');
+      $rows=$arrivals->union($departures)->orderBy('vdate')->get();
+      return response()->json(['data'=>$rows,'arrivals'=>$rows->where('type','Arrival')->count(),'departures'=>$rows->where('type','Departure')->count()]);
+   }
+
+   // ── Expected Departure ─────────────────────────────────────────────────
+   public function expecteddep(Request $r) { $td=$this->ncurdate; $view='Expected Departure'; return view('property.expecteddep', compact('td','view')); }
+   public function expecteddepfetch(Request $r) {
+      $td=$r->input('todate'); if(!$td) $td=$this->ncurdate;
+      $pid=$this->propertyid;
+      $rows=DB::table('roomocc AS ro')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','ro.roomcat')
+         ->leftJoin('paycharge AS pc','pc.folionodocid','=','gf.docid')
+         ->where('ro.propertyid',$pid)->where('ro.type','NOT IN',['C','O'])
+         ->where('ro.depdate','=',$td)
+         ->select('ro.roomno',DB::raw('MAX(rc.name) AS roomcategory'),
+            DB::raw('MAX(ro.roomrate) AS roomrate'),DB::raw('MAX(gf.name) AS guestname'),
+            DB::raw('MAX(gf.mobile) AS mobile'),DB::raw('MAX(ro.chkindate) AS chkindate'),
+            DB::raw('MAX(ro.depdate) AS depdate'),DB::raw('MAX(ro.nodays) AS nodays'),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END) AS totalcharges"),
+            DB::raw('SUM(pc.amtcr) AS totalpayments'),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END)-SUM(pc.amtcr) AS balance"))
+         ->groupBy('ro.docid','ro.roomno')->orderBy('ro.roomno')->get();
+      return response()->json(['data'=>$rows,'totalBalance'=>$rows->sum('balance')]);
+   }
+
+   // ── Room Type Occupancy (summary view) ─────────────────────────────────
+   public function roomtypeoccupancy(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Room Type Occupancy'; return view('property.roomtypeoccupancy', compact('fd','td','view')); }
+   public function roomtypeoccupancyfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) { $fd=$this->ncurdate; $td=$this->ncurdate; }
+      $pid=$this->propertyid;
+      $totalRooms=DB::table('roommast')->where('propertyid',$pid)->where('type','RO')->count();
+      $rows=DB::table('roomcat AS rc')
+         ->leftJoin('roommast AS rm','rm.roomcat','=','rc.code')
+         ->leftJoin('roomocc AS ro',function($j) use($pid){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O']);})
+         ->where('rm.propertyid',$pid)->where('rm.type','RO')
+         ->select(DB::raw('MAX(rc.name) AS roomtype'),
+            DB::raw('COUNT(DISTINCT rm.code) AS totalrooms'),
+            DB::raw("COUNT(DISTINCT CASE WHEN ro.type='I' THEN rm.code END) AS occupied"),
+            DB::raw("COUNT(DISTINCT CASE WHEN ro.type IS NULL OR ro.type IN ('V','D','B') THEN rm.code END) AS vacant"))
+         ->groupBy('rc.code','rc.name')->orderBy('rc.name')->get();
+      $rows=$rows->map(function($row) use($totalRooms){
+         $row->occupancy=$row->totalrooms>0?round(($row->occupied/$row->totalrooms)*100,1):0;
+         return $row;
+      });
+      return response()->json(['data'=>$rows,'grandTotalRooms'=>$rows->sum('totalrooms'),'grandOccupied'=>$rows->sum('occupied'),'grandVacant'=>$rows->sum('vacant'),'overallOccPercent'=>$totalRooms>0?round(($rows->sum('occupied')/$totalRooms)*100,1):0]);
+   }
 }

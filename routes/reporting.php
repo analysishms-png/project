@@ -752,3 +752,31 @@ Route::post('taxwisedetailreporthallfetch', [Reporting::class, 'taxwisedetailrep
    Route::post('chkinregisterfetch', [Reporting::class, 'chkinregisterfetch'])->name('chkinregisterfetch');
    Route::get('roomrentauditreport', [Reporting::class, 'roomrentauditreport'])->name('roomrentauditreport');
    Route::post('roomrentauditreportfetch', [Reporting::class, 'roomrentauditreportfetch'])->name('roomrentauditreportfetch');
+
+// ── P2 HIGH: Arrival Departure List ──────────────────────────────────────
+Route::get('/arrivaldep', [App\Http\Controllers\Reporting::class, 'arrivaldep'])->name('arrivaldep');
+Route::post('/arrivaldepfetch', [App\Http\Controllers\Reporting::class, 'arrivaldepfetch'])->name('arrivaldepfetch');
+
+// ── P2 HIGH: Expected Departure ──────────────────────────────────────────
+Route::get('/expecteddep', [App\Http\Controllers\Reporting::class, 'expecteddep'])->name('expecteddep');
+Route::post('/expecteddepfetch', [App\Http\Controllers\Reporting::class, 'expecteddepfetch'])->name('expecteddepfetch');
+
+// ── P2 HIGH: Room Occupancy Display ──────────────────────────────────────
+Route::get('/roomoccdisp', [App\Http\Controllers\Reporting::class, 'roomoccdisp'])->name('roomoccdisp');
+Route::post('/roomoccdispfetch', [App\Http\Controllers\Reporting::class, 'roomoccdispfetch'])->name('roomoccdispfetch');
+
+// ── P2 HIGH: Company Analysis ────────────────────────────────────────────
+Route::get('/companyanalysis', [App\Http\Controllers\Reporting::class, 'companyanalysis'])->name('companyanalysis');
+Route::post('/companyanalysisfetch', [App\Http\Controllers\Reporting::class, 'companyanalysisfetch'])->name('companyanalysisfetch');
+
+// ── P2 HIGH: Revenue Analysis ────────────────────────────────────────────
+Route::get('/revanalysis', [App\Http\Controllers\Reporting::class, 'revanalysis'])->name('revanalysis');
+Route::post('/revanalysisfetch', [App\Http\Controllers\Reporting::class, 'revanalysisfetch'])->name('revanalysisfetch');
+
+// ── P2 HIGH: Room Type Occupancy Analysis ────────────────────────────────
+Route::get('/roomtypeoccupancyanalysis', [App\Http\Controllers\Reporting::class, 'roomtypeoccupancyanalysis'])->name('roomtypeoccupancyanalysis');
+Route::post('/roomtypeoccupancyanalysisfetch', [App\Http\Controllers\Reporting::class, 'roomtypeoccupancyanalysisfetch'])->name('roomtypeoccupancyanalysisfetch');
+
+// ── P2 HIGH: Room Type Occupancy (summary) ───────────────────────────────
+Route::get('/roomtypeoccupancy', [App\Http\Controllers\Reporting::class, 'roomtypeoccupancy'])->name('roomtypeoccupancy');
+Route::post('/roomtypeoccupancyfetch', [App\Http\Controllers\Reporting::class, 'roomtypeoccupancyfetch'])->name('roomtypeoccupancyfetch');

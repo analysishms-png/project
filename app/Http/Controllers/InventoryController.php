@@ -640,6 +640,7 @@ class InventoryController extends Controller
             ->increment('start_srl_no');
 
             DB::commit();
+            \App\Services\CacheService::purgeReports($this->propertyid);
             return back()->with('success', 'Mr Entry Submitted. Total Amount: ' . number_format($totalAmount, 2));
         } catch (Exception $e) {
             DB::rollBack();
@@ -3187,6 +3188,7 @@ class InventoryController extends Controller
                 ->increment('start_srl_no');
 
             DB::commit();
+            \App\Services\CacheService::purgeReports($this->propertyid);
 
             return back()->with('success', 'Stock Transfer Submitted Successfully');
         } catch (Exception $e) {

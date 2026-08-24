@@ -35,8 +35,6 @@ $(document).ready(function() {
          if($.fn.DataTable.isDataTable('#ecTable'))$('#ecTable').DataTable().destroy();$('#ecTable').DataTable({pageLength:25,order:[]});
       });
    });
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function fmtDate(d){return d?new Date(d).toLocaleDateString('en-GB'):'';}
    $('#fetchBtn').click();
 });
 </script>

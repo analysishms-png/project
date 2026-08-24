@@ -99,7 +99,6 @@ $(function() {
       a.download = 'sales_day_book_' + $('#fromdate').val() + '_' + $('#todate').val() + '.csv'; a.click();
    });
 
-   function fmt(v) { return Number(v||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
    $('#fetchBtn').click();
 });
 </script>

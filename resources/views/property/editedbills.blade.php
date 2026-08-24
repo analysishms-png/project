@@ -36,8 +36,6 @@ $(document).ready(function() {
          if($.fn.DataTable.isDataTable('#ebTable'))$('#ebTable').DataTable().destroy();$('#ebTable').DataTable({pageLength:25,order:[]});
       });
    });
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function fmtDate(d){return d?new Date(d).toLocaleDateString('en-GB'):'';}
    function fmtDateTime(d){return d?new Date(d).toLocaleString('en-GB'):'';}
    $('#fetchBtn').click();
 });

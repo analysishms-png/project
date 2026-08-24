@@ -1182,6 +1182,7 @@ class Pointofsale extends Controller
                 ->increment('start_srl_no');
 
             DB::commit();
+            \App\Services\CacheService::purgeReports($this->propertyid);
 
             $wpenv = EnviroWhatsapp::where('propertyid', $this->propertyid)->first();
 
@@ -2472,6 +2473,7 @@ class Pointofsale extends Controller
         }
 
             DB::commit();
+            \App\Services\CacheService::purgeReports($this->propertyid);
             return back()->with('success', 'Sale Bill Updated Successfully!');
         } catch (Exception $e) {
             DB::rollBack();
@@ -2959,6 +2961,7 @@ class Pointofsale extends Controller
         \App\Helpers\MasterDataCache::flushAvailability($this->propertyid);
 
             DB::commit();
+            \App\Services\CacheService::purgeReports($this->propertyid);
             return response()->json([
                 'status' => true,
                 'message' => 'Settlement Updated'

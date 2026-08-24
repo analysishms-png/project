@@ -129,8 +129,6 @@
     <script>
     var dt, st;
 
-    function fmt(n) { return parseFloat(n || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-
     function fetchData() {
         $.ajax({
             url: '{{ route("gstconsolidatedregisterfetch") }}',

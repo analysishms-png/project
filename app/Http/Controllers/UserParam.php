@@ -249,6 +249,8 @@ class UserParam extends Controller
                 }
             }
 
+            permCacheBump($request->input('propertyid'), $compdata->u_name);
+
             return back()->with('success', 'User Module Permissions Submitted Successfully');
         } catch (Exception $e) {
             return response()->json(['message' => 'Error: ' . $e->getMessage()]);
@@ -466,6 +468,8 @@ class UserParam extends Controller
                 }
             });
 
+            permCacheBump($this->propertyid, $toUsername);
+
             return response()->json([
                 'message' => "Permissions copied from {$fromUsername} to {$toUsername} successfully."
             ]);
@@ -556,6 +560,9 @@ class UserParam extends Controller
                 }
             }
         }
+
+        permCacheBump($firmname, $request->input('username'));
+
         return back()->with('success', 'User Permission Updated Successfully');
     }
 }

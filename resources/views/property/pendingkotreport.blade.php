@@ -28,8 +28,6 @@ $(document).ready(function() {
          if($.fn.DataTable.isDataTable('#kotTable'))$('#kotTable').DataTable().destroy();$('#kotTable').DataTable({pageLength:25,order:[]});
       });
    });
-   function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-   function fmtDate(d){return d?new Date(d).toLocaleDateString('en-GB'):'';}
    $('#fetchBtn').click();
 });
 </script>

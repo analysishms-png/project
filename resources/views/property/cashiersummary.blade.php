@@ -16,7 +16,6 @@
 </div>
 <script>
 $(function(){$('#fetchBtn').click(function(){$.post('{{route("cashiersummaryfetch")}}',{fromdate:$('#fromdate').val(),todate:$('#todate').val(),_token:'{{csrf_token()}}'},function(res){var html='';$.each(res.data,function(i,r){html+='<tr><td>'+r.outlet+'</td><td>'+r.cashier+'</td><td>'+r.pMode+'</td><td class="text-right">'+r.bills+'</td><td class="text-right">₹'+fmt(r.netamt)+'</td></tr>';});$('#dataBody').html(html);$('#totalBills').text(res.data.reduce((s,r)=>s+Number(r.bills||0),0));$('#totalNet').text('₹'+fmt(res.data.reduce((s,r)=>s+Number(r.netamt||0),0)));});});
-function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 $('#fetchBtn').click();});
 </script>
 @endsection
