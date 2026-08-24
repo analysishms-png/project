@@ -14,6 +14,11 @@ use Carbon\Carbon;
 
 class ChainController extends Controller
 {
+    public function __construct()
+    {
+        $this->propertyid = propertyid();
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // CHAIN DASHBOARD — Centralized view of all properties
     // ═══════════════════════════════════════════════════════════════════════════

@@ -20,6 +20,11 @@ use Illuminate\Support\Facades\DB;
 
 class GeneralController extends Controller
 {
+    public function __construct()
+    {
+        $this->propertyid = propertyid();
+    }
+
     public function calculateroundoffpos(Request $request)
     {
         $envfom = EnviroPos::where('propertyid', Auth::user()->propertyid)->first();
