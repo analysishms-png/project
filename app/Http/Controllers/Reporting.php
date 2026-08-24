@@ -11876,4 +11876,300 @@ class Reporting extends Controller
          ->groupBy(DB::raw('DATE_FORMAT(sale1.saledate,\'%Y-%m\'), sale1.restcode'))->orderBy('month')->get();
       return response()->json(['data'=>$rows,'total'=>$rows->sum('total')]);
    }
+
+   // ═══════════════════════════════════════════════════════════════════════════
+   // P1 CRITICAL REPORTS — Financial Audit, GST, Night Audit
+   // Legacy refs: NightAuditReport, CancelBillDetails, SalesRegister,
+   // SalesSummary, BillWiseAdjustment, NCKOTSummary, GSTR2,
+   // LuxuryTaxRegister, TaxInvoiceDetail, DailySumm, BankBook, CashBook,
+   // ChkInRegister
+   // ═══════════════════════════════════════════════════════════════════════════
+
+   // ── Night Audit Report ──────────────────────────────────────────────────
+   public function nightauditreport(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Night Audit Report'; return view('property.nightauditreport', compact('fd','td','view')); }
+   public function nightauditreportfetch(Request $r) {
+      $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
+      $pid=$this->propertyid;
+      $occ=DB::table('roomocc')->where('propertyid',$pid)->where('type','NOT IN',['C','O'])->count();
+      $total=DB::table('roommast')->where('type','RO')->where('propertyid',$pid)->count();
+      $foRev=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum('amtdr');
+      $posRev=DB::table('sale1')->where('propertyid',$pid)->where('saledate',$fd)->sum('billamount');
+      $payments=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->sum('amtcr');
+      $advance=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->whereIn('vtype',['ARRES','ADRES'])->sum('amtdr');
+      $roomRev=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->where('vtype','CHG')->sum('amtdr');
+      $taxAmt=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum(DB::raw('taxamt1+taxamt2+taxamt3'));
+      $discAmt=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum('discamt');
+      $nlog=DB::table('nightauditlog')->where('propertyid',$pid)->whereDate('u_entdt','=',$fd)->orderBy('u_entdt','desc')->get();
+      return response()->json(['data'=>$nlog,'occupied'=>$occ,'total'=>$total,'foRevenue'=>$foRev,'posRevenue'=>$posRev,'payments'=>$payments,'advance'=>$advance,'roomRevenue'=>$roomRev,'taxAmt'=>$taxAmt,'discAmt'=>$discAmt]);
+   }
+
+   // ── Night Audit Report I (Room-wise) ────────────────────────────────────
+   public function nightauditreporti(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Night Audit Report I'; return view('property.nightauditreporti', compact('fd','td','view')); }
+   public function nightauditreportifetch(Request $r) {
+      $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
+      $pid=$this->propertyid;
+      $rows=DB::table('roomocc AS r')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','r.docid')
+         ->leftJoin('paycharge AS pc','pc.folionodocid','=','gf.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','r.roomcat')
+         ->where('r.propertyid',$pid)->where('r.type','NOT IN',['C','O'])
+         ->select('r.roomno',DB::raw('MAX(rc.name) AS roomcategory'),DB::raw('MAX(r.roomrate) AS roomrate'),
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(r.chkindate) AS chkindate'),
+            DB::raw('MAX(r.depdate) AS depdate'),
+            DB::raw('SUM(pc.amtdr) AS charges'),DB::raw('SUM(pc.amtcr) AS payments'),
+            DB::raw('SUM(pc.amtdr)-SUM(pc.amtcr) AS balance'))
+         ->groupBy('r.roomno')->orderBy('r.roomno')->get();
+      $totCharges=$rows->sum('charges'); $totPay=$rows->sum('payments');
+      return response()->json(['data'=>$rows,'totCharges'=>$totCharges,'totPayments'=>$totPay,'totBalance'=>$totCharges-$totPay]);
+   }
+
+   // ── Cancel Bill Details ─────────────────────────────────────────────────
+   public function cancelbilldetails(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Cancel Bill Details'; return view('property.cancelbilldetails', compact('fd','td','view')); }
+   public function cancelbilldetailsfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('sale1')
+         ->leftJoin('depart AS d','d.dcode','=','sale1.restcode')
+         ->where('sale1.propertyid',$this->propertyid)
+         ->whereBetween('sale1.saledate',[$fd,$td])
+         ->where('sale1.status','C')
+         ->select('sale1.saledate','sale1.billno','sale1.restcode',DB::raw('MAX(d.name) AS outlet'),
+            DB::raw('MAX(sale1.billamount) AS billamount'),DB::raw('MAX(sale1.canceluser) AS canceluser'),
+            DB::raw('MAX(sale1.cancelreason) AS cancelreason'),DB::raw('MAX(sale1.canceltime) AS canceltime'))
+         ->groupBy('sale1.docid','sale1.saledate','sale1.billno','sale1.restcode')
+         ->orderBy('sale1.saledate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('billamount')]);
+   }
+
+   // ── Sales Register ──────────────────────────────────────────────────────
+   public function salesregister(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Sales Register'; return view('property.salesregister', compact('fd','td','view')); }
+   public function salesregisterfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('sale1')
+         ->leftJoin('depart AS d','d.dcode','=','sale1.restcode')
+         ->where('sale1.propertyid',$this->propertyid)
+         ->whereBetween('sale1.saledate',[$fd,$td])
+         ->where('sale1.status','<>','C')
+         ->select('sale1.saledate','sale1.billno','sale1.restcode',DB::raw('MAX(d.name) AS outlet'),
+            DB::raw('MAX(sale1.roomno) AS roomno'),DB::raw('MAX(sale1.billamount) AS billamount'),
+            DB::raw('MAX(sale1.discount) AS discount'),DB::raw('MAX(sale1.taxamount) AS taxamount'),
+            DB::raw('MAX(sale1.netamount) AS netamount'),DB::raw('MAX(sale1.payamount) AS payamount'))
+         ->groupBy('sale1.docid','sale1.saledate','sale1.billno','sale1.restcode')
+         ->orderBy('sale1.saledate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('netamount')]);
+   }
+
+   // ── Sales Summary ───────────────────────────────────────────────────────
+   public function salessummary(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Sales Summary'; return view('property.salessummary', compact('fd','td','view')); }
+   public function salessummaryfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('sale1')
+         ->leftJoin('depart AS d','d.dcode','=','sale1.restcode')
+         ->where('sale1.propertyid',$this->propertyid)
+         ->whereBetween('sale1.saledate',[$fd,$td])
+         ->where('sale1.status','<>','C')
+         ->select(DB::raw('MAX(d.name) AS outlet'),DB::raw('COUNT(DISTINCT sale1.docid) AS billcount'),
+            DB::raw('SUM(sale1.billamount) AS totalbilling'),DB::raw('SUM(sale1.discount) AS totaldiscount'),
+            DB::raw('SUM(sale1.taxamount) AS totaltax'),DB::raw('SUM(sale1.netamount) AS totalnet'),
+            DB::raw('SUM(sale1.payamount) AS totalcollected'),
+            DB::raw('SUM(sale1.billamount)-SUM(sale1.payamount) AS outstanding'))
+         ->groupBy('sale1.restcode')->orderBy(DB::raw('SUM(sale1.netamount)'),'desc')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('totalnet')]);
+   }
+
+   // ── NC KOT Summary ──────────────────────────────────────────────────────
+   public function nckotsummary(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='NC KOT Summary'; return view('property.nckotsummary', compact('fd','td','view')); }
+   public function nckotsummaryfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('kot')
+         ->leftJoin('depart AS d','d.dcode','=','kot.restcode')
+         ->leftJoin('nctype AS nc','nc.code','=','kot.nccode')
+         ->where('kot.propertyid',$this->propertyid)
+         ->whereBetween('kot.vdate',[$fd,$td])
+         ->where('kot.nckot','Y')->where('kot.voidyn','N')->where('kot.delflag','<>','Y')
+         ->select(DB::raw('MAX(d.name) AS outlet'),DB::raw('MAX(nc.name) AS ncreason'),
+            DB::raw('MAX(kot.u_name) AS createdby'),
+            DB::raw('COUNT(DISTINCT kot.docid) AS kotcount'),DB::raw('SUM(kot.amount) AS totalamount'))
+         ->groupBy('kot.restcode','kot.nccode','kot.u_name')
+         ->orderBy(DB::raw('SUM(kot.amount)'),'desc')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('totalamount')]);
+   }
+
+   // ── GSTR2 Section 3 (Interstate B2B Purchases) ─────────────────────────
+   public function gstr2_3(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='GSTR2 Section 3'; return view('property.gstr2_3', compact('fd','td','view')); }
+   public function gstr2_3fetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('purchbill')
+         ->where('purchbill.propertyid',$this->propertyid)
+         ->whereBetween('purchbill.vdate',[$fd,$td])
+         ->where('purchbill.gstapplicable','Y')
+         ->whereRaw('purchbill.statecode <> ?',[enviro_general()->homestate ?? ''])
+         ->select('purchbill.vdate','purchbill.partyname','purchbill.gstin','purchbill.invoiceno',
+            'purchbill.invoicedate','purchbill.invoicevalue','purchbill.taxablevalue',
+            'purchbill.interstatetax','purchbill.intrastatetax','purchbill.cessamount')
+         ->orderBy('purchbill.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('invoicevalue')]);
+   }
+
+   // ── GSTR2 Section 4A (Composition Taxpayers) ───────────────────────────
+   public function gstr2_4a(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='GSTR2 Section 4A'; return view('property.gstr2_4a', compact('fd','td','view')); }
+   public function gstr2_4afetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('purchbill')
+         ->where('purchbill.propertyid',$this->propertyid)
+         ->whereBetween('purchbill.vdate',[$fd,$td])
+         ->where('purchbill.compositiontaxpayer','Y')
+         ->select('purchbill.vdate','purchbill.partyname','purchbill.gstin','purchbill.invoiceno',
+            'purchbill.invoicedate','purchbill.invoicevalue')
+         ->orderBy('purchbill.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('invoicevalue')]);
+   }
+
+   // ── GSTR2 Section 4B (Unregistered Persons) ────────────────────────────
+   public function gstr2_4b(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='GSTR2 Section 4B'; return view('property.gstr2_4b', compact('fd','td','view')); }
+   public function gstr2_4bfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('purchbill')
+         ->where('purchbill.propertyid',$this->propertyid)
+         ->whereBetween('purchbill.vdate',[$fd,$td])
+         ->where(function($q){ $q->whereNull('purchbill.gstin')->orWhere('purchbill.gstin',''); })
+         ->select('purchbill.vdate','purchbill.partyname','purchbill.invoiceno',
+            'purchbill.invoicedate','purchbill.invoicevalue','purchbill.taxablevalue')
+         ->orderBy('purchbill.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('invoicevalue')]);
+   }
+
+   // ── Luxury Tax Register ─────────────────────────────────────────────────
+   public function luxurytaxregister(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Luxury Tax Register'; return view('property.luxurytaxregister', compact('fd','td','view')); }
+   public function luxurytaxregisterfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('paycharge')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','paycharge.folionodocid')
+         ->where('paycharge.propertyid',$this->propertyid)
+         ->whereBetween('paycharge.vdate',[$fd,$td])
+         ->where('paycharge.roomtype','<>','RO')
+         ->whereRaw('(paycharge.taxamt1>0 OR paycharge.taxamt2>0 OR paycharge.taxamt3>0)')
+         ->select('paycharge.vdate','paycharge.roomno','paycharge.vno',
+            DB::raw('MAX(gf.name) AS guestname'),
+            DB::raw('SUM(paycharge.amtdr) AS roomcharge'),
+            DB::raw('SUM(paycharge.taxamt1) AS tax1'),DB::raw('SUM(paycharge.taxamt2) AS tax2'),
+            DB::raw('SUM(paycharge.taxamt3) AS tax3'))
+         ->groupBy('paycharge.vdate','paycharge.roomno','paycharge.vno')
+         ->orderBy('paycharge.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('roomcharge')]);
+   }
+
+   // ── Tax Invoice Detail ──────────────────────────────────────────────────
+   public function taxinvoicedetail(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Tax Invoice Detail'; return view('property.taxinvoicedetail', compact('fd','td','view')); }
+   public function taxinvoicedetailfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('paycharge')
+         ->leftJoin('revmast AS rm','rm.code','=','paycharge.paycode')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','paycharge.folionodocid')
+         ->where('paycharge.propertyid',$this->propertyid)
+         ->whereBetween('paycharge.vdate',[$fd,$td])
+         ->where('paycharge.roomtype','<>','RO')
+         ->whereRaw('(paycharge.taxamt1>0 OR paycharge.taxamt2>0 OR paycharge.taxamt3>0)')
+         ->select('paycharge.vdate','paycharge.vno','paycharge.roomno',
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(rm.name) AS revenuename'),
+            DB::raw('SUM(paycharge.amtdr) AS taxableamount'),
+            DB::raw('SUM(paycharge.taxamt1) AS tax1'),DB::raw('SUM(paycharge.taxamt2) AS tax2'),
+            DB::raw('SUM(paycharge.taxamt3) AS tax3'),
+            DB::raw('SUM(paycharge.amtdr+paycharge.taxamt1+paycharge.taxamt2+paycharge.taxamt3) AS totalwithtax'))
+         ->groupBy('paycharge.vdate','paycharge.vno','paycharge.roomno','paycharge.paycode')
+         ->orderBy('paycharge.vdate')->get();
+      return response()->json(['data'=>$rows,'total'=>$rows->sum('totalwithtax')]);
+   }
+
+   // ── Daily Summary ───────────────────────────────────────────────────────
+   public function dailysumm(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Daily Summary'; return view('property.dailysumm', compact('fd','td','view')); }
+   public function dailysummfetch(Request $r) {
+      $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
+      $pid=$this->propertyid;
+      $occ=DB::table('roomocc')->where('propertyid',$pid)->where('type','NOT IN',['C','O'])->count();
+      $total=DB::table('roommast')->where('type','RO')->where('propertyid',$pid)->count();
+      $foRev=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum('amtdr');
+      $posRev=DB::table('sale1')->where('propertyid',$pid)->where('saledate',$fd)->where('status','<>','C')->sum('billamount');
+      $payments=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->sum('amtcr');
+      $advance=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->whereIn('vtype',['ARRES','ADRES'])->sum('amtdr');
+      $taxAmt=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum(DB::raw('taxamt1+taxamt2+taxamt3'));
+      $discAmt=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum('discamt');
+      return response()->json(['occupied'=>$occ,'total'=>$total,'foRevenue'=>$foRev,'posRevenue'=>$posRev,'payments'=>$payments,'advance'=>$advance,'taxAmt'=>$taxAmt,'discAmt'=>$discAmt,'totalRevenue'=>$foRev+$posRev]);
+   }
+
+   // ── Bank Book ───────────────────────────────────────────────────────────
+   public function bankbook(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Bank Book'; return view('property.bankbook', compact('fd','td','view')); }
+   public function bankbookfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('acgroup')
+         ->leftJoin('acctrn AS t',function($j){$j->on('t.accode','=','acgroup.code')->on('t.propertyid','=','acgroup.propertyid');})
+         ->where('acgroup.propertyid',$this->propertyid)
+         ->where('acgroup.bankyn','Y')
+         ->where(function($q) use($fd,$td){ $q->whereNull('t.vdate')->whereBetween('t.vdate',[$fd,$td]); })
+         ->select('acgroup.code','acgroup.name','acgroup.opbal',
+            DB::raw("COALESCE(SUM(CASE WHEN t.drcr='D' THEN t.amount END),0) AS totaldr"),
+            DB::raw("COALESCE(SUM(CASE WHEN t.drcr='C' THEN t.amount END),0) AS totalcr"),
+            DB::raw("acgroup.opbal+COALESCE(SUM(CASE WHEN t.drcr='D' THEN t.amount END),0)-COALESCE(SUM(CASE WHEN t.drcr='C' THEN t.amount END),0) AS clbal"))
+         ->groupBy('acgroup.code','acgroup.name','acgroup.opbal','acgroup.propertyid')
+         ->orderBy('acgroup.name')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   // ── Cash Book ───────────────────────────────────────────────────────────
+   public function cashbook(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Cash Book'; return view('property.cashbook', compact('fd','td','view')); }
+   public function cashbookfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('acgroup')
+         ->leftJoin('acctrn AS t',function($j){$j->on('t.accode','=','acgroup.code')->on('t.propertyid','=','acgroup.propertyid');})
+         ->where('acgroup.propertyid',$this->propertyid)
+         ->where('acgroup.cashyn','Y')
+         ->where(function($q) use($fd,$td){ $q->whereNull('t.vdate')->whereBetween('t.vdate',[$fd,$td]); })
+         ->select('acgroup.code','acgroup.name','acgroup.opbal',
+            DB::raw("COALESCE(SUM(CASE WHEN t.drcr='D' THEN t.amount END),0) AS totaldr"),
+            DB::raw("COALESCE(SUM(CASE WHEN t.drcr='C' THEN t.amount END),0) AS totalcr"),
+            DB::raw("acgroup.opbal+COALESCE(SUM(CASE WHEN t.drcr='D' THEN t.amount END),0)-COALESCE(SUM(CASE WHEN t.drcr='C' THEN t.amount END),0) AS clbal"))
+         ->groupBy('acgroup.code','acgroup.name','acgroup.opbal','acgroup.propertyid')
+         ->orderBy('acgroup.name')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   // ── Check-In Register ───────────────────────────────────────────────────
+   public function chkinregister(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Check-In Register'; return view('property.chkinregister', compact('fd','td','view')); }
+   public function chkinregisterfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('roomocc AS r')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','r.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','r.roomcat')
+         ->leftJoin('paycharge AS pc',function($j){$j->on('pc.refdocid','=','r.refdocid')->whereIn('pc.vtype',['ARRES','ADRES']);})
+         ->where('r.propertyid',$this->propertyid)
+         ->whereBetween('r.chkindate',[$fd,$td])
+         ->select('r.roomno',DB::raw('MAX(rc.name) AS roomcategory'),DB::raw('MAX(r.roomrate) AS roomrate'),
+            DB::raw('MAX(r.chkindate) AS chkindate'),DB::raw('MAX(r.chkintime) AS chkintime'),
+            DB::raw('MAX(r.adult) AS adult'),DB::raw('MAX(r.children) AS children'),
+            DB::raw('MAX(gf.name) AS guestname'),DB::raw('MAX(gf.mobile) AS mobile'),
+            DB::raw('MAX(r.roomtype) AS roomtype'),DB::raw('MAX(r.refdocid) AS refdocid'),
+            DB::raw('SUM(pc.amtdr) AS advance'))
+         ->groupBy('r.docid','r.roomno','r.roomtype')->orderBy('r.chkindate')->orderBy('r.roomno')->get();
+      return response()->json(['data'=>$rows]);
+   }
+
+   // ── Room Rent Audit Report ──────────────────────────────────────────────
+   public function roomrentauditreport(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Room Rent Audit'; return view('property.roomrentauditreport', compact('fd','td','view')); }
+   public function roomrentauditreportfetch(Request $r) {
+      $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
+      $rows=DB::table('roomocc AS r')
+         ->leftJoin('guestfolio AS gf','gf.docid','=','r.docid')
+         ->leftJoin('roomcat AS rc','rc.code','=','r.roomcat')
+         ->leftJoin('paycharge AS pc','pc.folionodocid','=','gf.docid')
+         ->where('r.propertyid',$this->propertyid)
+         ->where('r.chkindate','<=',$td)
+         ->where(function($q) use($td){ $q->whereNull('r.depdate')->where('r.depdate','>=',$td); })
+         ->select('r.roomno',DB::raw('MAX(rc.name) AS roomcategory'),DB::raw('MAX(r.roomrate) AS contractrate'),
+            DB::raw('MAX(gf.name) AS guestname'),
+            DB::raw("SUM(CASE WHEN pc.vtype='CHG' THEN pc.amtdr ELSE 0 END) AS actualcharges"),
+            DB::raw('SUM(pc.amtdr) AS totaldr'),DB::raw('SUM(pc.amtcr) AS totalcr'),
+            DB::raw('SUM(pc.amtdr)-SUM(pc.amtcr) AS balance'))
+         ->groupBy('r.docid','r.roomno')
+         ->orderBy('r.roomno')->get();
+      return response()->json(['data'=>$rows,'totCharges'=>$rows->sum('totaldr'),'totPayments'=>$rows->sum('totalcr')]);
+   }
 }

@@ -718,3 +718,37 @@ Route::post('taxwisedetailreporthallfetch', [Reporting::class, 'taxwisedetailrep
    Route::post('itemwisegroupwisesalefetch', [Reporting::class, 'itemwisegroupwisesalefetch'])->name('itemwisegroupwisesalefetch');
    Route::get('monthoutletwisesale', [Reporting::class, 'monthoutletwisesale'])->name('monthoutletwisesale');
    Route::post('monthoutletwisesalefetch', [Reporting::class, 'monthoutletwisesalefetch'])->name('monthoutletwisesalefetch');
+
+   // ===== P1 CRITICAL: Financial Audit / GST / Night Audit =====
+   Route::get('nightauditreport', [Reporting::class, 'nightauditreport'])->name('nightauditreport');
+   Route::post('nightauditreportfetch', [Reporting::class, 'nightauditreportfetch'])->name('nightauditreportfetch');
+   Route::get('nightauditreporti', [Reporting::class, 'nightauditreporti'])->name('nightauditreporti');
+   Route::post('nightauditreportifetch', [Reporting::class, 'nightauditreportifetch'])->name('nightauditreportifetch');
+   Route::get('cancelbilldetails', [Reporting::class, 'cancelbilldetails'])->name('cancelbilldetails');
+   Route::post('cancelbilldetailsfetch', [Reporting::class, 'cancelbilldetailsfetch'])->name('cancelbilldetailsfetch');
+   Route::get('salesregister', [Reporting::class, 'salesregister'])->name('salesregister');
+   Route::post('salesregisterfetch', [Reporting::class, 'salesregisterfetch'])->name('salesregisterfetch');
+   Route::get('salessummary', [Reporting::class, 'salessummary'])->name('salessummary');
+   Route::post('salessummaryfetch', [Reporting::class, 'salessummaryfetch'])->name('salessummaryfetch');
+   Route::get('nckotsummary', [Reporting::class, 'nckotsummary'])->name('nckotsummary');
+   Route::post('nckotsummaryfetch', [Reporting::class, 'nckotsummaryfetch'])->name('nckotsummaryfetch');
+   Route::get('gstr2_3', [Reporting::class, 'gstr2_3'])->name('gstr2_3');
+   Route::post('gstr2_3fetch', [Reporting::class, 'gstr2_3fetch'])->name('gstr2_3fetch');
+   Route::get('gstr2_4a', [Reporting::class, 'gstr2_4a'])->name('gstr2_4a');
+   Route::post('gstr2_4afetch', [Reporting::class, 'gstr2_4afetch'])->name('gstr2_4afetch');
+   Route::get('gstr2_4b', [Reporting::class, 'gstr2_4b'])->name('gstr2_4b');
+   Route::post('gstr2_4bfetch', [Reporting::class, 'gstr2_4bfetch'])->name('gstr2_4bfetch');
+   Route::get('luxurytaxregister', [Reporting::class, 'luxurytaxregister'])->name('luxurytaxregister');
+   Route::post('luxurytaxregisterfetch', [Reporting::class, 'luxurytaxregisterfetch'])->name('luxurytaxregisterfetch');
+   Route::get('taxinvoicedetail', [Reporting::class, 'taxinvoicedetail'])->name('taxinvoicedetail');
+   Route::post('taxinvoicedetailfetch', [Reporting::class, 'taxinvoicedetailfetch'])->name('taxinvoicedetailfetch');
+   Route::get('dailysumm', [Reporting::class, 'dailysumm'])->name('dailysumm');
+   Route::post('dailysummfetch', [Reporting::class, 'dailysummfetch'])->name('dailysummfetch');
+   Route::get('bankbook', [Reporting::class, 'bankbook'])->name('bankbook');
+   Route::post('bankbookfetch', [Reporting::class, 'bankbookfetch'])->name('bankbookfetch');
+   Route::get('cashbook', [Reporting::class, 'cashbook'])->name('cashbook');
+   Route::post('cashbookfetch', [Reporting::class, 'cashbookfetch'])->name('cashbookfetch');
+   Route::get('chkinregister', [Reporting::class, 'chkinregister'])->name('chkinregister');
+   Route::post('chkinregisterfetch', [Reporting::class, 'chkinregisterfetch'])->name('chkinregisterfetch');
+   Route::get('roomrentauditreport', [Reporting::class, 'roomrentauditreport'])->name('roomrentauditreport');
+   Route::post('roomrentauditreportfetch', [Reporting::class, 'roomrentauditreportfetch'])->name('roomrentauditreportfetch');
