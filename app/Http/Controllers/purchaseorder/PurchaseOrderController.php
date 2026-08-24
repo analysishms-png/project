@@ -252,6 +252,7 @@ class PurchaseOrderController extends Controller
                 ->increment('start_srl_no');
 
             DB::commit();
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
             return back()->with('success', 'Purchase Order Entry Submitted');
         } catch (Exception $e) {
             DB::rollBack();
@@ -295,6 +296,8 @@ class PurchaseOrderController extends Controller
                 ->where('docid', $docid)
                 ->delete();
         });
+
+        \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
 
         return back()->with('success', 'Purchase Order Entry Deleted');
     }
@@ -424,6 +427,8 @@ class PurchaseOrderController extends Controller
             ];
             PurchaseOrderItem::insert($stock);
         }
+        \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
+
         return redirect()->route('purchaseorder')->with('success', 'Purchase Order Updated Successfully!');
     }
 }

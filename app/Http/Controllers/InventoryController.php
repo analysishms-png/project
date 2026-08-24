@@ -641,6 +641,7 @@ class InventoryController extends Controller
 
             DB::commit();
             \App\Services\CacheService::purgeReports($this->propertyid);
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
             return back()->with('success', 'Mr Entry Submitted. Total Amount: ' . number_format($totalAmount, 2));
         } catch (Exception $e) {
             DB::rollBack();
@@ -2105,6 +2106,7 @@ class InventoryController extends Controller
             }
 
             \App\Services\CacheService::purgeReports($this->propertyid);
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
 
             return response()->json([
                 'success' => true,
@@ -2866,6 +2868,7 @@ class InventoryController extends Controller
             DB::commit();
 
             \App\Services\CacheService::purgeReports($this->propertyid);
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
 
             return response()->json([
                 'success' => true,
@@ -3193,6 +3196,7 @@ class InventoryController extends Controller
 
             DB::commit();
             \App\Services\CacheService::purgeReports($this->propertyid);
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
 
             return back()->with('success', 'Stock Transfer Submitted Successfully');
         } catch (Exception $e) {
@@ -4866,6 +4870,8 @@ class InventoryController extends Controller
             ->where('prefix', $vprefix)
             ->increment('start_srl_no');
 
+        \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
+
         return back()->with('success', 'Indent Submitted Successfully');
     }
 
@@ -4968,6 +4974,7 @@ class InventoryController extends Controller
                 $item->save();
             }
             DB::commit();
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
             return redirect('indent')->with('success', 'Indent Updated Successfully');
         } catch (Exception $e) {
             DB::rollBack();
@@ -4993,6 +5000,7 @@ class InventoryController extends Controller
             Indent1::where('propertyid', $this->propertyid)->where('docid', $docid)->delete();
 
             DB::commit();
+            \App\Services\CacheService::forget("invinsights:{$this->propertyid}");
             return redirect('indent')->with('success', 'Indent Deleted Successfully');
         } catch (Exception $e) {
             DB::rollBack();
