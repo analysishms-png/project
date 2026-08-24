@@ -80,9 +80,9 @@ class Reporting extends Controller
 
          $this->username = Auth::user()->name;
          $this->email = Auth::user()->email;
-         $this->prpid = Auth::user()->propertyid;
+         $this->prpid = $this->propertyid;
          $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-         $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+         $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
          $this->propertyid = $propertydata->propertyid;
          $this->ptlngth = strlen($this->propertyid);
          date_default_timezone_set('Asia/Kolkata');
@@ -9341,13 +9341,13 @@ class Reporting extends Controller
    // Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
    public function kotratechange(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.kotratechange", compact("propertyid", "fromdate", "todate"));
    }
    public function kotratechangefetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("kot as k")->join("kotdetail as kd", "k.kotid", "=", "kd.kotid")
          ->leftJoin("itemmast as im", "kd.itemcode", "=", "im.itemcode")
@@ -9359,13 +9359,13 @@ class Reporting extends Controller
    }
 
    public function fombillchangereport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.fombillchangereport", compact("propertyid", "fromdate", "todate"));
    }
    public function fombillchangereportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("paycharge as pc")
          ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
@@ -9382,13 +9382,13 @@ class Reporting extends Controller
    }
 
    public function koteditdeletelog2(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.koteditdeletelog", compact("propertyid", "fromdate", "todate"));
    }
    public function koteditdeletelog2fetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("kotlog")->where("propertyid", $propertyid)
          ->whereBetween("kotdate", [$fromdate, $todate])
@@ -9398,13 +9398,13 @@ class Reporting extends Controller
    }
 
    public function liquorsalerep(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.liquorsalerep", compact("propertyid", "fromdate", "todate"));
    }
    public function liquorsalerepfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
          ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
@@ -9416,13 +9416,13 @@ class Reporting extends Controller
    }
 
    public function tablewisesale(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.tablewisesale", compact("propertyid", "fromdate", "todate"));
    }
    public function tablewisesalefetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->where("s.propertyid", $propertyid)
          ->whereBetween("s.billdate", [$fromdate, $todate])
@@ -9434,13 +9434,13 @@ class Reporting extends Controller
    }
 
    public function orderdetailreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.orderdetailreport", compact("propertyid", "fromdate", "todate"));
    }
    public function orderdetailreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("kot as k")->join("kotdetail as kd", "k.kotid", "=", "kd.kotid")
          ->leftJoin("itemmast as im", "kd.itemcode", "=", "im.itemcode")
@@ -9453,13 +9453,13 @@ class Reporting extends Controller
    }
 
    public function saleregpercover(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.saleregpercover", compact("propertyid", "fromdate", "todate"));
    }
    public function saleregpercoverfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->where("s.propertyid", $propertyid)
          ->whereBetween("s.billdate", [$fromdate, $todate])
@@ -9471,13 +9471,13 @@ class Reporting extends Controller
    }
 
    public function tallyposreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.tallyposreport", compact("propertyid", "fromdate", "todate"));
    }
    public function tallyposreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->where("s.propertyid", $propertyid)
          ->whereBetween("s.billdate", [$fromdate, $todate])
@@ -9489,13 +9489,13 @@ class Reporting extends Controller
    }
 
    public function companywisesalehall(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.companywisesalehall", compact("propertyid", "fromdate", "todate"));
    }
    public function companywisesalehallfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("hallsale as hs")
          ->leftJoin("companyreg as cr", "hs.companyid", "=", "cr.companyid")
@@ -9508,13 +9508,13 @@ class Reporting extends Controller
    }
 
    public function excessconsumption(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.excessconsumption", compact("propertyid", "fromdate", "todate"));
    }
    public function excessconsumptionfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("hallbook as hb")
          ->leftJoin("hallsale as hs", "hb.bookno", "=", "hs.bookno")
@@ -9527,13 +9527,13 @@ class Reporting extends Controller
    }
 
    public function productionreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.productionreport", compact("propertyid", "fromdate", "todate"));
    }
    public function productionreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("kot as k")->join("kotdetail as kd", "k.kotid", "=", "kd.kotid")
          ->leftJoin("itemmast as im", "kd.itemcode", "=", "im.itemcode")
@@ -9546,13 +9546,13 @@ class Reporting extends Controller
    }
 
    public function openitemsale(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.openitemsale", compact("propertyid", "fromdate", "todate"));
    }
    public function openitemsalefetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
          ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
@@ -9565,13 +9565,13 @@ class Reporting extends Controller
    }
 
    public function abcanalysis(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.abcanalysis", compact("propertyid", "fromdate", "todate"));
    }
    public function abcanalysisfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("paycharge as pc")
          ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
@@ -9585,13 +9585,13 @@ class Reporting extends Controller
    }
 
    public function abcanalysisSale(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.abcanalysissale", compact("propertyid", "fromdate", "todate"));
    }
    public function abcanalysisSaleFetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
          ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
@@ -9603,11 +9603,11 @@ class Reporting extends Controller
    }
 
    public function cancellletter(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.cancellletter", compact("propertyid"));
    }
    public function cancellletterdata(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $docid = $request->input("docid");
       $row = DB::table("grpbookingdetails as bd")
          ->leftJoin("guestprofile as gp", "bd.guestprofid", "=", "gp.id")
@@ -9617,11 +9617,11 @@ class Reporting extends Controller
    }
 
    public function confirletter(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.confirletter", compact("propertyid"));
    }
    public function confirletterdata(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $docid = $request->input("docid");
       $row = DB::table("grpbookingdetails as bd")
          ->leftJoin("guestprofile as gp", "bd.guestprofid", "=", "gp.id")
@@ -9631,13 +9631,13 @@ class Reporting extends Controller
    }
 
    public function guestchargesmis2(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.guestchargesmis", compact("propertyid", "fromdate", "todate"));
    }
    public function guestchargesmis2fetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("paycharge as pc")
          ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
@@ -9653,13 +9653,13 @@ class Reporting extends Controller
    }
 
    public function memled(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.memled", compact("propertyid", "fromdate", "todate"));
    }
    public function memledfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $memberid = $request->input("memberid");
       $query = DB::table("membermaster as mm")
@@ -9673,13 +9673,13 @@ class Reporting extends Controller
    }
 
    public function memtaxreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.memtaxreport", compact("propertyid", "fromdate", "todate"));
    }
    public function memtaxreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("membermaster as mm")
          ->leftJoin("paycharge as pc", "mm.memberid", "=", "pc.subcode")
@@ -9691,11 +9691,11 @@ class Reporting extends Controller
    }
 
    public function payslip(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.payslip", compact("propertyid"));
    }
    public function payslipfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("Y-m"));
       $rows = DB::table("salarycreation as sc")
          ->leftJoin("employee as e", "sc.empid", "=", "e.empid")
@@ -9707,11 +9707,11 @@ class Reporting extends Controller
    }
 
    public function pfstatement(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.pfstatement", compact("propertyid"));
    }
    public function pfstatementfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("Y-m"));
       $rows = DB::table("salarycreation as sc")
          ->leftJoin("employee as e", "sc.empid", "=", "e.empid")
@@ -9723,13 +9723,13 @@ class Reporting extends Controller
    }
 
    public function payrollreg(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.payrollreg", compact("propertyid", "fromdate", "todate"));
    }
    public function payrollregfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("salarycreation as sc")
          ->leftJoin("employee as e", "sc.empid", "=", "e.empid")
@@ -9742,13 +9742,13 @@ class Reporting extends Controller
    }
 
    public function dailydiet(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.dailydiet", compact("propertyid", "fromdate", "todate"));
    }
    public function dailydietfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("sale1 as s")->join("sale2 as sd", "s.billno", "=", "sd.billno")
          ->leftJoin("itemmast as im", "sd.itemcode", "=", "im.itemcode")
@@ -9760,13 +9760,13 @@ class Reporting extends Controller
    }
 
    public function annexure(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.annexure", compact("propertyid", "fromdate", "todate"));
    }
    public function annexurefetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("suntran as st")
          ->where("st.propertyid", $propertyid)->whereBetween("st.vdate", [$fromdate, $todate])
@@ -9778,11 +9778,11 @@ class Reporting extends Controller
 
 
    public function cardstatusreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.cardstatusreport", compact("propertyid"));
    }
    public function cardstatusreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $rows = DB::table("smartcard as sc")
          ->leftJoin("guestprofile as gp", "sc.guestprofid", "=", "gp.id")
          ->where("sc.propertyid", $propertyid)
@@ -9800,11 +9800,11 @@ class Reporting extends Controller
 
    // Membership Reports
    public function birthmarrrep(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.birthmarrrep", compact("propertyid"));
    }
    public function birthmarrrepfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("m"));
       $rows = DB::table("membermaster")->where("propertyid", $propertyid)
          ->whereRaw("MONTH(dob) = ? OR MONTH(weddate) = ?", [$month, $month])
@@ -9815,13 +9815,13 @@ class Reporting extends Controller
    }
 
    public function membillmissingreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.membillmissingreport", compact("propertyid", "fromdate", "todate"));
    }
    public function membillmissingreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("membermaster as mm")
          ->leftJoin("paycharge as pc", "mm.memberid", "=", "pc.subcode")
@@ -9836,12 +9836,12 @@ class Reporting extends Controller
    }
 
    public function membirthanndtls(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("m"));
       return view("property.membirthanndtls", compact("propertyid", "month"));
    }
    public function membirthanndtlsfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("m"));
       $rows = DB::table("membermaster")->where("propertyid", $propertyid)
          ->whereRaw("MONTH(dob) = ?", [$month])
@@ -9852,11 +9852,11 @@ class Reporting extends Controller
    }
 
    public function memalinglabels(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.memalinglabels", compact("propertyid"));
    }
    public function memalinglabelsfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $rows = DB::table("membermaster")->where("propertyid", $propertyid)
          ->select("membername", "address", "city", "pin", "phone", "email")
          ->orderBy("membername")->get();
@@ -9865,13 +9865,13 @@ class Reporting extends Controller
    }
 
    public function memsalesregister(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.memsalesregister", compact("propertyid", "fromdate", "todate"));
    }
    public function memsalesregisterfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("membermaster as mm")
          ->leftJoin("paycharge as pc", "mm.memberid", "=", "pc.subcode")
@@ -9883,13 +9883,13 @@ class Reporting extends Controller
    }
 
    public function memvisitdetail(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.memvisitdetail", compact("propertyid", "fromdate", "todate"));
    }
    public function memvisitdetailfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("membermaster as mm")
          ->leftJoin("roomocc as ro", "mm.memberid", "=", "ro.subcode")
@@ -9903,13 +9903,13 @@ class Reporting extends Controller
 
    // Front Office Reports
    public function complaintlist(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.complaintlist", compact("propertyid", "fromdate", "todate"));
    }
    public function complaintlistfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("tickets as t")
          ->where("t.propertyid", $propertyid)->whereBetween("t.created_at", [$fromdate, $todate . " 23:59:59"])
@@ -9920,13 +9920,13 @@ class Reporting extends Controller
    }
 
    public function formiii(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.formiii", compact("propertyid", "fromdate", "todate"));
    }
    public function formiiifetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
@@ -9944,11 +9944,11 @@ class Reporting extends Controller
    }
 
    public function registrationcard(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.registrationcard", compact("propertyid"));
    }
    public function registrationcarddata(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $docid = $request->input("docid");
       $row = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
@@ -9960,13 +9960,13 @@ class Reporting extends Controller
 
    // Plan/Meal Reports
    public function planmealtokens(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.planmealtokens", compact("propertyid", "fromdate", "todate"));
    }
    public function planmealtokensfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
@@ -9981,13 +9981,13 @@ class Reporting extends Controller
    }
 
    public function planpackschedule(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.planpackschedule", compact("propertyid", "fromdate", "todate"));
    }
    public function planpackschedulefetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("planmaster as pm")
          ->leftJoin("planpack as pp", "pm.planid", "=", "pp.planid")
@@ -9999,11 +9999,11 @@ class Reporting extends Controller
    }
 
    public function planpackservice(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.planpackservice", compact("propertyid"));
    }
    public function planpackservicefetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $rows = DB::table("planmaster as pm")
          ->leftJoin("planpack as pp", "pm.planid", "=", "pp.planid")
          ->where("pm.propertyid", $propertyid)
@@ -10015,13 +10015,13 @@ class Reporting extends Controller
 
    // HR Report
    public function attendancerep(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.attendancerep", compact("propertyid", "fromdate", "todate"));
    }
    public function attendancerepfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("attendance as a")
          ->leftJoin("employee as e", "a.empid", "=", "e.empid")
@@ -10034,13 +10034,13 @@ class Reporting extends Controller
 
    // Finance/Analysis Reports
    public function budgetanalysis(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.budgetanalysis", compact("propertyid", "fromdate", "todate"));
    }
    public function budgetanalysisfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("budget as b")
          ->leftJoin("acgroup as ag", "b.group_code", "=", "ag.group_code")
@@ -10054,13 +10054,13 @@ class Reporting extends Controller
    }
 
    public function businessanalysis(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.businessanalysis", compact("propertyid", "fromdate", "todate"));
    }
    public function businessanalysisfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->where("ro.propertyid", $propertyid)
@@ -10074,13 +10074,13 @@ class Reporting extends Controller
    }
 
    public function bussoccupancyreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.bussoccupancyreport", compact("propertyid", "fromdate", "todate"));
    }
    public function bussoccupancyreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
@@ -10094,13 +10094,13 @@ class Reporting extends Controller
    }
 
    public function costanalysis(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.costanalysis", compact("propertyid", "fromdate", "todate"));
    }
    public function costanalysisfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("suntran as st")
          ->leftJoin("ledger as l", "st.docid", "=", "l.docid")
@@ -10115,13 +10115,13 @@ class Reporting extends Controller
    }
 
    public function marketseganalysis(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.marketseganalysis", compact("propertyid", "fromdate", "todate"));
    }
    public function marketseganalysisfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
@@ -10136,13 +10136,13 @@ class Reporting extends Controller
 
    // Cash Card Reports
    public function cashcardcollectsumm(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.cashcardcollectsumm", compact("propertyid", "fromdate", "todate"));
    }
    public function cashcardcollectsummfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("smartcard as sc")
          ->leftJoin("paycharge as pc", "sc.cardno", "=", "pc.subcode")
@@ -10155,13 +10155,13 @@ class Reporting extends Controller
    }
 
    public function cashcardtransrep(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.cashcardtransrep", compact("propertyid", "fromdate", "todate"));
    }
    public function cashcardtransrepfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("paycharge as pc")
          ->where("pc.propertyid", $propertyid)->whereBetween("pc.vdate", [$fromdate, $todate])
@@ -10174,13 +10174,13 @@ class Reporting extends Controller
 
    // Other Reports
    public function epabxcallrep(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.epabxcallrep", compact("propertyid", "fromdate", "todate"));
    }
    public function epabxcallrepfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("epabxlog as e")
          ->where("e.propertyid", $propertyid)->whereBetween("e.calldate", [$fromdate, $todate])
@@ -10191,13 +10191,13 @@ class Reporting extends Controller
    }
 
    public function fbcoststatement(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.fbcoststatement", compact("propertyid", "fromdate", "todate"));
    }
    public function fbcoststatementfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("suntran as st")
          ->leftJoin("ledger as l", "st.docid", "=", "l.docid")
@@ -10211,13 +10211,13 @@ class Reporting extends Controller
    }
 
    public function facilitybillreg(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.facilitybillreg", compact("propertyid", "fromdate", "todate"));
    }
    public function facilitybillregfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("paycharge as pc")
          ->leftJoin("roomocc as ro", "pc.foliono", "=", "ro.foliono")
@@ -10232,12 +10232,12 @@ class Reporting extends Controller
    }
 
    public function monthlystatisticalreturn(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("Y-m"));
       return view("property.monthlystatisticalreturn", compact("propertyid", "month"));
    }
    public function monthlystatisticalreturnfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $month = $request->input("month", date("Y-m"));
       $fromdate = $month . "-01";
       $todate = date("Y-m-t", strtotime($fromdate));
@@ -10256,13 +10256,13 @@ class Reporting extends Controller
    }
 
    public function packageforecast(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.packageforecast", compact("propertyid", "fromdate", "todate"));
    }
    public function packageforecastfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")
@@ -10276,11 +10276,11 @@ class Reporting extends Controller
    }
 
    public function paymentdueletter(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       return view("property.paymentdueletter", compact("propertyid"));
    }
    public function paymentdueletterdata(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $subcode = $request->input("subcode");
       $rows = DB::table("ledger as l")
          ->leftJoin("subgroup as sg", "l.subcode", "=", "sg.subcode")
@@ -10292,13 +10292,13 @@ class Reporting extends Controller
    }
 
    public function refreport(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.refreport", compact("propertyid", "fromdate", "todate"));
    }
    public function refreportfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("suntran as st")
          ->where("st.propertyid", $propertyid)->whereBetween("st.vdate", [$fromdate, $todate])
@@ -10309,13 +10309,13 @@ class Reporting extends Controller
    }
 
    public function travelagentanalysis(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->get("fromdate", date("Y-m-d"));
       $todate = $request->get("todate", date("Y-m-d"));
       return view("property.travelagentanalysis", compact("propertyid", "fromdate", "todate"));
    }
    public function travelagentanalysisfetch(Request $request) {
-      $propertyid = Auth::user()->propertyid;
+      $propertyid = $this->propertyid;
       $fromdate = $request->input("fromdate"); $todate = $request->input("todate");
       $rows = DB::table("roomocc as ro")
          ->leftJoin("grpbookingdetails as bd", "ro.docid", "=", "bd.docid")

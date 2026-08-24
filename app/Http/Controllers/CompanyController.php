@@ -117,10 +117,10 @@ class CompanyController extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->prpid = Auth::user()->propertyid;
+            $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-            $this->compcode = Companyreg::where('propertyid', Auth::user()->propertyid)->value('comp_code');
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->propertyid = $propertydata->propertyid;
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
@@ -144,7 +144,7 @@ class CompanyController extends Controller
         $status = $request->get('status', 'all');
 
         $query = \App\Models\SupportTicket::query()
-            ->where('property_id', Auth::user()->propertyid)
+            ->where('property_id', $this->propertyid)
             ->orderBy('created_at', 'desc');
 
         if ($status !== 'all') {
@@ -171,7 +171,7 @@ class CompanyController extends Controller
     {
 
         try {
-            $propertyId = Auth::user()->propertyid;
+            $propertyId = $this->propertyid;
             $today = \Carbon\Carbon::today();
             $yesterday = \Carbon\Carbon::yesterday();
 
@@ -338,7 +338,7 @@ class CompanyController extends Controller
 
             $ticket = \App\Models\SupportTicket::findOrFail($request->ticket_id);
 
-            if ((string) $ticket->property_id !== (string) Auth::user()->propertyid) {
+            if ((string) $ticket->property_id !== (string) $this->propertyid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to view this ticket conversation.',
@@ -435,7 +435,7 @@ class CompanyController extends Controller
 
             $ticket = \App\Models\SupportTicket::findOrFail($request->ticket_id);
 
-            if ((string) $ticket->property_id !== (string) Auth::user()->propertyid) {
+            if ((string) $ticket->property_id !== (string) $this->propertyid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to comment on this ticket.',
@@ -499,7 +499,7 @@ class CompanyController extends Controller
 
             $ticket = \App\Models\SupportTicket::findOrFail($request->ticket_id);
 
-            if ((string) $ticket->property_id !== (string) Auth::user()->propertyid) {
+            if ((string) $ticket->property_id !== (string) $this->propertyid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to update this ticket.',
@@ -564,7 +564,7 @@ class CompanyController extends Controller
             $ticket = \App\Models\SupportTicket::findOrFail($request->ticket_id);
             $message = \App\Models\SupportTicketMessage::findOrFail($request->message_id);
 
-            if ((string) $ticket->property_id !== (string) Auth::user()->propertyid) {
+            if ((string) $ticket->property_id !== (string) $this->propertyid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to edit this message.',
@@ -1634,7 +1634,7 @@ class CompanyController extends Controller
             ->orderBy('nationality', 'ASC')->get();
 
         $enviro_formdata = DB::table('enviro_form')->where('propertyid', $this->propertyid)->first();
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
 
         $roominclusive = RoomInclusive::where('propertyid', $this->propertyid)->where('docid', $docid)
             ->orderBy('sno')->get();
@@ -2088,7 +2088,7 @@ class CompanyController extends Controller
             ->orderBy('nationality', 'ASC')->get();
 
         $enviro_formdata = DB::table('enviro_form')->where('propertyid', $this->propertyid)->first();
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
 
         $revmast = Revmast::where('propertyid', $this->propertyid)->where('flag_type', 'FOM')
             ->whereNotIn('rev_code', [
@@ -4324,7 +4324,7 @@ class CompanyController extends Controller
             if (json_last_error() === JSON_ERROR_NONE) {
                 $propertyid = $this->propertyid;
                 $u_name = $this->username;
-                $compcode = Companyreg::where('propertyid', Auth::user()->propertyid)->value('comp_code');
+                $compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
                 foreach ($jsonData as $data) {
                     $inserts = CompanyLog::InsertRoomS1($propertyid, $u_name, $jsonData);
                     $inserts2 = CompanyLog::InsertRoomS2($propertyid, $u_name, $jsonData2);
@@ -8693,7 +8693,7 @@ class CompanyController extends Controller
         // }
 
         $prefixes = array('sundryname', 'dispname', 'calcformula', 'peroramt', 'vals', 'boldyn', 'revenuecharge', 'automan');
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $count = 0;
 
         foreach ($request->input() as $key => $value) {
@@ -8883,7 +8883,7 @@ class CompanyController extends Controller
         }
 
         $prefixes = array('sundryname', 'dispname', 'calcformula', 'peroramt', 'vals', 'boldyn', 'revenuecharge', 'automan');
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $count = 0;
 
         foreach ($request->input() as $key => $value) {
@@ -9415,7 +9415,7 @@ class CompanyController extends Controller
 
     public function getPrefix()
     {
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $currentYear = date('Y', strtotime($ncurdate));
         $nextYear = $currentYear + 1;
         $previousYear = $currentYear - 1;
@@ -9506,7 +9506,7 @@ class CompanyController extends Controller
         // Scheme Details
         $schemename = $request->input('schemename');
         $discountscheme = $request->input('discscheme');
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $currentYear = date('Y', strtotime($ncurdate));
         $previousYear = $currentYear - 1;
         $nextYear = $currentYear + 1;
@@ -9700,7 +9700,7 @@ class CompanyController extends Controller
         function createUser($opt1, $opt2, $opt3, $route, $module, $module_name, $flag, $currentTime, $outletcode)
         {
             $usermodule = new UserModule();
-            $usermodule->propertyid = Auth::user()->propertyid;
+            $usermodule->propertyid = $this->propertyid;
             $usermodule->opt1 = $opt1;
             $usermodule->opt2 = $opt2;
             $usermodule->opt3 = $opt3;
@@ -9718,7 +9718,7 @@ class CompanyController extends Controller
         function createMenuHelp($compcode, $opt1, $opt2, $opt3, $route, $module, $module_name, $ins, $edit, $del, $print, $flag, $currentTime, $outletcode)
         {
             $menuhelp = new MenuHelp();
-            $menuhelp->propertyid = Auth::user()->propertyid;
+            $menuhelp->propertyid = $this->propertyid;
             $menuhelp->username = Auth::user()->name;
             $menuhelp->compcode = $compcode;
             $menuhelp->opt1 = $opt1;
@@ -10081,7 +10081,7 @@ class CompanyController extends Controller
 
             DB::beginTransaction();
             $vtype = "CHK";
-            $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+            $ncurdate = $this->ncurdate;
             $chkvpf = VoucherPrefix::where('propertyid', $this->propertyid)
                 ->where('v_type', $vtype)
                 ->whereDate('date_from', '<=', $request->checkindate)
@@ -13066,7 +13066,7 @@ class CompanyController extends Controller
         }
         $roomcategorydata = DB::table('room_cat')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
         $housekeepingdata = DB::table('depart')->where('propertyid', $this->propertyid)->where('rest_type', 'HOUSE KEEPING')->orderBy('name', 'ASC')->get();
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         return view('property.roomstatus', ['roomcategorydata' => $roomcategorydata, 'housekeepingdata' => $housekeepingdata, 'ncurdate' => $ncurdate]);
     }
 
@@ -13078,7 +13078,7 @@ class CompanyController extends Controller
         }
         $roomcategorydata = DB::table('room_cat')->where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
         $housekeepingdata = DB::table('depart')->where('propertyid', $this->propertyid)->where('rest_type', 'HOUSE KEEPING')->orderBy('name', 'ASC')->get();
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         return view('property.lookuprooms', ['roomcategorydata' => $roomcategorydata, 'housekeepingdata' => $housekeepingdata, 'ncurdate' => $ncurdate]);
     }
 
@@ -13199,7 +13199,7 @@ class CompanyController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         return view('property.chargesposting', ['ncurdate' => $ncurdate]);
     }
 
@@ -15480,7 +15480,7 @@ class CompanyController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         return view('property.nightaudit2', ['ncurdate' => $ncurdate]);
     }
 
@@ -16099,7 +16099,7 @@ class CompanyController extends Controller
             'sno1' => 'required',
             'docid' => 'required',
         ]);
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $billno = $request->input('billno');
         $updata = [
             'billno' => $billno,
@@ -16513,7 +16513,7 @@ class CompanyController extends Controller
             $difference = $toalaftertaxadd - $creditsum;
             $differencenew = round($difference);
             // Log::info('Difference before round off: ' . $difference);
-            $envfom = EnviroFom::where('propertyid', Auth::user()->propertyid)->first();
+            $envfom = EnviroFom::where('propertyid', $this->propertyid)->first();
             $datacc = calculateRoundOff($differencenew, $envfom->roundofftype);
 
             $rev_codechk = 'ROFF' . $this->propertyid;
@@ -16792,7 +16792,7 @@ class CompanyController extends Controller
         // }
         $differencenew = round($difference);
         // Log::info('Difference before round off: ' . $difference);
-        $envfom = EnviroFom::where('propertyid', Auth::user()->propertyid)->first();
+        $envfom = EnviroFom::where('propertyid', $this->propertyid)->first();
         $datacc = calculateRoundOff($differencenew, $envfom->roundofftype);
         // LOG::info('roundoff: ' . json_encode($datacc));
         // $netamount = str_replace(',', '', number_format($difference, 2));
@@ -16977,7 +16977,7 @@ class CompanyController extends Controller
             ->where('v_type', 'BCNT')
             ->update(['start_srl_no' => DB::raw('start_srl_no + 1')]);
         $data = DB::table('voucher_prefix')->where('v_type', 'BCNT')->where('propertyid', $this->propertyid)->max('start_srl_no');
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $year = date('Y', strtotime($ncurdate));
         $nextyear = $year + 1;
         $invoiceno = 'BCNT/' . $year . '-' . substr($nextyear, -2) . '/' . $data;
@@ -17009,7 +17009,7 @@ class CompanyController extends Controller
         $tbody = $request->query('tbody');
         $json = $request->query('arrdata');
         $arrdata = json_decode($json, true);
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $year = date('Y', strtotime($ncurdate));
         $nextyear = $year + 1;
         $invoiceno = 'BCNT/' . $year . '-' . substr($nextyear, -2) . '/' . $arrdata['billno'];
@@ -17234,7 +17234,7 @@ class CompanyController extends Controller
         $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
         $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->get();
 
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
         return view('property.advancecharge', [
             'revdata' => $records,
@@ -17783,7 +17783,7 @@ class CompanyController extends Controller
         $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
         $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->get();
 
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
         $rocc = Roomocc::where('propertyid', $this->propertyid)->where('docid', $docid)->where('leaderyn', 'Y')->first();
         if ($rocc) {
@@ -18217,7 +18217,7 @@ class CompanyController extends Controller
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         // $year = date('Y', strtotime($ncurdate));
         // $nextyear = $year + 1;
         // $latestbillno = Paycharge::where('propertyid', $this->propertyid)->where('vprefix', date('Y', strtotime($this->ncurdate)))
@@ -18686,7 +18686,7 @@ class CompanyController extends Controller
             ->orderBy('nationality', 'ASC')->get();
 
         $enviro_formdata = DB::table('enviro_form')->where('propertyid', $this->propertyid)->first();
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $channelenviro = ChannelEnviro::where('propertyid', $this->propertyid)->first() ?? '';
         $revmast = Revmast::where('propertyid', $this->propertyid)->where('flag_type', 'FOM')
             ->whereNotIn('rev_code', [
@@ -19630,7 +19630,7 @@ class CompanyController extends Controller
             $sno = GrpBookinDetail::where('Property_ID', $this->propertyid)->where('BookingDocid', $docid)->max('Sno');
         }
 
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $data = DB::table('booking')
             ->select(
                 'booking.*',
@@ -20179,7 +20179,7 @@ class CompanyController extends Controller
 
     public function getcurfinyear()
     {
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $currentYear = date('Y', strtotime($ncurdate));
         $nextYear = $currentYear + 1;
         if (date('m') < 4) {

@@ -22,12 +22,26 @@ class GeneralController extends Controller
 {
     public function __construct()
     {
-        $this->propertyid = propertyid();
+        $this->middleware(function ($request, $next) {
+            if (!isset(Auth::user()->name)) {
+                return redirect('/');
+            }
+            $this->username = Auth::user()->name;
+            $this->email = Auth::user()->email;
+            $this->prpid = Auth::user()->propertyid;
+            $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->propertyid = $propertydata->propertyid;
+            $this->ptlngth = strlen($this->propertyid);
+            date_default_timezone_set('Asia/Kolkata');
+            $this->currenttime = date('Y-m-d H:i:s');
+            return $next($request);
+        });
     }
 
     public function calculateroundoffpos(Request $request)
     {
-        $envfom = EnviroPos::where('propertyid', Auth::user()->propertyid)->first();
+        $envfom = EnviroPos::where('propertyid', $this->propertyid)->first();
         $mode = $envfom->roundofftype;
 
         $results = [];
@@ -45,7 +59,7 @@ class GeneralController extends Controller
 
     public function calculateroundpurch(Request $request)
     {
-        $envfom = EnviroInventory::where('propertyid', Auth::user()->propertyid)->first();
+        $envfom = EnviroInventory::where('propertyid', $this->propertyid)->first();
         $amount = $request->amount;
 
         $data = calculateRoundOff($amount, $envfom->roundofftype);
@@ -55,7 +69,7 @@ class GeneralController extends Controller
 
     public function calculateroundbanquet(Request $request)
     {
-        $envfom = EnviroBanquet::where('propertyid', Auth::user()->propertyid)->first();
+        $envfom = EnviroBanquet::where('propertyid', $this->propertyid)->first();
         $mode = $envfom->roundofftype;
 
         $res = calculateRoundOff($request->amount, $mode);
@@ -69,7 +83,7 @@ class GeneralController extends Controller
 
     public function fetchallemptyrooms(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $checkindate = $request->checkindate;
         $checkoutdate = $request->checkoutdate;
 
@@ -112,7 +126,7 @@ class GeneralController extends Controller
     public function planfetchbycat(Request $request)
     {
         $roomcat = $request->roomcat;
-        $plans = PlanMast::where('propertyid', Auth::user()->propertyid)->where('room_cat', $roomcat)->where('activeYN', 'Y')->orderBy('name')->get();
+        $plans = PlanMast::where('propertyid', $this->propertyid)->where('room_cat', $roomcat)->where('activeYN', 'Y')->orderBy('name')->get();
         return response()->json($plans);
     }
 
@@ -120,9 +134,9 @@ class GeneralController extends Controller
     {
         $compcode = $request->compcode;
 
-        $compdata = SubGroup::where('propertyid', Auth::user()->propertyid)->where('sub_code', $compcode)->first();
+        $compdata = SubGroup::where('propertyid', $this->propertyid)->where('sub_code', $compcode)->first();
 
-        $compdiscdata = CompanyDiscount::where('propertyid', Auth::user()->propertyid)->where('compcode', $compcode)->orderBy('sno')->get();
+        $compdiscdata = CompanyDiscount::where('propertyid', $this->propertyid)->where('compcode', $compcode)->orderBy('sno')->get();
 
         return response()->json([
             'compdata' => $compdata,

@@ -42,9 +42,9 @@ class FeedbackMasterController extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->propertyid = Auth::user()->propertyid;
-            $this->compcode = Companyreg::where('propertyid', Auth::user()->propertyid)->value('comp_code');
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->propertyid = $this->propertyid;
+            $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
             $this->currenttime = date('Y-m-d H:i:s');
@@ -900,7 +900,7 @@ class FeedbackMasterController extends Controller
         ]);
 
         try {
-            $propertyid = Auth::user()->propertyid;
+            $propertyid = $this->propertyid;
             // viewuser column varchar(15) hai, isliye 15 char tak limit kar diya
             $viewUser = substr(Auth::user()->name ?? Auth::user()->u_name ?? 'Staff', 0, 15);
 
@@ -938,7 +938,7 @@ class FeedbackMasterController extends Controller
         ]);
 
         try {
-            $propertyid = Auth::user()->propertyid;
+            $propertyid = $this->propertyid;
             $staffName  = Auth::user()->name ?? Auth::user()->u_name ?? 'Staff';
 
             DB::beginTransaction();
@@ -994,7 +994,7 @@ class FeedbackMasterController extends Controller
         ]);
 
         try {
-            $propertyid = Auth::user()->propertyid;
+            $propertyid = $this->propertyid;
             $staffName  = Auth::user()->name ?? Auth::user()->u_name ?? 'Staff';
 
             DB::beginTransaction();

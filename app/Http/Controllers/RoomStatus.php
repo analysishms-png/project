@@ -97,10 +97,10 @@ class RoomStatus extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->prpid = Auth::user()->propertyid;
+            $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-            $this->compcode = Companyreg::where('propertyid', Auth::user()->propertyid)->value('comp_code');
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->propertyid = $propertydata->propertyid;
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
@@ -113,7 +113,7 @@ class RoomStatus extends Controller
     // Booked Room Get
     public function bookedroomget()
     {
-        $prpid = Auth::user()->propertyid;
+        $prpid = $this->propertyid;
         $ncurdate = DB::table('enviro_general')->where('propertyid', $prpid)->value('ncur');
 
         $bookedroomdata = DB::table('bookings as b')
@@ -192,7 +192,7 @@ class RoomStatus extends Controller
     // Reserved Room Get
     public function reservedroomget()
     {
-        $prpid = Auth::user()->propertyid;
+        $prpid = $this->propertyid;
         $ncurdate = DB::table('enviro_general')->where('propertyid', $prpid)->value('ncur');
 
         $bookedroomdata = DB::table('bookings as b')
@@ -247,7 +247,7 @@ class RoomStatus extends Controller
     // Checkout Room Get
     public function checkoutroomget()
     {
-        $prpid = Auth::user()->propertyid;
+        $prpid = $this->propertyid;
         $ncurdate = DB::table('enviro_general')->where('propertyid', $prpid)->value('ncur');
 
         $checkoutroomdata = DB::table('bookings as b')

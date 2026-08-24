@@ -50,7 +50,7 @@ class ToolsController extends Controller
     protected function isSuperAdminUser(): bool
     {
         return (int) (Auth::user()->role ?? 0) === 1
-            && (string) (Auth::user()->propertyid ?? '') === '10';
+            && (string) ($this->propertyid ?? '') === '10';
     }
 
     protected function canOverrideSupportTicketAccess(): bool
@@ -80,23 +80,23 @@ class ToolsController extends Controller
                 return redirect('/');
             }
 
-            if (! $isSubmitTicket && ! $isSuperAdminRoute && ! $this->isSuperAdminUser() && Auth::user()->propertyid != '20') {
+            if (! $isSubmitTicket && ! $isSuperAdminRoute && ! $this->isSuperAdminUser() && $this->propertyid != '20') {
                 return redirect('/');
             }
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->prpid = Auth::user()->propertyid;
+            $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-            $this->compcode = Companyreg::where('propertyid', Auth::user()->propertyid)->value('comp_code');
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->propertyid = $propertydata->propertyid;
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
             $this->currenttime = date('Y-m-d H:i:s');
             $this->datemanage = DateHelper::calculateDateRanges($this->ncurdate);
 
-            if ((string) Auth::user()->propertyid === '20' && ! $this->isSuperAdminUser()) {
+            if ((string) $this->propertyid === '20' && ! $this->isSuperAdminUser()) {
                 \App\Models\SupportTicket::updateUserApStatus((int) Auth::id(), 'P');
                 \App\Models\SupportTicket::assignQueuedTicketsForAvailableUsers();
             }
@@ -2854,7 +2854,7 @@ class ToolsController extends Controller
             } elseif (isset($oldRecord->property_id)) {
                 $propertyId = $oldRecord->property_id;
             } else {
-                $propertyId = $this->propertyid ?? Auth::user()->propertyid ?? null;
+                $propertyId = $this->propertyid ?? $this->propertyid ?? null;
             }
 
             // Update the cell
@@ -3386,7 +3386,7 @@ class ToolsController extends Controller
                 'problem' => $validated['problem'],
                 'status' => 'pending',
                 'user_id' => Auth::id(),
-                'property_id' => Auth::user()->propertyid ?? null,
+                'property_id' => $this->propertyid ?? null,
             ];
 
             // Auto-assign if user available

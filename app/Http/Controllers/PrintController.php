@@ -90,10 +90,10 @@ class PrintController extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->prpid = Auth::user()->propertyid;
+            $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-            $this->compcode = Companyreg::where('propertyid', Auth::user()->propertyid)->value('comp_code');
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->propertyid = $propertydata->propertyid;
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
@@ -1859,7 +1859,7 @@ class PrintController extends Controller
         }
 
         $prefixes = array('sundryname', 'dispname', 'calcformula', 'peroramt', 'vals', 'boldyn', 'revenuecharge', 'automan');
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $count = 0;
 
         foreach ($request->input() as $key => $value) {
@@ -2092,7 +2092,7 @@ class PrintController extends Controller
     }
     public function getcurfinyear()
     {
-        $ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
+        $ncurdate = $this->ncurdate;
         $currentYear = date('Y', strtotime($ncurdate));
         $nextYear = $currentYear + 1;
         if (date('m') < 4) {

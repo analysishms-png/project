@@ -36,9 +36,9 @@ class FinanceController extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->prpid = Auth::user()->propertyid;
+            $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->propertyid = $propertydata->propertyid;
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
@@ -2074,14 +2074,14 @@ class FinanceController extends Controller
      */
     public function agingDr(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.agingdr', compact('propertyid', 'todate'));
     }
 
     public function agingDrFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->input('todate', date('Y-m-d'));
         $groupCode = $request->input('group_code');
 
@@ -2150,14 +2150,14 @@ class FinanceController extends Controller
      */
     public function agingCr(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.agingcr', compact('propertyid', 'todate'));
     }
 
     public function agingCrFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->input('todate', date('Y-m-d'));
         $groupCode = $request->input('group_code');
 
@@ -2226,14 +2226,14 @@ class FinanceController extends Controller
      */
     public function agingRepDr(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.agingrepdr', compact('propertyid', 'todate'));
     }
 
     public function agingRepDrFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->input('todate', date('Y-m-d'));
 
         $rows = DB::table('ledger as l')
@@ -2290,14 +2290,14 @@ class FinanceController extends Controller
      */
     public function agingRepCr(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.agingrepcr', compact('propertyid', 'todate'));
     }
 
     public function agingRepCrFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->input('todate', date('Y-m-d'));
 
         $rows = DB::table('ledger as l')
@@ -2354,14 +2354,14 @@ class FinanceController extends Controller
      */
     public function dueList(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.duelist', compact('propertyid', 'todate'));
     }
 
     public function dueListFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->input('todate', date('Y-m-d'));
         $subcode = $request->input('subcode');
 
@@ -2396,14 +2396,14 @@ class FinanceController extends Controller
      */
     public function dueListCreditorOverlay(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.duelistcreditoroverlay', compact('propertyid', 'todate'));
     }
 
     public function dueListCreditorOverlayFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $todate = $request->input('todate', date('Y-m-d'));
         $subcode = $request->input('subcode');
 
@@ -2438,7 +2438,7 @@ class FinanceController extends Controller
      */
     public function guestPayments(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $fromdate = $request->get('fromdate', date('Y-m-d'));
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.guestpayments', compact('propertyid', 'fromdate', 'todate'));
@@ -2446,7 +2446,7 @@ class FinanceController extends Controller
 
     public function guestPaymentsFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $fromdate = $request->input('fromdate', date('Y-m-d'));
         $todate = $request->input('todate', date('Y-m-d'));
 
@@ -2485,13 +2485,13 @@ class FinanceController extends Controller
      */
     public function nonTrans(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         return view('property.finance.nontrans', compact('propertyid'));
     }
 
     public function nonTransFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $rows = DB::table('subgroup as sg')
             ->leftJoin('acgroup as ag', 'sg.group_code', '=', 'ag.group_code')
             ->where('sg.propertyid', $propertyid)
@@ -2508,7 +2508,7 @@ class FinanceController extends Controller
      */
     public function loanAdvSumm(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $fromdate = $request->get('fromdate', date('Y-m-d'));
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.loanadvsumm', compact('propertyid', 'fromdate', 'todate'));
@@ -2516,7 +2516,7 @@ class FinanceController extends Controller
 
     public function loanAdvSummFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $fromdate = $request->input('fromdate', date('Y-m-d'));
         $todate = $request->input('todate', date('Y-m-d'));
 
@@ -2552,7 +2552,7 @@ class FinanceController extends Controller
      */
     public function loanLedg(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $fromdate = $request->get('fromdate', date('Y-m-d'));
         $todate = $request->get('todate', date('Y-m-d'));
         return view('property.finance.loanledger', compact('propertyid', 'fromdate', 'todate'));
@@ -2560,7 +2560,7 @@ class FinanceController extends Controller
 
     public function loanLedgFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $fromdate = $request->input('fromdate', date('Y-m-d'));
         $todate = $request->input('todate', date('Y-m-d'));
         $subcode = $request->input('subcode');
@@ -2593,13 +2593,13 @@ class FinanceController extends Controller
      */
     public function loanReg(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         return view('property.finance.loanregister', compact('propertyid'));
     }
 
     public function loanRegFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
 
         $rows = DB::table('ledger as l')
             ->join('subgroup as sg', function ($join) use ($propertyid) {
@@ -2633,13 +2633,13 @@ class FinanceController extends Controller
      */
     public function customerDetail(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         return view('property.finance.customerdetail', compact('propertyid'));
     }
 
     public function customerDetailFetch(Request $request)
     {
-        $propertyid = Auth::user()->propertyid;
+        $propertyid = $this->propertyid;
         $search = $request->input('search');
 
         $query = DB::table('subgroup as sg')

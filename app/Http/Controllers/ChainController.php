@@ -16,7 +16,21 @@ class ChainController extends Controller
 {
     public function __construct()
     {
-        $this->propertyid = propertyid();
+        $this->middleware(function ($request, $next) {
+            if (!isset(Auth::user()->name)) {
+                return redirect('/');
+            }
+            $this->username = Auth::user()->name;
+            $this->email = Auth::user()->email;
+            $this->prpid = Auth::user()->propertyid;
+            $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->propertyid = $propertydata->propertyid;
+            $this->ptlngth = strlen($this->propertyid);
+            date_default_timezone_set('Asia/Kolkata');
+            $this->currenttime = date('Y-m-d H:i:s');
+            return $next($request);
+        });
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

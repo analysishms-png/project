@@ -21,7 +21,7 @@ class VoucherVerification extends Controller
                 return redirect('/');
             }
             $this->username  = Auth::user()->name;
-            $this->propertyid = Auth::user()->propertyid;
+            $this->propertyid = $this->propertyid;
             return $next($request);
         });
     }
@@ -49,7 +49,7 @@ class VoucherVerification extends Controller
 
     public function pendingVouchers(Request $request)
     {
-        $propertyId = Auth::user()->propertyid;
+        $propertyId = $this->propertyid;
 
         $fromDate = $request->get('fromDate')
             ? Carbon::parse($request->get('fromDate'))->format('Y-m-d')
@@ -114,7 +114,7 @@ class VoucherVerification extends Controller
 
     public function getVoucherDetail(Request $request)
     {
-        $propertyId = Auth::user()->propertyid;
+        $propertyId = $this->propertyid;
         $vno        = $request->get('vno');
         $vtype      = $request->get('vtype');
 
@@ -146,7 +146,7 @@ class VoucherVerification extends Controller
     public function verifyVoucher(Request $request)
     {
         try {
-            $propertyId = Auth::user()->propertyid;
+            $propertyId = $this->propertyid;
             $docid      = $request->get('docid');
             $vno        = $request->get('vno');
             $vtype      = $request->get('vtype');
@@ -194,7 +194,7 @@ class VoucherVerification extends Controller
     // Approved Vouchers Report
     public function approvedVouchers(Request $request)
     {
-        $propertyId = Auth::user()->propertyid;
+        $propertyId = $this->propertyid;
 
         $fromDate = $request->get('fromDate')
             ? Carbon::parse($request->get('fromDate'))->format('Y-m-d')
@@ -275,7 +275,7 @@ class VoucherVerification extends Controller
     // Rejected Vouchers Report
     public function rejectedVouchers(Request $request)
     {
-        $propertyId = Auth::user()->propertyid;
+        $propertyId = $this->propertyid;
 
         $fromDate = $request->get('fromDate')
             ? Carbon::parse($request->get('fromDate'))->format('Y-m-d')
@@ -356,7 +356,7 @@ class VoucherVerification extends Controller
     public function resubmitVoucher(Request $request)
     {
         try {
-            $propertyId = Auth::user()->propertyid;
+            $propertyId = $this->propertyid;
             $vno        = $request->get('vno');
             $vtype      = $request->get('vtype');
             $lines      = json_decode($request->get('lines'), true) ?? [];
@@ -397,7 +397,7 @@ class VoucherVerification extends Controller
     public function sendForVerification(Request $request)
     {
         try {
-            $propertyId = Auth::user()->propertyid;
+            $propertyId = $this->propertyid;
             DB::table('ledger')
                 ->where('propertyid', $propertyId)
                 ->where('vno', $request->get('vno'))
@@ -412,7 +412,7 @@ class VoucherVerification extends Controller
     }
     public function userWiseEntry(Request $request)
     {
-        $propertyId  = Auth::user()->propertyid; // ← $this->propertyid ki jagah
+        $propertyId  = $this->propertyid; // ← $this->propertyid ki jagah
         $ncurdate    = $this->ncurfetch();
         $fromDate    = $request->fromDate ?? $ncurdate ?? Carbon::now()->format('Y-m-d');
         $toDate      = $request->toDate   ?? $ncurdate ?? Carbon::now()->format('Y-m-d');
@@ -473,7 +473,7 @@ class VoucherVerification extends Controller
 
     public function userWiseDetail(Request $request)
 {
-    $propertyId = Auth::user()->propertyid; 
+    $propertyId = $this->propertyid; 
 
     $user     = $request->u_name;
     $fromDate = $request->fromDate ?? Carbon::now()->format('Y-m-d');

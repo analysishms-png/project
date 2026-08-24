@@ -92,9 +92,9 @@ class Banquet extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->prpid = Auth::user()->propertyid;
+            $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
-            $this->ncurdate = DB::table('enviro_general')->where('propertyid', Auth::user()->propertyid)->value('ncur');
+            $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');
             $this->propertyid = $propertydata->propertyid;
             $this->ptlngth = strlen($this->propertyid);
             date_default_timezone_set('Asia/Kolkata');
@@ -202,11 +202,11 @@ class Banquet extends Controller
     public function banquetparameter(Request $request)
     {
 
-        $data = EnviroBanquet::where('propertyid', Auth::user()->propertyid)->first();
+        $data = EnviroBanquet::where('propertyid', $this->propertyid)->first();
 
         if (is_null($data)) {
             $insert = new EnviroBanquet();
-            $insert->propertyid = Auth::user()->propertyid;
+            $insert->propertyid = $this->propertyid;
             $insert->save();
         }
 
@@ -731,7 +731,7 @@ class Banquet extends Controller
 
     public function banquetbilling(Request $request)
     {
-        $banquet_edit_date = EnviroBanquet::where('propertyid', Auth::user()->propertyid)->first('banquet_edit_date');
+        $banquet_edit_date = EnviroBanquet::where('propertyid', $this->propertyid)->first('banquet_edit_date');
 
         $readonly = ($banquet_edit_date->banquet_edit_date === 1) ? 'readonly' : '';
         $docid = $request->query('docid');
@@ -743,8 +743,8 @@ class Banquet extends Controller
 
     public function performaInvoice(Request $request)
     {
-        $banquet_edit_date = EnviroBanquet::where('propertyid', Auth::user()->propertyid)->first('banquet_edit_date');
-        $oldBill = Hallsale1Est::where('propertyid', Auth::user()->propertyid)->get();
+        $banquet_edit_date = EnviroBanquet::where('propertyid', $this->propertyid)->first('banquet_edit_date');
+        $oldBill = Hallsale1Est::where('propertyid', $this->propertyid)->get();
         $readonly = ($banquet_edit_date->banquet_edit_date === 1) ? 'readonly' : '';
         return view('property.performainvoice', compact('oldBill', 'readonly'));
     }
@@ -4031,7 +4031,7 @@ class Banquet extends Controller
         $hallsale1 = HallSale1::where('propertyid', $this->propertyid)->where('docid', $hallsale1docid)->first();
         $ledgerService = new BanquetLedgerPosting(
             Auth::user()->name,
-            Auth::user()->propertyid
+            $this->propertyid
         );
 
         $gendocid = $ledgerService->generatepostingdocid($hallsale1);
