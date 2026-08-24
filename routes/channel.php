@@ -48,3 +48,5 @@ Route::get('bookingfetch', [ChannelPush::class, 'bookingfetch'])->name('bookingf
 // ═══════════════════════════════════════════════════════════════
 Route::get('/dashboard', [ChannelPush::class, 'dashboard'])->name('channel.dashboard');
 Route::get('/availability', [ChannelPush::class, 'availabilityCalendar'])->name('channel.availability');
+Route::get('/dashboard/counts', [ChannelPush::class, 'dashboardCounts'])->name('channel.dashboardCounts');
+Route::get('/availability/data', [ChannelPush::class, 'availabilityData'])->name('channel.availabilityData');

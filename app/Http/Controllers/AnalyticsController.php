@@ -13,7 +13,7 @@ class AnalyticsController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
+            $this->propertyid = session('propertyid') ?? $this->propertyid ?? 0;
             return $next($request);
         });
     }

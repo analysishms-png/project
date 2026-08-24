@@ -148,7 +148,7 @@ class RevenueManagementController extends Controller
     // AI PRICING ENGINE — Dynamic rate calculation
     // ═══════════════════════════════════════════════════════════════════════════
 
-    protected function calculateDynamicRate($catCode, $occupancyPct, $date)
+    protected function calculateDynamicRate($catCode, $occupancyPct, $date, $occtype = 'singleuser')
     {
         $propertyid = $this->propertyid;
 
@@ -156,7 +156,7 @@ class RevenueManagementController extends Controller
         $baseRate = DB::table('rate_list')
             ->where('propertyid', $propertyid)
             ->where('room_cat', $catCode)
-            ->where('occtype', 'singleuser')
+            ->where('occtype', $occtype)
             ->value('rate2') ?? 5000;
 
         if ($baseRate <= 0) return 0;
@@ -345,10 +345,35 @@ class RevenueManagementController extends Controller
     // RATE COMPARISON — Compare current vs AI-recommended vs channel rates
     // ═══════════════════════════════════════════════════════════════════════════
 
-    public function rateComparison()
+    public function rateComparison(Request $request)
     {
         $propertyid = $this->propertyid;
         $today = $this->ncurdate;
+        $occtype = $request->input('occtype', 'singleuser') === 'multiuser' ? 'multiuser' : 'singleuser';
+
+        $comparison = $this->buildRateComparison($today, $occtype);
+
+        return view('property.revenueratecomparison', compact('comparison', 'occtype'));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // RATE COMPARISON DATA — JSON feed for the live AJAX comparison
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function rateComparisonData(Request $request)
+    {
+        $today = $this->ncurdate;
+        $occtype = $request->input('occtype', 'singleuser') === 'multiuser' ? 'multiuser' : 'singleuser';
+
+        return response()->json([
+            'occtype' => $occtype,
+            'rows' => $this->buildRateComparison($today, $occtype),
+        ]);
+    }
+
+    protected function buildRateComparison($today, $occtype)
+    {
+        $propertyid = $this->propertyid;
 
         $categories = DB::table('room_cat')
             ->where('propertyid', $propertyid)
@@ -360,17 +385,17 @@ class RevenueManagementController extends Controller
             $currentRate = DB::table('rate_list')
                 ->where('propertyid', $propertyid)
                 ->where('room_cat', $cat->cat_code)
-                ->where('occtype', 'singleuser')
+                ->where('occtype', $occtype)
                 ->value('rate2') ?? 0;
 
             $occupancyPct = $this->getOccupancyForDate($today);
-            $aiRate = $this->calculateDynamicRate($cat->cat_code, $occupancyPct, $today);
+            $aiRate = $this->calculateDynamicRate($cat->cat_code, $occupancyPct, $today, $occtype);
 
-            // Channel rate (if mapped)
-            $channelRate = DB::table('channelrate')
+            // Channel rate (latest derived price pushed to channels)
+            $channelRate = DB::table('channelderived')
                 ->where('propertyid', $propertyid)
-                ->where('cat_code', $cat->cat_code)
-                ->value('rate') ?? 0;
+                ->orderByDesc('sn')
+                ->value('price') ?? 0;
 
             $comparison[] = [
                 'cat_code' => $cat->cat_code,
@@ -382,6 +407,6 @@ class RevenueManagementController extends Controller
             ];
         }
 
-        return view('property.revenueratecomparison', compact('comparison'));
+        return $comparison;
     }
 }

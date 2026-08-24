@@ -89,3 +89,108 @@ Verified key .ai claims against actual code + suite:
 - ✅ BUG-043: deletedate writes userupdate audit
 - ✅ flushAvailability wired: Company 9, HouseKeeping 3, RoomController 2, ChannelPublic/Pointofsale/Frontend 1 each
 - ✅ Suite: 68 passed (165 assertions) — matches COMPLETED_TASKS claim
+
+## Session 5 — 2026-08-24 (environment recovery + mass file-corruption repair)
+
+### Done
+1. **Environment**: XAMPP MySQL was DOWN (port 3306 refused) → started mysqld (`--defaults-file=C:\xampp\mysql\bin\my.ini --standalone`). This was the root cause of ExampleTest `/` → 500 (PDOException 2002) and 35 skipped DB tests.
+2. **Mass corruption found & repaired**: **53 PHP controller files were 100% null bytes** (`00 00 …`, original size preserved) — including HouseKeeping.php (212KB), Pointofsale.php (164KB), Pos.php, SaleBill.php, Reservation.php, ReportController.php, Fetch.php, EInvoiceParameter.php, NightAudit/Reports/DailyReport.php, Member*, HRPayroll*, Finance/Transaction/VoucherEntry.php etc. Caused 7 BindingResolutionException test failures (`Target class [App\Http\Controllers\HouseKeeping] does not exist`).
+   - Verified every file was git-tracked with a valid `<?php` HEAD version and contained ZERO real content (all-zero byte scan) before restore.
+   - Restored all 53 via `git checkout -- <file>` (uncommitted legit changes elsewhere untouched).
+3. **Full suite green**: **76 passed / 185 assertions / 0 failed** (1 intentional live-skip).
+4. **Prevention note**: root-level `apply_all_fixes.py` / `fix_manual_bugs.py` / `fix_remaining_10.py` do unguarded read→whole-file rewrite cycles ('w' mode, no backup/temp-rename); the all-nulls-size-preserved signature also matches NTFS crash/power-loss. Do NOT run those scripts again; prefer targeted edits.
+
+### Agent coverage this session
+| Agent | Coverage |
+|---|---|
+| 17 Bug Hunter | root-caused 500 on `/` (DB down) + 7 class-not-found failures (null-byte files) |
+| 25 Repository Analyzer | full-tree byte-level scan → 53 corrupt files identified, all recovered |
+| 26 Database Integrity | verified `analysis` schema intact post-recovery (228 tables; props=79 in `company`) |
+| 30 Regression | full suite re-run green after repair |
+
+## Session 6 — 2026-08-24 (permission gap audit + Batch C rollout, prop 103)
+
+### Done
+1. **Auth/permission agent (plan item 2) partially executed**: cross-referenced every `revokeopen(NNNNNN)` call site in `app/` against `menuhelp` grants on property 103 → **8 codes granted to NOBODY** (hard-blocked features): 141611 (Banquet delete/billing), 171111-113 (Membership masters — BUG-048 guards had zero rows anywhere), 172315 (POS settlement/table-change; configured on props 104/147/169 but not 103), 201111 (MainController setup + Tools destructive ops + Hrpayrolls employee edit/delete), 998765 (`housekeepingstatusreport`). 172016 found only in a commented line — skipped.
+2. **Batch C applied** (`.ai/menu_permissions_missing_reports.sql`, documented in `.ai/menu_permissions_batch_C_2026-08-24.txt`): legacy-parity grants per HMS.bas menuhelp model. 172315 → 17 POS users (home-outlet route from own 172111 row, view forced=1); membership subheader 171100 + 3 master pages under Point Of Sale for sa/ADMIN/ADMIN1; action codes 141611/201111 as invisible leaf rows; 998765 view+print incl. HOUSKEEPING user.
+3. **Gotchas fixed en route**: PK is (propertyid,compcode,username,opt1..opt3,code) so one row per user/code (route NOT part of PK); `sa` holds two 172111 rows with different outlets → sibling join must aggregate (GROUP BY/MAX) or the INSERT self-duplicates.
+4. **permCacheBump(103,'*')** executed post-insert; `revokeopen()` verified GRANTED(view=1) for all 7 codes as sa@103. Full suite still green: **76 passed / 185 assertions**.
+
+### Agent coverage this session
+| Agent | Coverage |
+|---|---|
+| 03 USER/PERMISSION | menuhelp-vs-guard parity scan on 103; 8 blocked codes found, 7 fixed + 1 n/a |
+| 18 Hotel Business | grant semantics mirror live legacy rows (prop 104/147/169) instead of inventing flags |
+| 26 DATABASE INTEGRITY | idempotent inserts only; no updates/deletes to existing rows |
+| 30 REGRESSION | suite green after rollout |
+
+---
+
+## Session 7 - Redis + JS rollout (2026-08-24, ox-alpha)
+
+### Redis (REDIS_JS_PLAN.md Phase 0)
+- Installed tporadowski/redis v5.0.14.1 for Windows to C:\xampp\redis; server started on port 6379 (PONG verified).
+- composer require predis/predis (v3.6) - class was referenced but missing from vendor.
+- .env: CACHE_DRIVER=file -> redis, added REDIS_CLIENT=predis (phpredis ext not installed).
+- New App\Services\ResilientCacheManager extends Illuminate\Cache\CacheManager; resolve('redis') transparently falls back to the file store whenever CacheService::redisUp() probe fails. Registered via app->extend('cache') in AppServiceProvider::register(). This covers ALL ~90 direct Cache:: call sites (CompanyController 56, MasterDataCache 10, etc.), not just CacheService.
+- Verified: redis up -> put/get OK; redis killed -> redisUp:false, store silently resolves to file, zero exceptions.
+- Full suite green on redis driver: 76 passed / 185 assertions.
+
+### JS dedup (Phase J-B, first batch - 10 blades)
+Removed inline definitions identical to public/js/hms-report.js canonicals (global window aliases now serve them; header.blade.php:471 loads the lib before page scripts):
+- fmt removed: guestwiseanalysis, advreconreport
+- fmtDate removed: cashiersettlement, coveranalysis, guestpayments, roomchangehistory, taxsummarypos (kept fmt2), taxreportinv (kept fmt2), chequenotclearedregister (kept local fmt), chequeclearedregister (kept local fmt)
+
+Intentionally KEPT locals (semantics differ from canonical - changing would alter output):
+- arrivaldep/expecteddep/roomoccdisp: fmt is a string passthrough (v||''), not number formatting
+- occupancyforecast: fmt returns '0' with no grouping
+- taxreport: fmtDate uses dash separators (dd-mm-yyyy) vs canonical slashes
+- chequenotclearedregister + chequeclearedregister: local fmt uses western grouping regex vs en-IN
+
+Verification: php artisan view:cache compiles all blades clean; test suite 76 passed.
+
+### Remaining (next session)
+- Phase J-B batch 2: migrate remaining blades' radioVal()/dmy() patterns and audit any other duplicated helpers (hmsAutoFetch/hmsTableInit adoption optional per plan).
+- SESSION_DRIVER stays file by design (Phase 5 later); QUEUE_CONNECTION=sync unchanged.
+- Redis auto-start on boot not configured (manual Start-Process); consider a scheduled task or NSSM service if needed.
+
+---
+
+## Session 8 - JS rollout complete: Phase J-B batch 2 + Phase J-C (2026-08-24, ox-alpha)
+
+### JS dedup (Phase J-B, final)
+- hms-report.js extended with hmsDmy(d) (dd-mm-yyyy) + window.dmy alias.
+- Local dmy() removed from advreconreport, complimentaryreport, taxreporpos.
+- radioVal audit: zero local definitions remain; 12 blades call the global.
+
+### Phase J-C - 5 interactive pages upgraded (all were server-render-only)
+New JSON endpoints (all verified via tests/Feature/JCEndpointsSmokeTest.php):
+- GET chain/report/data            -> ChainController@crossPropertyReportData
+- GET channel/availability/data    -> ChannelPush@availabilityData (mapped=1 filter)
+- GET channel/dashboard/counts     -> ChannelPush@dashboardCounts (CacheService::remember 60s)
+- GET invdashboard/summary         -> InventoryController@lookupSummary (cached 60s)
+- GET revenue/rate-comparison/data -> RevenueManagementController@rateComparisonData
+
+Blade upgrades (hms-report.js helpers used throughout):
+- chainreport: All Properties / Chain Total radio + date auto-fetch, KPI + tbody/tfoot re-render via JS.
+- channelavailability: All Categories / OTA-Mapped radio + Live Refresh button re-renders grid body via AJAX.
+- channeldashboard: 4 KPI cards refresh every 60s (Redis-cached counts) + refresh button + updated-stamp.
+- lookupdashboard: Bootstrap tabs (Quick Links | Live Summary AJAX panel with retry/error state).
+- revenueratecomparison: singleuser/multiuser radio + table/cards view toggle + auto-fetch.
+
+### Bugs fixed (pages broken before this session)
+1. ChannelPush::dashboard() fatal: unqualified ChannelPushes class did not exist in controller namespace -> added use App\Models\ChannelPushes. Page now renders.
+2. ChannelPush::dashboard(): compact('ncurdate') on undefined local -> removed.
+3. revenueratecomparison page SQL error: queried channelrate.rate (column does not exist; channelrate is a push log). Now uses latest channelderived.price as the channel rate.
+4. channelavailability page SQL error: selected room_cat.totalroom (column does not exist) -> COALESCE(norooms,0) AS totalroom keeps keys stable for blade/JS.
+5. lookupdashboard render-fatal: 5 of 9 cards called route('pendingindent'|'pendingpurchaseorder'|'supplierwisepurchase'|'getPurchaseAmount'|'miniusstock') but those routes are not defined -> cards disabled with 'Setup pending' badge until backend exists.
+
+### Verification
+- php -l clean on all touched controllers; view:cache compile sweep clean.
+- Full suite: 81 passed / 212 assertions / 0 failed (76 baseline + 5 new JC endpoint tests).
+- Redis cache round-trip confirmed on DB 1 (laravel cache connection default REDIS_CACHE_DB=1; inspect via redis-cli -n 1).
+
+### Remaining (next sessions)
+- Phase 2/3 (master-data + report-result caching) still open per plan.
+- lookupdashboard missing routes: implement pendingindent/pendingpurchaseorder/supplierwisepurchase/getPurchaseAmount/miniusstock backends, then re-enable cards.
+- Phase 5 (SESSION_DRIVER=redis) intentionally deferred.

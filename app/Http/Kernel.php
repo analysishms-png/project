@@ -124,5 +124,6 @@ class Kernel extends HttpKernel
         'protect.route' => \App\Http\Middleware\ProtectRoute::class,
         'api.auth' => \App\Http\Middleware\ApiAuth::class,
         'log.third.party' => \App\Http\Middleware\LogThirdPartyActivity::class,
+        'report.cache' => \App\Http\Middleware\CacheReportFetch::class,
     ];
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ChannelDerived;
 use App\Models\ChannelEnviro;
+use App\Models\ChannelPushes;
 use App\Models\ChannelRate;
 use App\Models\Paycharge;
 use App\Models\RoomMast;
@@ -98,8 +99,30 @@ class ChannelPush extends Controller
         return view('property.channeldashboard', compact(
             'channelenviro', 'isConnected', 'roomcat', 'pushes',
             'derived', 'rates', 'todayBookings', 'connectionStatus',
-            'connectionColor', 'ncurdate'
+            'connectionColor'
         ));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DASHBOARD KPI COUNTS — JSON feed for live auto-refresh cards (Redis cached)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function dashboardCounts()
+    {
+        $propertyid = $this->propertyid;
+
+        $counts = \App\Services\CacheService::remember("chdash:{$propertyid}", 60, function () use ($propertyid) {
+            return [
+                'roomcats' => RoomCat::where('propertyid', $propertyid)->count(),
+                'todayBookings' => ChannelPushes::where('propertyid', $propertyid)
+                    ->whereDate('u_entdt', $this->ncurdate)
+                    ->count(),
+                'rates' => ChannelRate::where('propertyid', $propertyid)->count(),
+                'derived' => ChannelDerived::where('propertyid', $propertyid)->count(),
+            ];
+        });
+
+        return response()->json($counts);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -113,11 +136,11 @@ class ChannelPush extends Controller
         $endDate = date('Y-m-d', strtotime($startDate . ' +13 days'));
 
         $roomcat = RoomCat::where('propertyid', $propertyid)
-            ->select('cat_code', 'name', 'map_code', 'totalroom')
+            ->select('cat_code', 'name', 'map_code')
+            ->addSelect(DB::raw('COALESCE(norooms, 0) as totalroom'))
             ->orderBy('cat_code')
             ->get();
 
-        // Get room occupancy for date range
         $dates = [];
         $current = new \Carbon\Carbon($startDate);
         while ($current->toDateString() <= $endDate) {
@@ -125,11 +148,59 @@ class ChannelPush extends Controller
             $current->addDay();
         }
 
+        $availability = $this->buildAvailabilityGrid($roomcat, $dates, $propertyid);
+
+        return view('property.channelavailability', compact(
+            'roomcat', 'dates', 'availability', 'startDate', 'endDate'
+        ));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AVAILABILITY GRID DATA — JSON feed for the live AJAX grid
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function availabilityData(Request $request)
+    {
+        $propertyid = $this->propertyid;
+        $startDate = $request->input('start', $this->ncurdate);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            $startDate = $this->ncurdate;
+        }
+        $mappedOnly = $request->boolean('mapped');
+
+        $query = RoomCat::where('propertyid', $propertyid)
+            ->select('cat_code', 'name', 'map_code')
+            ->addSelect(DB::raw('COALESCE(norooms, 0) as totalroom'));
+        if ($mappedOnly) {
+            $query->whereNotNull('map_code')->where('map_code', '!=', '');
+        }
+        $roomcat = $query->orderBy('cat_code')->get();
+
+        $dates = [];
+        $current = new \Carbon\Carbon($startDate);
+        $endDate = date('Y-m-d', strtotime($startDate . ' +13 days'));
+        while ($current->toDateString() <= $endDate) {
+            $dates[] = $current->toDateString();
+            $current->addDay();
+        }
+
+        $availability = $this->buildAvailabilityGrid($roomcat, $dates, $propertyid);
+
+        return response()->json([
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'categories' => $roomcat,
+            'dates' => $dates,
+            'availability' => $availability,
+        ]);
+    }
+
+    protected function buildAvailabilityGrid($roomcat, $dates, $propertyid)
+    {
         $availability = [];
         foreach ($roomcat as $cat) {
             $totalRooms = $cat->totalroom ?? 0;
             foreach ($dates as $date) {
-                // Count occupied rooms for this category and date
                 $occupied = RoomOcc::where('propertyid', $propertyid)
                     ->where('roomcat', $cat->cat_code)
                     ->where('chkindate', '<=', $date)
@@ -149,9 +220,7 @@ class ChannelPush extends Controller
             }
         }
 
-        return view('property.channelavailability', compact(
-            'roomcat', 'dates', 'availability', 'startDate', 'endDate'
-        ));
+        return $availability;
     }
 
     public function showrooms(Request $request)

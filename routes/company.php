@@ -1300,7 +1300,7 @@ Route::get('assignments/view', [HouseKeeping::class, 'assignmentViewPage'])->nam
 // Open Housekeeping Status Report
 Route::get('housekeepingstatusreport', [CompanyController::class, 'housekeepingstatusreport'])->name('housekeepingstatusreport');
 // Fetch Housekeeping Status Report Data
-Route::post('fetchhousekeepingstatusreport', [CompanyController::class, 'fetchhousekeepingstatusreport'])->name('fetchhousekeepingstatusreport');
+Route::post('fetchhousekeepingstatusreport', [CompanyController::class, 'fetchhousekeepingstatusreport'])->name('fetchhousekeepingstatusreport')->middleware('report.cache');
 
 Route::get('getpurchaseamount', [CompanyController::class, 'getPurchaseAmount'])->name('getPurchaseAmount');
 // Fetch Purchase Amount
@@ -1851,7 +1851,7 @@ Route::prefix('finance')->group(function () {
 
     Route::prefix('transaction')->group(function () {
         Route::get('bankreconciliation', [BankReconcilation::class, 'index'])->name('finance.transaction.bankreconciliation');
-        Route::post('bankreconciliation/fetch', [BankReconcilation::class, 'ledgerfetch'])->name('finance.transaction.bankreconciliation.ledgerfetch');
+        Route::post('bankreconciliation/fetch', [BankReconcilation::class, 'ledgerfetch'])->name('finance.transaction.bankreconciliation.ledgerfetch')->middleware('report.cache');
         Route::post('bankreconciliation/ledgeramtfetch', [BankReconcilation::class, 'ledgeramtfetch'])->name('finance.transaction.bankreconciliation.ledgeramtfetch');
         Route::post('/bankreconciliation/updateledger', [BankReconcilation::class, 'updateledger'])->name('finance.transaction.bankreconciliation.updateledger');
     });
@@ -1859,7 +1859,7 @@ Route::prefix('finance')->group(function () {
 
 // TDS Report Routes (Outside finance prefix for simple URL)
 Route::get('tdsreport', [FinanceController::class, 'tdsreport'])->name('tdsreport');
-Route::post('tdsreport/fetch', [FinanceController::class, 'tdsreportdata'])->name('tdsreport.fetch');
+Route::post('tdsreport/fetch', [FinanceController::class, 'tdsreportdata'])->name('tdsreport.fetch')->middleware('report.cache');
 
 //extra/einvoicereport
 Route::get('einvoicereport', [EInvoiceParameter::class, 'einvoicereport'])->name('einvoicereport');
@@ -1896,7 +1896,7 @@ Route::get('voucherverification/userwise-detail', [VoucherVerification::class, '
 // Detailed Trial Ledger Open
 Route::get('detailedtrialledger', [FinanceController::class, 'detailedTrialLedger'])->name('detailedtrialledger');
 // Detailed Trial Ledger Fetch
-Route::post('detailedtrialledger/fetch', [FinanceController::class, 'detailedTrialLedgerQuery'])->name('detailedtrialledger.fetch');
+Route::post('detailedtrialledger/fetch', [FinanceController::class, 'detailedTrialLedgerQuery'])->name('detailedtrialledger.fetch')->middleware('report.cache');
 // Detailed Trial Ledger Print
 Route::get('printdetailedtrialledger', [FinanceController::class, 'printDetailedTrialLedger'])->name('printdetailedtrialledger');
 // Detailed Trial Ledger Excel Export
@@ -1905,7 +1905,7 @@ Route::get('detailedtrialledger/export', [FinanceController::class, 'exportDetai
 // General Ledger Open
 Route::get('generalledger', [FinanceController::class, 'generalLedger'])->name('generalledger');
 // General Ledger Fetch
-Route::post('generalledger/fetch', [FinanceController::class, 'generalLedgerQuery'])->name('generalledger.fetch');
+Route::post('generalledger/fetch', [FinanceController::class, 'generalLedgerQuery'])->name('generalledger.fetch')->middleware('report.cache');
 // General Ledger Print
 Route::get('printgeneralledger', [FinanceController::class, 'printGeneralLedger'])->name('printgeneralledger');
 // General Ledger Excel Export
@@ -1916,7 +1916,7 @@ Route::post('generalledger/accounts', [FinanceController::class, 'generalLedgerA
 // Day Book Open
 Route::get('daybook', [FinanceController::class, 'dayBook'])->name('daybook');
 // Day Book Fetch
-Route::post('daybook/fetch', [FinanceController::class, 'dayBookQuery'])->name('daybook.fetch');
+Route::post('daybook/fetch', [FinanceController::class, 'dayBookQuery'])->name('daybook.fetch')->middleware('report.cache');
 // Day Book Voucher Types (for filter dropdown)
 Route::post('daybook/vtypes', [FinanceController::class, 'dayBookVtypes'])->name('daybook.vtypes');
 // Day Book Print
@@ -1927,7 +1927,7 @@ Route::get('daybook/export', [FinanceController::class, 'exportDayBook'])->name(
 // Journal Book Open (legacy JournalBook — ledger postings for a voucher type, default JV)
 Route::get('journalbook', [FinanceController::class, 'journalBook'])->name('journalbook');
 // Journal Book Fetch
-Route::post('journalbook/fetch', [FinanceController::class, 'journalBookQuery'])->name('journalbook.fetch');
+Route::post('journalbook/fetch', [FinanceController::class, 'journalBookQuery'])->name('journalbook.fetch')->middleware('report.cache');
 // Journal Book Voucher Types (for filter dropdown)
 Route::post('journalbook/vtypes', [FinanceController::class, 'journalBookVtypes'])->name('journalbook.vtypes');
 // Journal Book Print
@@ -1938,7 +1938,7 @@ Route::get('journalbook/export', [FinanceController::class, 'exportJournalBook']
 // Cash Book / Bank Book Open
 Route::get('cashbankbook', [FinanceController::class, 'cashBankBook'])->name('cashbankbook');
 // Cash Book / Bank Book Fetch
-Route::post('cashbankbook/fetch', [FinanceController::class, 'cashBankBookQuery'])->name('cashbankbook.fetch');
+Route::post('cashbankbook/fetch', [FinanceController::class, 'cashBankBookQuery'])->name('cashbankbook.fetch')->middleware('report.cache');
 // Cash Book / Bank Book Accounts (for filter dropdown)
 Route::post('cashbankbook/accounts', [FinanceController::class, 'cashBankBookAccounts'])->name('cashbankbook.accounts');
 // Cash Book / Bank Book Print
@@ -2062,44 +2062,44 @@ Route::get('loadservicefacilities', [HouseKeeping::class, 'servicefacilitiesload
 
 // Aging Report — Debtors
 Route::get('agingdr', [FinanceController::class, 'agingDr'])->name('agingdr');
-Route::post('agingdr/fetch', [FinanceController::class, 'agingDrFetch'])->name('agingdr.fetch');
+Route::post('agingdr/fetch', [FinanceController::class, 'agingDrFetch'])->name('agingdr.fetch')->middleware('report.cache');
 
 // Aging Report — Creditors
 Route::get('agingcr', [FinanceController::class, 'agingCr'])->name('agingcr');
-Route::post('agingcr/fetch', [FinanceController::class, 'agingCrFetch'])->name('agingcr.fetch');
+Route::post('agingcr/fetch', [FinanceController::class, 'agingCrFetch'])->name('agingcr.fetch')->middleware('report.cache');
 
 // Aging Report — Debtors (detailed with bucket columns)
 Route::get('agingrepdr', [FinanceController::class, 'agingRepDr'])->name('agingrepdr');
-Route::post('agingrepdr/fetch', [FinanceController::class, 'agingRepDrFetch'])->name('agingrepdr.fetch');
+Route::post('agingrepdr/fetch', [FinanceController::class, 'agingRepDrFetch'])->name('agingrepdr.fetch')->middleware('report.cache');
 
 // Aging Report — Creditors (detailed with bucket columns)
 Route::get('agingrepcr', [FinanceController::class, 'agingRepCr'])->name('agingrepcr');
-Route::post('agingrepcr/fetch', [FinanceController::class, 'agingRepCrFetch'])->name('agingrepcr.fetch');
+Route::post('agingrepcr/fetch', [FinanceController::class, 'agingRepCrFetch'])->name('agingrepcr.fetch')->middleware('report.cache');
 
 // Due List — Customer/Debtor
 Route::get('duelist', [FinanceController::class, 'dueList'])->name('duelist');
-Route::post('duelist/fetch', [FinanceController::class, 'dueListFetch'])->name('duelist.fetch');
+Route::post('duelist/fetch', [FinanceController::class, 'dueListFetch'])->name('duelist.fetch')->middleware('report.cache');
 
 // Due List — Creditor Overlay
 Route::get('duelistcreditoroverlay', [FinanceController::class, 'dueListCreditorOverlay'])->name('duelistcreditoroverlay');
-Route::post('duelistcreditoroverlay/fetch', [FinanceController::class, 'dueListCreditorOverlayFetch'])->name('duelistcreditoroverlay.fetch');
+Route::post('duelistcreditoroverlay/fetch', [FinanceController::class, 'dueListCreditorOverlayFetch'])->name('duelistcreditoroverlay.fetch')->middleware('report.cache');
 
 // Guest Payments Report
 Route::get('guestpayments', [FinanceController::class, 'guestPayments'])->name('guestpayments');
-Route::post('guestpayments/fetch', [FinanceController::class, 'guestPaymentsFetch'])->name('guestpayments.fetch');
+Route::post('guestpayments/fetch', [FinanceController::class, 'guestPaymentsFetch'])->name('guestpayments.fetch')->middleware('report.cache');
 
 // Non-Transferable Accounts
 Route::get('nontrans', [FinanceController::class, 'nonTrans'])->name('nontrans');
-Route::post('nontrans/fetch', [FinanceController::class, 'nonTransFetch'])->name('nontrans.fetch');
+Route::post('nontrans/fetch', [FinanceController::class, 'nonTransFetch'])->name('nontrans.fetch')->middleware('report.cache');
 
 // Loan Summary, Ledger, Register
 Route::get('loanadvsumm', [FinanceController::class, 'loanAdvSumm'])->name('loanadvsumm');
-Route::post('loanadvsumm/fetch', [FinanceController::class, 'loanAdvSummFetch'])->name('loanadvsumm.fetch');
+Route::post('loanadvsumm/fetch', [FinanceController::class, 'loanAdvSummFetch'])->name('loanadvsumm.fetch')->middleware('report.cache');
 Route::get('loanledger', [FinanceController::class, 'loanLedg'])->name('loanledger');
-Route::post('loanledger/fetch', [FinanceController::class, 'loanLedgFetch'])->name('loanledger.fetch');
+Route::post('loanledger/fetch', [FinanceController::class, 'loanLedgFetch'])->name('loanledger.fetch')->middleware('report.cache');
 Route::get('loanregister', [FinanceController::class, 'loanReg'])->name('loanregister');
-Route::post('loanregister/fetch', [FinanceController::class, 'loanRegFetch'])->name('loanregister.fetch');
+Route::post('loanregister/fetch', [FinanceController::class, 'loanRegFetch'])->name('loanregister.fetch')->middleware('report.cache');
 
 // Customer Detail
 Route::get('customerdetail', [FinanceController::class, 'customerDetail'])->name('customerdetail');
-Route::post('customerdetail/fetch', [FinanceController::class, 'customerDetailFetch'])->name('customerdetail.fetch');
+Route::post('customerdetail/fetch', [FinanceController::class, 'customerDetailFetch'])->name('customerdetail.fetch')->middleware('report.cache');

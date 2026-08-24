@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\DB;
 /**
  * Master-data cache (PERF-03).
  *
- * The hottest master lists — travel agents, corporate companies, rooms, and
- * FOM revenue codes — are re-fetched on nearly every booking/walkin page
- * load. These lists change only through their master CRUD screens, so they
- * are cached per property and explicitly flushed on every write path.
+ * The hottest master lists — travel agents, corporate companies, rooms,
+ * FOM revenue codes, POS outlets, and the header company switcher — are
+ * re-fetched on nearly every page load. These lists change only through
+ * their master CRUD screens, so they are cached per property and explicitly
+ * flushed on every write path.
  *
  * Cache driver is `file` (PERF-04), so entries survive across requests.
  * TTL is a safety net only — correctness relies on flush() being called on
@@ -27,6 +28,8 @@ class MasterDataCache
     public const KEY_COMPANIES_AGENTS = 'companiesagents';
     public const KEY_ROOMS = 'rooms';
     public const KEY_FOM_CHARGES = 'fomcharges';
+    public const KEY_OUTLETS = 'outlets';
+    public const KEY_HEADER_COMPANIES = 'headercompanies';
     public const KEY_AVAIL_VERSION = 'availversion';
 
     /**
@@ -132,8 +135,52 @@ class MasterDataCache
     }
 
     /**
+     * POS outlets — depart where nature='Outlet', ordered by name.
+     * With $roomServiceToo, Room Service departments are included
+     * (inventory/stock screens list both).
+     */
+    public static function outlets(string $propertyid, bool $roomServiceToo = false)
+    {
+        return Cache::remember(
+            self::key($propertyid, self::KEY_OUTLETS . ($roomServiceToo ? '.rs' : '')),
+            self::TTL,
+            function () use ($propertyid, $roomServiceToo) {
+                $q = DB::table('depart')->where('propertyid', $propertyid);
+                if ($roomServiceToo) {
+                    $q->whereIn('nature', ['Outlet', 'Room Service']);
+                } else {
+                    $q->where('nature', 'Outlet');
+                }
+
+                return $q->orderBy('name', 'ASC')->get();
+            }
+        );
+    }
+
+    /**
+     * Header company switcher list — company rows for the property
+     * (the Companyreg Eloquent model maps to the `company` table),
+     * ordered by comp_code. Rendered by the layouts/header composer on
+     * every authenticated page view.
+     */
+    public static function headerCompanies(string $propertyid)
+    {
+        return Cache::remember(
+            self::key($propertyid, self::KEY_HEADER_COMPANIES),
+            self::TTL,
+            function () use ($propertyid) {
+                return DB::table('company')
+                    ->where('propertyid', $propertyid)
+                    ->orderBy('comp_code', 'ASC')
+                    ->get();
+            }
+        );
+    }
+
+    /**
      * Flush every master-data key for a property.
-     * Call after any write to subgroup / room_mast / revmast.
+     * Call after any write to subgroup / room_mast / revmast / depart /
+     * companyreg.
      */
     public static function flush(string $propertyid): void
     {
@@ -143,6 +190,9 @@ class MasterDataCache
             self::KEY_COMPANIES_AGENTS,
             self::KEY_ROOMS,
             self::KEY_FOM_CHARGES,
+            self::KEY_OUTLETS,
+            self::KEY_OUTLETS . '.rs',
+            self::KEY_HEADER_COMPANIES,
         ] as $type) {
             Cache::forget(self::key($propertyid, $type));
         }

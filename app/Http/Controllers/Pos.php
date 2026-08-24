@@ -2572,6 +2572,8 @@ class Pos extends Controller
 
         Depart::insert($insertData);
 
+        \App\Helpers\MasterDataCache::flush($this->propertyid);
+
         return back()->with('success', 'Depart Added Successfully');
     }
 
@@ -2590,6 +2592,8 @@ class Pos extends Controller
         GodownMast::where('propertyid', $this->propertyid)
             ->where('scode', base64_decode($request->input('dcode')))
             ->delete();
+
+        \App\Helpers\MasterDataCache::flush($this->propertyid);
 
         if ($deleting) {
             return back()->with('success', 'Depart Master Deleted successfully!');

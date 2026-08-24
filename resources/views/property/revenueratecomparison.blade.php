@@ -22,8 +22,35 @@
                 </div>
             </div>
 
+            <!-- Controls -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3">
+                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                <label class="btn btn-outline-secondary btn-sm {{ $occtype === 'singleuser' ? 'active' : '' }}">
+                                    <input type="radio" name="rcOcc" value="singleuser" {{ $occtype === 'singleuser' ? 'checked' : '' }}> Single User
+                                </label>
+                                <label class="btn btn-outline-secondary btn-sm {{ $occtype === 'multiuser' ? 'active' : '' }}">
+                                    <input type="radio" name="rcOcc" value="multiuser" {{ $occtype === 'multiuser' ? 'checked' : '' }}> Multi User
+                                </label>
+                            </div>
+                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                <label class="btn btn-outline-primary btn-sm active">
+                                    <input type="radio" name="rcView" value="table" checked> <i class="mdi mdi-table me-1"></i>Table
+                                </label>
+                                <label class="btn btn-outline-primary btn-sm">
+                                    <input type="radio" name="rcView" value="cards"> <i class="mdi mdi-view-dashboard-outline me-1"></i>Cards
+                                </label>
+                            </div>
+                            <small class="text-muted ms-auto"><i class="mdi mdi-flash me-1"></i>Updates automatically on change</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Comparison Table -->
-            <div class="row">
+            <div class="row rcViewTable">
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
@@ -39,7 +66,7 @@
                                             <th class="text-center">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="rcBody">
                                         @forelse($comparison as $comp)
                                         <tr>
                                             <td>
@@ -88,7 +115,7 @@
             </div>
 
             <!-- Visual Comparison -->
-            <div class="row">
+            <div class="row rcViewCards d-none">
                 @forelse($comparison as $comp)
                 <div class="col-xl-3 col-md-6">
                     <div class="card border-0 shadow-sm h-100">
@@ -130,5 +157,56 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    'use strict';
+
+    var rcRows = null;
+
+    function rcRender() {
+        if (!rcRows) return;
+        var mode = window.hmsRadioVal('rcView') || 'table';
+        $('.rcViewTable').toggleClass('d-none', mode === 'cards');
+        $('.rcViewCards').toggleClass('d-none', mode !== 'cards');
+    }
+
+    function rcFetch() {
+        var occtype = window.hmsRadioVal('rcOcc') || 'singleuser';
+        $.getJSON('{{ url("revenue/rate-comparison/data") }}', { occtype: occtype }, function (res) {
+            if (!res || !res.rows) return;
+            rcRows = res.rows;
+
+            var h = '';
+            $.each(rcRows, function (i, c) {
+                var diff, status;
+                if (c.difference > 0) {
+                    diff = '<span class="text-success fw-bold">+₹' + window.hmsFmt(c.difference) + '</span>';
+                    status = '<span class="badge badge-soft-success">Increase Recommended</span>';
+                } else if (c.difference < 0) {
+                    diff = '<span class="text-danger fw-bold">-₹' + window.hmsFmt(Math.abs(c.difference)) + '</span>';
+                    status = '<span class="badge badge-soft-warning">Decrease Recommended</span>';
+                } else {
+                    diff = '<span class="text-muted">—</span>';
+                    status = '<span class="badge badge-soft-secondary">Optimal</span>';
+                }
+                h += '<tr><td><strong>' + (c.name || '') + '</strong><br><small class="text-muted">' + (c.cat_code || '') + '</small></td>' +
+                    '<td class="text-right">₹' + window.hmsFmt(c.current_rate) + '</td>' +
+                    '<td class="text-right fw-bold text-primary">₹' + window.hmsFmt(c.ai_rate) + '</td>' +
+                    '<td class="text-right">' + (c.channel_rate > 0 ? '₹' + window.hmsFmt(c.channel_rate) : '<span class="text-muted">—</span>') + '</td>' +
+                    '<td class="text-right">' + diff + '</td>' +
+                    '<td class="text-center">' + status + '</td></tr>';
+            });
+            $('#rcBody').html(h);
+            rcRender();
+        });
+    }
+
+    $(function () {
+        $(document).on('change', 'input[name="rcOcc"]', rcFetch);
+        $(document).on('change', 'input[name="rcView"]', rcRender);
+    });
+})();
+</script>
 
 @endsection

@@ -21,6 +21,6 @@
 </div>
 <script>
 $(document).ready(function(){$('#fetchBtn').click(function(){$.post('{{ route("guestwiseanalysisfetch") }}',{fromdate:$('#fromdate').val(),todate:$('#todate').val()},function(res){var h='',tB=0,tC=0,tP=0,tBa=0;$.each(res,function(i,r){var bal=Number(r.TotalCharges||0)-Number(r.TotalPayments||0);h+='<tr><td>'+(i+1)+'</td><td>'+(r.FirstName||'')+' '+(r.LastName||'')+'</td><td>'+(r.Mobile||'')+'</td><td>'+(r.CompanyName||'')+'</td><td>'+r.TotalBookings+'</td><td class="text-right">₹'+fmt(r.TotalCharges)+'</td><td class="text-right">₹'+fmt(r.TotalPayments)+'</td><td class="text-right" style="color:'+(bal>0?'#ef4444':'#22c55e')+'">₹'+fmt(bal)+'</td></tr>';tB+=r.TotalBookings;tC+=Number(r.TotalCharges||0);tP+=Number(r.TotalPayments||0);tBa+=bal;});$('#tableBody').html(h);$('#tBook').text(tB);$('#tChg').text('₹'+fmt(tC));$('#tPay').text('₹'+fmt(tP));$('#tBal').text('₹'+fmt(tBa));$('#tableFoot').show();});});$('#fetchBtn').click();
-});function fmt(v){return Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+});
 </script>
 @endsection

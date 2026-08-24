@@ -33,7 +33,20 @@
                                 <a href="{{ url('channel/availability?start=' . date('Y-m-d', strtotime($startDate . ' -7 days'))) }}" class="btn btn-sm btn-outline-secondary">
                                     <i class="mdi mdi-chevron-left me-1"></i>Previous Week
                                 </a>
-                                <strong>{{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} — {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</strong>
+                                <strong id="caRange">{{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} — {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</strong>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                        <label class="btn btn-outline-secondary btn-sm active">
+                                            <input type="radio" name="caMode" value="all" checked> All Categories
+                                        </label>
+                                        <label class="btn btn-outline-secondary btn-sm">
+                                            <input type="radio" name="caMode" value="mapped"> OTA-Mapped
+                                        </label>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="caRefresh">
+                                        <i class="mdi mdi-refresh me-1"></i>Live Refresh
+                                    </button>
+                                </div>
                                 <a href="{{ url('channel/availability?start=' . date('Y-m-d', strtotime($startDate . ' +7 days'))) }}" class="btn btn-sm btn-outline-secondary">
                                     Next Week<i class="mdi mdi-chevron-right ms-1"></i>
                                 </a>
@@ -62,7 +75,7 @@
                                             @endforeach
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="caBody">
                                         @foreach($roomcat as $cat)
                                         <tr>
                                             <td>
@@ -117,5 +130,64 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    'use strict';
+
+    function caCell(av, date) {
+        var today = new Date().toISOString().slice(0, 10) === date;
+        var style = today ? ' style="background: #eff6ff;"' : '';
+        if (av.available > 0) {
+            return '<td class="text-center"' + style + '>' +
+                '<div class="fw-bold text-success">' + av.available + '</div>' +
+                '<div class="text-muted" style="font-size:10px;">of ' + av.total + '</div>' +
+                '<div class="progress mt-1" style="height: 4px;">' +
+                '<div class="progress-bar bg-success" style="width: ' + av.pct + '%"></div></div></td>';
+        }
+        if (av.total > 0) {
+            return '<td class="text-center"' + style + '>' +
+                '<div class="fw-bold text-danger">0</div>' +
+                '<div class="text-muted" style="font-size:10px;">SOLD OUT</div>' +
+                '<div class="progress mt-1" style="height: 4px;">' +
+                '<div class="progress-bar bg-danger" style="width: 100%"></div></div></td>';
+        }
+        return '<td class="text-center"><div class="text-muted">—</div></td>';
+    }
+
+    var caStart = '{{ $startDate }}';
+
+    function caFetch(start) {
+        start = start || caStart;
+        var mapped = (window.hmsRadioVal('caMode') === 'mapped') ? 1 : 0;
+
+        $.getJSON('{{ url("channel/availability/data") }}', { start: start, mapped: mapped }, function (res) {
+            caStart = res.startDate;
+            $('#caRange').text(
+                new Date(res.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
+                ' — ' + new Date(res.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            );
+
+            var h = '';
+            $.each(res.categories, function (ci, cat) {
+                h += '<tr><td><strong>' + cat.name + '</strong><br><small class="text-muted">Total: ' +
+                    (cat.totalroom || 0) + ' rooms</small>' +
+                    (cat.map_code ? ' <span class="badge badge-soft-success ms-1">' + cat.map_code + '</span>' : '') +
+                    '</td>';
+                $.each(res.dates, function (di, date) {
+                    h += caCell(res.availability[cat.cat_code][date] || { available: 0, total: 0 }, date);
+                });
+                h += '</tr>';
+            });
+            $('#caBody').html(h);
+        });
+    }
+
+    $(function () {
+        $(document).on('change', 'input[name="caMode"]', function () { caFetch(); });
+        $('#caRefresh').on('click', function () { caFetch(); });
+    });
+})();
+</script>
 
 @endsection

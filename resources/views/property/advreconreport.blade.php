@@ -147,15 +147,6 @@
     </div>
 
     <script>
-        function dmy(d) {
-            if (!d) return '';
-            var parts = String(d).split('-');
-            if (parts.length === 3) {
-                return parts[2] + '-' + parts[1] + '-' + parts[0];
-            }
-            return d;
-        }
-
         $(document).ready(function() {
             let table;
 
@@ -389,12 +380,6 @@
                             '<div class="alert alert-danger">Failed to load detail.</div>');
                     }
                 });
-            }
-
-            function fmt(v) {
-                let n = parseFloat(v);
-                if (isNaN(n)) n = 0;
-                return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
 
             function renderDetail(res) {

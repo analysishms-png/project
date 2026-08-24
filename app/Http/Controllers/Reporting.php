@@ -5608,7 +5608,7 @@ class Reporting extends Controller
          ->orderBy('name', 'ASC')->get();
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
-      $outlets = Depart::where('propertyid', $this->propertyid)->whereIn('nature', ['Room Service', 'Outlet'])->orderBy('name')->get();
+        $outlets = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
       $roundoff = 'ROFF' . $this->propertyid;
       $disc = 'DISC' . $this->propertyid;
@@ -5717,10 +5717,7 @@ class Reporting extends Controller
          }
       }
 
-      $outlets = Depart::where('propertyid', $propertyId)
-         ->whereIn('nature', ['Room Service', 'Outlet'])
-         ->orderBy('name')
-         ->get();
+      $outlets = \App\Helpers\MasterDataCache::outlets($propertyId, true);
       foreach ($data as $row) {
          $vdate = $row->vdate;
 

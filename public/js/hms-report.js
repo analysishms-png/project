@@ -41,6 +41,17 @@
     }
 
     /**
+     * Format a date string as dd-mm-yyyy (dashes).
+     * Returns '' for empty input and the raw value when the input is not
+     * a plain Y-m-d string, so preformatted values pass through untouched.
+     */
+    function hmsDmy(d) {
+        if (!d) return '';
+        var p = String(d).split('-');
+        return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : d;
+    }
+
+    /**
      * Return the value of the checked radio input with the given name,
      * or '' when nothing is selected. jQuery-based (always loaded).
      */
@@ -89,6 +100,7 @@
     // Canonical exports -----------------------------------------------------
     window.hmsFmt = hmsFmt;
     window.hmsFmtDate = hmsFmtDate;
+    window.hmsDmy = hmsDmy;
     window.hmsRadioVal = hmsRadioVal;
     window.hmsAutoFetch = hmsAutoFetch;
     window.hmsDebounce = hmsDebounce;
@@ -97,5 +109,6 @@
     // Legacy aliases ( blades may override locally — local wins ) -----------
     if (typeof window.fmt === 'undefined') window.fmt = hmsFmt;
     if (typeof window.fmtDate === 'undefined') window.fmtDate = hmsFmtDate;
+    if (typeof window.dmy === 'undefined') window.dmy = hmsDmy;
     if (typeof window.radioVal === 'undefined') window.radioVal = hmsRadioVal;
 })(window, document, jQuery);

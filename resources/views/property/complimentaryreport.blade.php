@@ -72,13 +72,6 @@
         var tabulatorTable = null;
         var lastData       = null;
 
-        /* ── Helpers ── */
-        function dmy(d) {
-            if (!d) return '';
-            var p = d.split('-');
-            return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : d;
-        }
-
         /* ── Refresh ── */
         $('#fetchbutton').on('click', function () {
 

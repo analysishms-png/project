@@ -1104,6 +1104,8 @@ class Banquet extends Controller
 
             DB::commit();
 
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             if ($request->has('printreceipt') == 'on') {
                 return redirect()->route('advance.print', ['docid' => $docid])->with('success', 'Advance Deposit Successfully');
             } else {
@@ -1787,6 +1789,9 @@ class Banquet extends Controller
             //     ->increment('start_srl_no');
 
             DB::commit();
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             // return 'Billing Submitted Successfully';
             return back()->with('success', 'Billing Submitted Successfully');
         } catch (Exception $e) {
@@ -2364,6 +2369,9 @@ class Banquet extends Controller
                 ->increment('start_srl_no');
 
             DB::commit();
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             // return 'Billing Submitted Successfully';
             return back()->with('success', 'Performa Billing Submitted Successfully');
         } catch (Exception $e) {
@@ -3069,6 +3077,8 @@ class Banquet extends Controller
 
             DB::commit();
 
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             return back()->with('success', 'Billing Updated Successfully');
         } catch (Exception $e) {
             return back()->with('error', $e->getMessage() . ' On Line: ' . $e->getLine());
@@ -3635,6 +3645,8 @@ class Banquet extends Controller
             }
 
             DB::commit();
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
 
             return back()->with('success', 'Performa Billing Updated Successfully');
         } catch (Exception $e) {
@@ -4927,6 +4939,8 @@ class Banquet extends Controller
 
             Ledger::insert($ledgers);
             DB::commit();
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
 
             // Naya - sahi
             if ($request->input('printreceipt') == 'on') {

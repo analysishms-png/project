@@ -484,6 +484,7 @@ Route::delete('/holiday/{id}', [HolidayController::class, 'destroy'])->name('hol
 
 // Inventory Dashboard
 Route::get('invdashboard', [InventoryController::class, 'lookUpdashboard'])->name('invdashboard');
+Route::get('invdashboard/summary', [InventoryController::class, 'lookupSummary'])->name('invdashboard.summary');
 
 // Kitchen Closing Stock
 Route::get('kitchenclosingstock', [InventoryController::class, 'kitchenclosingstock'])->name('kitchenclosingstock');
@@ -677,6 +678,7 @@ Route::get('revenue', [RevenueManagementController::class, 'dashboard'])->name('
 Route::post('revenue/apply-ai-rates', [RevenueManagementController::class, 'applyAIRates'])->name('revenue.applyAIRates');
 Route::get('revenue/history', [RevenueManagementController::class, 'pricingHistory'])->name('revenue.history');
 Route::get('revenue/rate-comparison', [RevenueManagementController::class, 'rateComparison'])->name('revenue.rateComparison');
+Route::get('revenue/rate-comparison/data', [RevenueManagementController::class, 'rateComparisonData'])->name('revenue.rateComparisonData');
 
 // ═══════════════════════════════════════════════════════════════
 // MULTI-PROPERTY CHAIN MANAGEMENT — Centralized dashboard
@@ -685,6 +687,7 @@ use App\Http\Controllers\ChainController;
 Route::get('chain', [ChainController::class, 'dashboard'])->name('chain.dashboard');
 Route::get('chain/switch/{propertyid}', [ChainController::class, 'switchProperty'])->name('chain.switch');
 Route::get('chain/report', [ChainController::class, 'crossPropertyReport'])->name('chain.report');
+Route::get('chain/report/data', [ChainController::class, 'crossPropertyReportData'])->name('chain.reportData');
 Route::get('chain/comparison', [ChainController::class, 'propertyComparison'])->name('chain.comparison');
 
 // ═══════════════════════════════════════════════════════════════

@@ -16,6 +16,10 @@
                             <p class="text-muted mb-0">Manage OTA connectivity — Booking.com, MakeMyTrip, Goibibo & more via eGlobe</p>
                         </div>
                         <div class="d-flex gap-2">
+                            <small class="text-muted align-self-center me-2" id="cdUpdated">Live</small>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="cdRefreshBtn" title="Refresh KPIs">
+                                <i class="mdi mdi-refresh"></i>
+                            </button>
                             <a href="{{ url('channel/rooms') }}" class="btn btn-soft-primary btn-sm">
                                 <i class="mdi mdi-door-open me-1"></i>Room Inventory
                             </a>
@@ -78,7 +82,7 @@
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h3 class="mb-0">{{ $roomcat->count() }}</h3>
+                                    <h3 class="mb-0" id="cdRoomcats">{{ $roomcat->count() }}</h3>
                                     <p class="text-muted mb-0 font-size-13">Room Categories Mapped</p>
                                 </div>
                             </div>
@@ -95,7 +99,7 @@
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h3 class="mb-0">{{ number_format($todayBookings) }}</h3>
+                                    <h3 class="mb-0" id="cdBookings">{{ number_format($todayBookings) }}</h3>
                                     <p class="text-muted mb-0 font-size-13">Today's Channel Bookings</p>
                                 </div>
                             </div>
@@ -112,7 +116,7 @@
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h3 class="mb-0">{{ $rates->count() }}</h3>
+                                    <h3 class="mb-0" id="cdRates">{{ $rates->count() }}</h3>
                                     <p class="text-muted mb-0 font-size-13">Channel Rates Configured</p>
                                 </div>
                             </div>
@@ -129,7 +133,7 @@
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h3 class="mb-0">{{ $derived->count() }}</h3>
+                                    <h3 class="mb-0" id="cdDerived">{{ $derived->count() }}</h3>
                                     <p class="text-muted mb-0 font-size-13">Derived Pricing Rules</p>
                                 </div>
                             </div>
@@ -287,5 +291,30 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    'use strict';
+
+    function cdFetch() {
+        $.getJSON('{{ url("channel/dashboard/counts") }}', function (c) {
+            if (!c) return;
+            $('#cdRoomcats').text(window.hmsFmt(c.roomcats));
+            $('#cdBookings').text(window.hmsFmt(c.todayBookings));
+            $('#cdRates').text(window.hmsFmt(c.rates));
+            $('#cdDerived').text(window.hmsFmt(c.derived));
+            var t = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            $('#cdUpdated').text('Live · updated ' + t);
+        }).always(function () {
+            setTimeout(cdFetch, 60000);
+        });
+    }
+
+    $(function () {
+        $('#cdRefreshBtn').on('click', cdFetch);
+        setTimeout(cdFetch, 60000);
+    });
+})();
+</script>
 
 @endsection

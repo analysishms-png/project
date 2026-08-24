@@ -171,6 +171,43 @@ class ChainController extends Controller
         $startDate = $request->input('start', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end', Carbon::now()->endOfMonth()->toDateString());
 
+        $reportData = $this->buildReportData($startDate, $endDate);
+
+        return view('property.chainreport', compact('reportData', 'startDate', 'endDate'));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CROSS-PROPERTY REPORT DATA — JSON feed for the live AJAX report
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function crossPropertyReportData(Request $request)
+    {
+        $startDate = $request->input('start', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end', Carbon::now()->endOfMonth()->toDateString());
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+            return response()->json(['error' => 'Invalid date range'], 422);
+        }
+
+        $rows = $this->buildReportData($startDate, $endDate);
+        $totals = [
+            'revenue' => array_sum(array_column($rows, 'revenue')),
+            'pos' => array_sum(array_column($rows, 'pos')),
+            'total' => array_sum(array_column($rows, 'total')),
+            'checkins' => array_sum(array_column($rows, 'checkins')),
+            'room_nights' => array_sum(array_column($rows, 'room_nights')),
+        ];
+
+        return response()->json([
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'rows' => $rows,
+            'totals' => $totals,
+        ]);
+    }
+
+    protected function buildReportData($startDate, $endDate)
+    {
         $properties = Companyreg::where('status', 1)->orderBy('comp_name')->get();
 
         $reportData = [];
@@ -216,7 +253,7 @@ class ChainController extends Controller
         // Sort by total revenue
         usort($reportData, fn($a, $b) => $b['total'] <=> $a['total']);
 
-        return view('property.chainreport', compact('reportData', 'startDate', 'endDate'));
+        return $reportData;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

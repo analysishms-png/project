@@ -83,30 +83,88 @@ PHASE 5 - SESSIONS + QUEUE ON REDIS (only after 1 month stable)
 3. JAVASCRIPT PLAN
 --------------------------------------------------------------------------------
 PHASE J-A - SHARED HELPERS LIBRARY (~40 min)
-  [ ] Create public/js/hms-report.js with ONE copy of:
+  [x] Create public/js/hms-report.js with ONE copy of:
         hmsFmt(v), hmsFmtDate(d), hmsRadioVal(name),
         hmsAutoFetch(bindSelector, fn), hmsTableInit(id, opts)
-  [ ] Register in resources/views/property/layouts/main.blade.php via
+      (DONE 2026-08-24; also hmsDmy(d) + window aliases fmt/fmtDate/dmy/radioVal
+      that only apply when the blade does not define its own)
+  [x] Register in resources/views/property/layouts/main.blade.php via
       <script src="{{ asset('js/hms-report.js') }}"></script> (after jQuery)
-  [ ] No behaviour change; library is additive
+      (registered in property/layouts/header.blade.php:471, loaded on every page)
+  [x] No behaviour change; library is additive
 
 PHASE J-B - DEDUPLICATE BATCH A/B/C BLADES (~90 min)
-  [ ] Replace inline fmt/fmtDate/radioVal definitions in 23 report blades
-      with hms-* equivalents (mechanical find-replace, blade-by-blade verify)
-  [ ] TEST each report page manually after refactor (fetch + radios + totals)
+  [x] Replace inline fmt/fmtDate/radioVal definitions in report blades
+      with hms-* equivalents (blade-by-blade verified; DONE 2026-08-24):
+      - fmt removed: guestwiseanalysis, advreconreport
+      - fmtDate removed: cashiersettlement, coveranalysis, guestpayments,
+        roomchangehistory, taxsummarypos, taxreportinv,
+        chequenotclearedregister, chequeclearedregister
+      - dmy removed: advreconreport, complimentaryreport, taxreporpos
+        (hmsDmy added to library + window.dmy alias)
+      - radioVal: no local definitions remain anywhere; 12 blades already
+        call the global alias
+      - Intentionally KEPT locals (different semantics — changing would
+        alter output): arrivaldep/expecteddep/roomoccdisp (string
+        passthrough v||''), occupancyforecast ('0', no grouping),
+        taxreport (dash separators), chequenotclearedregister +
+        chequeclearedregister fmt (western grouping regex vs en-IN)
+  [x] Regression: full suite green (81 passed / 212 assertions incl. new
+      JC endpoint tests) + view:cache compile sweep clean
 
 PHASE J-C - UPGRADE REMAINING INTERACTIVE PAGES (~2-3 hrs)
-  [ ] chainreport            -> date range + radio (chain-wise/all) + auto-fetch
-  [ ] channelavailability    -> radio (OTA/direct/all) + live availability grid
-  [ ] channeldashboard       -> auto-refresh cards via AJAX + Redis cached counts
-  [ ] lookupdashboard        -> tabbed AJAX panels
-  [ ] revenueratecomparison  -> dual-date pickers + plan radio + chart toggle
-  [ ] Follow existing reference pattern: bookingdetail.blade.php
-      (btn-group-toggle radios + radioVal + auto-fetch on change)
+  [x] chainreport            -> date range + radio (all properties / chain
+                                 total) + auto-fetch via chain/report/data JSON
+  [x] channelavailability    -> radio (all categories / OTA-mapped) + live grid
+                                 refresh via channel/availability/data JSON;
+                                 week-nav links unchanged
+  [x] channeldashboard       -> KPI cards auto-refresh every 60s via
+                                 channel/dashboard/counts (Redis-cached 60s in
+                                 controller through CacheService::remember) +
+                                 manual refresh button + "updated hh:mm" stamp
+  [x] lookupdashboard        -> tabbed UI: Quick Links | Live Summary (AJAX
+                                 invdashboard/summary, Redis-cached 60s);
+                                 5 cards pointing at non-existent routes
+                                 (pendingindent, pendingpurchaseorder,
+                                 supplierwisepurchase, getPurchaseAmount,
+                                 miniusstock) were FATALING at render via
+                                 route() helper — now disabled with
+                                 "Setup pending" badge
+  [x] revenueratecomparison  -> occtype radio (singleuser/multiuser) + view
+                                 toggle (table/cards) + auto-fetch via
+                                 revenue/rate-comparison/data
+  [x] New endpoint smoke tests: tests/Feature/JCEndpointsSmokeTest.php (5 tests)
+
+  BUGS FIXED DURING J-C (pages were broken before the JS work):
+  - ChannelPush::dashboard() referenced unqualified `ChannelPushes` class
+    (resolved to App\Http\Controllers\ChannelPushes = missing) => fatal on
+    page load. Added `use App\Models\ChannelPushes;`.
+  - ChannelPush::dashboard() compact('ncurdate') referenced an undefined
+    local variable. Removed from compact list.
+  - RevenueManagementController queried channelrate.rate — column/table
+    shape does not exist (channelrate is a push-log). Now uses latest
+    channelderived.price as the channel rate.
+  - ChannelPush availability queries selected room_cat.totalroom — column
+    does not exist (real column: norooms). Selected via COALESCE(norooms,0)
+    AS totalroom so blade/JSON keys stay stable.
+
 EXCLUDED from J-C (intentionally no-JS print/CSS partials):
   billprinttable, dailyreportprint, dashboardcss, salebillprint2css,
   salebillprint2ctype2ss, taxmasterprint, mrprinting, pdf_expense,
   blankgrcform, datanotfound, updatetaxform, stateform (simple forms)
+
+REDIS SETUP NOTES (Phase 0, done 2026-08-24):
+  - Server: tporadowski/redis v5.0.14.1 extracted to C:\xampp\redis.
+    Start manually after reboot:
+      Start-Process C:\xampp\redis\redis-server.exe -ArgumentList '--port','6379'
+  - predis/predis v3.6 installed; .env has REDIS_CLIENT=predis and
+    CACHE_DRIVER=redis (SESSION_DRIVER stays file until Phase 5).
+  - App\Services\ResilientCacheManager (wired in AppServiceProvider::register)
+    resolves ANY Cache::store('redis') to the file store while
+    CacheService::redisUp() fails -> ~90 direct Cache:: call sites are safe.
+  - NOTE: Laravel's cache connection uses Redis DB 1 (config
+    database.redis.cache.database default '1'); redis-cli defaults to db 0,
+    use `redis-cli -n 1` to inspect cached keys.
 
 --------------------------------------------------------------------------------
 4. EXECUTION ORDER & EFFORT

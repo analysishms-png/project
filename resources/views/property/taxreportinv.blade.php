@@ -150,11 +150,6 @@
                 $('.partycheckbox').length === $('.partycheckbox:checked').length);
         });
 
-        function fmtDate(d) {
-            if (!d) return '';
-            const p = d.split('-');
-            return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d;
-        }
         function fmt2(v) {
             const n = parseFloat(v || 0);
             return isNaN(n) ? '0.00' : n.toFixed(2);

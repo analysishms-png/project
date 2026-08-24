@@ -5022,6 +5022,8 @@ class CompanyController extends Controller
                     ->increment('start_srl_no');
             }
 
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             return back()->with('success', 'Ledger inserted successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Unable to Insert Ledger! ' . $e->getMessage());
@@ -5679,6 +5681,8 @@ class CompanyController extends Controller
                     Ledger::insert($ledgerpost);
                 }
             }
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
 
             return back()->with('success', 'Ledger Updated successfully!');
         } catch (Exception $e) {
@@ -10014,6 +10018,9 @@ class CompanyController extends Controller
             ->where('sn', $request->input('snnum'))
             ->where('propertyid', $this->propertyid)
             ->update($updatedata);
+
+        \App\Helpers\MasterDataCache::flush($this->propertyid);
+
         return back()->with('success', 'Outlet Setup Updated successfully!');
         // } catch (Exception $e) {
         //     return response()->json(['message' => 'An error occurred: ' . $e->getMessage()], 500);

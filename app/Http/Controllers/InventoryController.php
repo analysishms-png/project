@@ -2104,6 +2104,8 @@ class InventoryController extends Controller
                 ]);
             }
 
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Purchase Bill Updated Successfully',
@@ -2862,6 +2864,9 @@ class InventoryController extends Controller
             }
 
             DB::commit();
+
+            \App\Services\CacheService::purgeReports($this->propertyid);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Purchase Bill Submitted',
@@ -2985,8 +2990,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -3298,8 +3302,7 @@ class InventoryController extends Controller
         $vtype1 = 'KSREC';
         $vtype2 = 'KSISS';
 
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -3489,8 +3492,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -3625,8 +3627,7 @@ class InventoryController extends Controller
             return back()->with('error', 'Stock not found');
         }
 
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -3790,8 +3791,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -3914,8 +3914,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -4068,8 +4067,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -4110,8 +4108,7 @@ class InventoryController extends Controller
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
 
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -4207,8 +4204,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -4566,8 +4562,7 @@ class InventoryController extends Controller
 
         // return $data;
 
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -4762,8 +4757,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -4881,8 +4875,7 @@ class InventoryController extends Controller
         if (is_null($permission) || $permission->view == 0) {
             return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
         }
-        $departs = Depart::where('propertyid', $this->propertyid)
-            ->whereIn('nature', ['Outlet', 'Room Service'])->orderBy('name', 'ASC')->get();
+        $departs = \App\Helpers\MasterDataCache::outlets($this->propertyid, true);
 
         $godown = GodownMast::where('propertyid', $this->propertyid)->orderBy('name', 'ASC')->get();
 
@@ -5010,6 +5003,37 @@ class InventoryController extends Controller
     public function lookUpdashboard()
     {
         return view('property.lookupdashboard');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LOOKUP DASHBOARD SUMMARY — JSON feed for the live AJAX panel (Redis cached)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public function lookupSummary()
+    {
+        $propertyid = $this->propertyid;
+
+        $summary = \App\Services\CacheService::remember("invdash:{$propertyid}", 60, function () use ($propertyid) {
+            $monthStart = \Carbon\Carbon::parse($this->ncurdate)->startOfMonth()->toDateString();
+
+            return [
+                'suppliers' => DB::table('subgroup')
+                    ->where('nature', 'supplier')
+                    ->where('propertyid', $propertyid)
+                    ->count(),
+                'items' => ItemMast::where('Property_ID', $propertyid)
+                    ->where('RestCode', 'PURC' . $propertyid)
+                    ->count(),
+                'mrThisMonth' => DB::table('stock')
+                    ->where('propertyid', $propertyid)
+                    ->where('vtype', 'MR')
+                    ->whereBetween('vdate', [$monthStart, $this->ncurdate])
+                    ->distinct('docid')
+                    ->count('docid'),
+            ];
+        });
+
+        return response()->json($summary);
     }
 
     public function delayDeliveryReport()

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Companyreg as Company;
+use App\Services\ResilientCacheManager;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
@@ -16,7 +17,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Redis-resilient cache: every Cache::store('redis') resolve falls
+        // back to the file store while the Redis server is unreachable.
+        $this->app->extend('cache', function ($manager, $app) {
+            return new ResilientCacheManager($app);
+        });
     }
 
     /**
@@ -39,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
             //     }
             // }
 
-            $companies = Company::where('propertyid', Auth::user()->propertyid)->orderBy('comp_code', 'ASC')->get();
+            $companies = \App\Helpers\MasterDataCache::headerCompanies(Auth::user()->propertyid);
             $view->with('companies', $companies);
         });
     }

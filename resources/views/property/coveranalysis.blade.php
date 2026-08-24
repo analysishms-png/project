@@ -184,12 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
    }
 
-   function fmtDate(d) {
-      if (!d) return '';
-      var dt = new Date(d);
-      return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-GB');
-   }
-
    fetchData();
 });
 </script>

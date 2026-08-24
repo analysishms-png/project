@@ -180,13 +180,6 @@
                 $('#outletlistbtn').html(txt + ' <i class="fa-solid fa-angle-down"></i>');
             }
 
-            /* ── Helpers ── */
-            function dmy(d) {
-                if (!d) return '';
-                var p = d.split('-');
-                return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : d;
-            }
-
             function n2(v) {
                 var n = parseFloat(String(v || 0).replace(/,/g, ''));
                 return isNaN(n) ? 0 : n;

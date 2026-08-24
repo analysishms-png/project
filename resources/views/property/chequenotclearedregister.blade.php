@@ -271,12 +271,6 @@
             return parseFloat(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
 
-        function fmtDate(val) {
-            if (!val) return '';
-            const parts = val.split('-');
-            if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
-            return val;
-        }
 
         $('#refreshbutton').click(function () {
             $('#validation-msg').text('');
