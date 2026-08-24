@@ -46,8 +46,8 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div class="card-body text-center d-flex flex-column">
                                         <h5 class="card-title mb-3">Pending Indent</h5>
-                                        <span class="text-muted small mb-2"><i class="mdi mdi-alert-outline me-1"></i>Setup pending</span>
-                                        <a href="#" class="btn btn-secondary mt-auto disabled" aria-disabled="true">View Details</a>
+                                        <a href="{{ route('invinsights') }}#pendingIndents" class="btn btn-primary mt-auto">View
+                                            Details</a>
                                     </div>
                                 </div>
                             </div>
@@ -59,8 +59,8 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div class="card-body text-center d-flex flex-column">
                                         <h5 class="card-title mb-3">Pending Purchase Order</h5>
-                                        <span class="text-muted small mb-2"><i class="mdi mdi-alert-outline me-1"></i>Setup pending</span>
-                                        <a href="#" class="btn btn-secondary mt-auto disabled" aria-disabled="true">View Details</a>
+                                        <a href="{{ route('invinsights') }}#pendingPOs" class="btn btn-primary mt-auto">View
+                                            Details</a>
                                     </div>
                                 </div>
                             </div>
@@ -85,8 +85,8 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div class="card-body text-center d-flex flex-column">
                                         <h5 class="card-title mb-3">Supplier Wise Purchase</h5>
-                                        <span class="text-muted small mb-2"><i class="mdi mdi-alert-outline me-1"></i>Setup pending</span>
-                                        <a href="#" class="btn btn-secondary mt-auto disabled" aria-disabled="true">View Details</a>
+                                        <a href="{{ route('invinsights') }}#supplierWise" class="btn btn-primary mt-auto">View
+                                            Details</a>
                                     </div>
                                 </div>
                             </div>
@@ -110,8 +110,8 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div class="card-body text-center d-flex flex-column">
                                         <h5 class="card-title mb-3">Purchase Trend</h5>
-                                        <span class="text-muted small mb-2"><i class="mdi mdi-alert-outline me-1"></i>Setup pending</span>
-                                        <a href="#" class="btn btn-secondary mt-auto disabled" aria-disabled="true">View Details</a>
+                                        <a href="{{ route('invinsights') }}#trend" class="btn btn-primary mt-auto">View
+                                            Details</a>
                                     </div>
                                 </div>
                             </div>
@@ -123,8 +123,8 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div class="card-body text-center d-flex flex-column">
                                         <h5 class="card-title mb-3">Minus stock</h5>
-                                        <span class="text-muted small mb-2"><i class="mdi mdi-alert-outline me-1"></i>Setup pending</span>
-                                        <a href="#" class="btn btn-secondary mt-auto disabled" aria-disabled="true">View Details</a>
+                                        <a href="{{ route('invinsights') }}#minusStock" class="btn btn-primary mt-auto">View
+                                            Details</a>
                                     </div>
                                 </div>
                             </div>

@@ -147,4 +147,27 @@ class JCEndpointsSmokeTest extends TestCase
             }
         }
     }
+
+    public function test_inventory_insights_data_structure()
+    {
+        // Re-enables the five "Setup pending" lookupdashboard cards.
+        $ctrl = $this->makeController(InventoryController::class);
+        $res = $ctrl->insightsData();
+
+        $this->assertEquals(200, $res->getStatusCode());
+        $data = json_decode($res->getContent(), true);
+        foreach (['pendingIndents', 'pendingPOs', 'supplierWise', 'trend', 'minusStock'] as $key) {
+            $this->assertArrayHasKey($key, $data);
+            $this->assertIsArray($data[$key]);
+        }
+
+        if (count($data['pendingIndents'])) {
+            $row = $data['pendingIndents'][0];
+            $this->assertArrayHasKey('docid', $row);
+            $this->assertArrayHasKey('itemcount', $row);
+        }
+        if (count($data['minusStock'])) {
+            $this->assertLessThan(0, (float) $data['minusStock'][0]['balance']);
+        }
+    }
 }

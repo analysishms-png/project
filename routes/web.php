@@ -485,6 +485,9 @@ Route::delete('/holiday/{id}', [HolidayController::class, 'destroy'])->name('hol
 // Inventory Dashboard
 Route::get('invdashboard', [InventoryController::class, 'lookUpdashboard'])->name('invdashboard');
 Route::get('invdashboard/summary', [InventoryController::class, 'lookupSummary'])->name('invdashboard.summary');
+// Inventory Insights (pending indents / pending POs / supplier-wise / trend / minus stock)
+Route::get('invinsights', [InventoryController::class, 'insights'])->name('invinsights');
+Route::get('invinsights/data', [InventoryController::class, 'insightsData'])->name('invinsights.data');
 
 // Kitchen Closing Stock
 Route::get('kitchenclosingstock', [InventoryController::class, 'kitchenclosingstock'])->name('kitchenclosingstock');

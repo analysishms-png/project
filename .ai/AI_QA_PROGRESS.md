@@ -244,3 +244,32 @@ Blade upgrades (hms-report.js helpers used throughout):
 - Phase 4 (optional): KOT pub/sub, login rate limiting via redis.
 - Phase 5 (deferred ~1 month): SESSION_DRIVER=redis, QUEUE_CONNECTION=redis.
 - lookupdashboard missing-route backends (pendingindent/purchaseorder/etc.).
+
+---
+
+## Session 10 (2026-08-24): lookupdashboard "Setup pending" cards implemented
+
+### Inventory Insights page (re-enables the 5 disabled dashboard cards)
+- New GET invinsights -> InventoryController@insights (page) +
+  GET invinsights/data -> insightsData (JSON, CacheService::remember
+  "invinsights:{prop}" 120s).
+- Five panels in one view (resources/views/property/invinsights.blade.php),
+  anchors #pendingIndents/#pendingPOs/#supplierWise/#trend/#minusStock:
+  * Pending Indents: indent refdocId='' AND delflag='N' + itemcount from indent1.
+  * Pending POs: porder mrcontradocId/mrsno IS NULL + supplier name via subgroup.
+  * Supplier Wise Purchase: purch1 grouped by Party (12-month window, delflag clean).
+  * Purchase Trend: last 6 months SUM(netamt) as progress bars.
+  * Minus Stock: stock SUM(RecdQty)-SUM(IssQty)<0 per item+godown (itemmast
+    ItemType='Store', godown_mast join for names).
+- lookupdashboard.blade.php: all five "Setup pending" badges replaced with live
+  View Details links to route('invinsights')#anchor.
+
+### Schema facts learned
+- godownmast table is actually `godown_mast` (GodownMast model $table).
+- purch1.Party holds the supplier sub_code; porder.mrcontradocId/mrsno mark a PO
+  as received; indent.refdocId marks an indent as picked by a PO.
+
+### Verification
+- Probe script: endpoint returns 38 indents / 12 POs / 6 suppliers / 5 trend
+  months / 4 minus-stock rows on property 103; cached second call OK.
+- Full suite: 85 passed / 241 assertions / 1 skipped.

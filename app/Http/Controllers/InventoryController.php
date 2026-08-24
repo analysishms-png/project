@@ -5036,6 +5036,141 @@ class InventoryController extends Controller
         return response()->json($summary);
     }
 
+    /**
+     * Inventory Insights page — pending indents / pending POs / supplier-wise
+     * purchase / purchase trend / minus stock in one view (re-enables the
+     * five "Setup pending" cards on the lookup dashboard).
+     */
+    public function insights()
+    {
+        $company = Companyreg::where('propertyid', $this->propertyid)->first();
+
+        return view('property.invinsights', [
+            'ncurdate' => $this->ncurdate,
+            'company' => $company,
+        ]);
+    }
+
+    public function insightsData()
+    {
+        $propertyid = $this->propertyid;
+
+        $data = \App\Services\CacheService::remember("invinsights:{$propertyid}", 120, function () use ($propertyid) {
+            $yearAgo = \Carbon\Carbon::parse($this->ncurdate)->subYear()->startOfDay()->toDateString();
+            $sixMonthsAgo = \Carbon\Carbon::parse($this->ncurdate)->subMonths(5)->startOfMonth()->toDateString();
+
+            $pendingIndents = DB::table('indent as I')
+                ->leftJoin('indent1 as I1', function ($join) {
+                    $join->on('I1.docid', '=', 'I.docid')
+                        ->on('I1.propertyid', '=', 'I.propertyid');
+                })
+                ->leftJoin('depart as D', function ($join) {
+                    $join->on('D.dcode', '=', 'I.department')
+                        ->on('D.propertyid', '=', 'I.propertyid');
+                })
+                ->where('I.propertyid', $propertyid)
+                ->where('I.refdocId', '')
+                ->where('I.delflag', 'N')
+                ->groupBy('I.docid', 'I.vno', 'I.vdate', 'I.department', 'D.name')
+                ->orderByDesc('I.vdate')
+                ->limit(100)
+                ->get([
+                    'I.docid',
+                    'I.vno',
+                    'I.vdate',
+                    'I.department',
+                    'D.name as department_name',
+                    DB::raw('COUNT(I1.sno) as itemcount'),
+                ]);
+
+            $pendingPOs = DB::table('porder as P')
+                ->leftJoin('subgroup as S', function ($join) {
+                    $join->on('S.sub_code', '=', 'P.partycode')
+                        ->on('S.propertyid', '=', 'P.propertyid');
+                })
+                ->where('P.propertyid', $propertyid)
+                ->whereNull('P.mrcontradocId')
+                ->whereNull('P.mrsno')
+                ->orderByDesc('P.vdate')
+                ->limit(100)
+                ->get([
+                    'P.docid',
+                    'P.vno',
+                    'P.vdate',
+                    'P.exp_delivery',
+                    'S.name as supplier',
+                ]);
+
+            $supplierWise = DB::table('purch1 as P1')
+                ->leftJoin('subgroup as S2', function ($join) {
+                    $join->on('S2.sub_code', '=', 'P1.Party')
+                        ->on('S2.propertyid', '=', 'P1.propertyid');
+                })
+                ->where('P1.propertyid', $propertyid)
+                ->where(function ($q) {
+                    $q->where('P1.delflag', '')->orWhere('P1.delflag', 'N');
+                })
+                ->whereBetween('P1.vdate', [$yearAgo, $this->ncurdate])
+                ->groupBy('P1.Party', 'S2.name')
+                ->orderByDesc(DB::raw('SUM(P1.netamt)'))
+                ->get([
+                    'P1.Party',
+                    'S2.name as supplier',
+                    DB::raw('COUNT(P1.docid) as bills'),
+                    DB::raw('SUM(P1.netamt) as netamt'),
+                ]);
+
+            $trend = DB::table('purch1')
+                ->where('propertyid', $propertyid)
+                ->where(function ($q) {
+                    $q->where('delflag', '')->orWhere('delflag', 'N');
+                })
+                ->whereBetween('vdate', [$sixMonthsAgo, $this->ncurdate])
+                ->groupBy(DB::raw("DATE_FORMAT(vdate, '%Y-%m')"))
+                ->orderBy(DB::raw("DATE_FORMAT(vdate, '%Y-%m')"))
+                ->get([
+                    DB::raw("DATE_FORMAT(vdate, '%Y-%m') as ym"),
+                    DB::raw('SUM(netamt) as netamt'),
+                ]);
+
+            $minusStock = DB::table('stock as S')
+                ->leftJoin('itemmast as I', function ($join) {
+                    $join->on('I.Code', '=', 'S.Item')
+                        ->on('I.Property_ID', '=', 'S.propertyid');
+                })
+                ->leftJoin('godown_mast as G', function ($join) {
+                    $join->on('G.scode', '=', 'S.GodownCode')
+                        ->on('G.propertyid', '=', 'S.propertyid');
+                })
+                ->where('S.propertyid', $propertyid)
+                ->where('I.ItemType', 'Store')
+                ->where(function ($q) {
+                    $q->where('S.delflag', '')->orWhere('S.delflag', 'N');
+                })
+                ->groupBy('S.Item', 'I.Name', 'S.GodownCode', 'G.name')
+                ->havingRaw('COALESCE(SUM(S.RecdQty), 0) - COALESCE(SUM(S.IssQty), 0) < 0')
+                ->orderByRaw('(COALESCE(SUM(S.RecdQty), 0) - COALESCE(SUM(S.IssQty), 0)) ASC')
+                ->limit(100)
+                ->get([
+                    'S.Item',
+                    'I.Name as item_name',
+                    'S.GodownCode',
+                    'G.name as godown_name',
+                    DB::raw('COALESCE(SUM(S.RecdQty), 0) - COALESCE(SUM(S.IssQty), 0) as balance'),
+                ]);
+
+            return [
+                'pendingIndents' => $pendingIndents,
+                'pendingPOs' => $pendingPOs,
+                'supplierWise' => $supplierWise,
+                'trend' => $trend,
+                'minusStock' => $minusStock,
+            ];
+        });
+
+        return response()->json($data);
+    }
+
     public function delayDeliveryReport()
     {
         $company = Companyreg::where('propertyid', $this->propertyid)->first();
