@@ -1,0 +1,509 @@
+============================================================
+HMS.bas DEEP OPERATION GAP REPORT
+============================================================
+DATE: 2026-08-24
+ANALYSIS: HMS.bas (995,854 lines) vs Laravel (74 controllers)
+============================================================
+
+============================================================
+SECTION 1: MISSING DATABASE TABLE OPERATIONS
+============================================================
+
+26 tables are written to in HMS.bas but have NO Model/Migration/Controller in Laravel.
+These tables contain critical business data.
+
+--- CRITICAL (affects financial accuracy) ---
+
+1. ACGROUPCURRBAL
+   Purpose: Account group current balance (running balance cache)
+   HMS.bas: INSERT/UPDATE on every voucher entry
+   Impact: Trial balance may be slow without cached balances
+   Fix: Create model + auto-update on voucher save
+
+2. SUBGROUPCURRBAL
+   Purpose: Sub-group current balance (party/company balance cache)
+   HMS.bas: INSERT/UPDATE on every voucher entry
+   Impact: Outstanding reports may be slow
+   Fix: Create model + auto-update on voucher save
+
+3. LEDGERADJ
+   Purpose: Ledger adjustment (bill-to-bill adjustment tracking)
+   HMS.bas: INSERT/DELETE on payment allocation
+   Impact: Bill-wise adjustment report incomplete
+   Fix: Create model + connect to payment allocation
+
+4. LEDGERREF
+   Purpose: Ledger reference (voucher-to-invoice linking)
+   HMS.bas: INSERT/DELETE on voucher entry
+   Impact: Payment tracking incomplete
+   Fix: Create model + connect to voucher entry
+
+5. LEDGERM
+   Purpose: Ledger merge (consolidated ledger view)
+   HMS.bas: INSERT/UPDATE/DELETE on ledger operations
+   Impact: Consolidated ledger may not work
+   Fix: Create model + auto-generate on ledger posting
+
+--- HIGH (affects booking workflow) ---
+
+6. BOOKINGCANCELDETAILS
+   Purpose: Cancellation details (cancel amount, mode, advance refund)
+   HMS.bas: INSERT/DELETE on booking cancellation
+   Impact: Cancellation audit trail incomplete
+   Fix: Create model + connect to cancel operation
+
+7. BOOKINGMORE
+   Purpose: Additional booking guests (extra guest names)
+   HMS.bas: INSERT/DELETE on booking save
+   Impact: Extra guest names not saved
+   Fix: Create model + connect to booking save
+
+8. COMPLNCLUSIVE
+   Purpose: Company inclusive rates (company-specific rate includes)
+   HMS.bas: INSERT/DELETE on company master save
+   Impact: Company rate customization missing
+   Fix: Create model + connect to company master
+
+9. COMPLANDET
+   Purpose: Company plan details (company-specific plan rates)
+   HMS.bas: INSERT/DELETE on company master save
+   Impact: Company plan rates not saved
+   Fix: Create model + connect to company master
+
+--- MEDIUM (affects specific features) ---
+
+10. CASHREGDATA
+    Purpose: Cash register data (POS cash register tracking)
+    HMS.bas: INSERT/UPDATE on POS operations
+    Impact: Cash register tracking incomplete
+    Fix: Create model + connect to POS
+
+11. EPABX_OUT
+    Purpose: EPABX outgoing call log (auto-captured from EPABX)
+    HMS.bas: INSERT from EPABX system
+    Impact: Telephone billing incomplete
+    Fix: Create model + EPABX integration
+
+12. FAENVIRO
+    Purpose: Finance environment settings (aging buckets, config)
+    HMS.bas: INSERT/UPDATE on finance setup
+    Impact: Aging report configuration missing
+    Fix: Create model + connect to finance settings
+
+13. JOBSCHEDULE
+    Purpose: Job scheduler (automated task scheduling)
+    HMS.bas: INSERT/UPDATE on job setup
+    Impact: Automated tasks not scheduled
+    Fix: Create model + connect to Laravel scheduler
+
+14. LASTVOU
+    Purpose: Last voucher number tracking (document numbering)
+    HMS.bas: INSERT/UPDATE on every voucher entry
+    Impact: Voucher numbering may conflict
+    Fix: Create model + auto-increment on voucher save
+
+15. LASTVOUCHER
+    Purpose: Last voucher per user (user's last voucher reference)
+    HMS.bas: INSERT/UPDATE on voucher entry
+    Impact: User's last voucher not tracked
+    Fix: Create model + auto-update on voucher save
+
+16. LEAVE_ENCH
+    Purpose: Leave encashment (leave balance encashment)
+    HMS.bas: INSERT/DELETE on leave encashment
+    Impact: Leave encashment not tracked
+    Fix: Create model + connect to leave module
+
+17. MEMHISTORY
+    Purpose: Membership history (renewal dates, validity)
+    HMS.bas: INSERT on membership renewal
+    Impact: Membership renewal history missing
+    Fix: Create model + connect to membership renewal
+
+18. PLANTOKENDETAILS
+    Purpose: Plan token details (meal token charges per plan)
+    HMS.bas: INSERT/DELETE on plan master save
+    Impact: Meal token charges not saved
+    Fix: Create model + connect to plan master
+
+19. ROOMDISCOUNT
+    Purpose: Room discount (room-wise discount configuration)
+    HMS.bas: INSERT/UPDATE on discount setup
+    Impact: Room discount configuration missing
+    Fix: Create model + connect to room settings
+
+20. LOG_TABLERECORDS
+    Purpose: Table record change log (audit trail for all tables)
+    HMS.bas: INSERT on every record change
+    Impact: Audit trail incomplete
+    Fix: Create model + auto-log on all changes
+
+21. USER_MODULE
+    Purpose: User module mapping (module permissions per user)
+    HMS.bas: INSERT/UPDATE on permission setup
+    Impact: Module-level permissions incomplete
+    Fix: Create model + connect to permission system
+
+--- LOW (auxiliary data) ---
+
+22. JOBREQUEST
+23. JOBASSIGN
+24. MAINTENANCE_LOG
+25. ASSET_HISTORY
+26. SMARTCARDLEDGER
+
+============================================================
+
+============================================================
+SECTION 2: BUSINESS LOGIC GAPS
+============================================================
+
+--- Tax Calculation ---
+
+HMS.bas: TaxStru linked to RoomCat → RevMast → TaxStru
+  - RoomOcc.RoomTaxStru auto-populated from RoomCat.RevCode
+  - GrpBookingDetails.RoomTaxStru auto-populated
+  - PlanMast.RoomTaxStru auto-populated
+
+LARAVEL: Tax calculation exists in PayCharge but auto-linking
+  from RoomCat → RevMast → TaxStru may not be automatic.
+
+GAP: Auto-population of RoomTaxStru on room assignment
+PRIORITY: MEDIUM
+
+--- Rate Calculation ---
+
+HMS.bas: PlanCalc setting controls rate calculation method
+  - Flat rate vs per-day calculation
+  - Adult/Child/ExtraAdult/ExtraChild rate tiers
+  - Package rate with inclusions
+  - Company-specific rates (Comp_PlanDet)
+
+LARAVEL: Rate calculation exists but:
+  - Comp_PlanDet (company plan details) missing
+  - Comp_Inclusive (company inclusive rates) missing
+  - ExtraAdult/ExtraChild rate tiers may not be fully implemented
+
+GAP: Company-specific plan rates and inclusive rates
+PRIORITY: MEDIUM
+
+--- Discount Logic ---
+
+HMS.bas: DiscApp on Depart controls discount applicability
+  - Item-wise discount (ItemMast.DiscApp)
+  - Bill-wise discount
+  - Group discount (GrpDiscApp)
+  - Plan discount (PlanDiscPer, PlanDiscAmt, PlanDiscAppOn)
+
+LARAVEL: Discount exists but:
+  - Group discount (GrpDiscApp) may not be fully connected
+  - Plan discount application logic may differ
+
+GAP: Group discount and plan discount application
+PRIORITY: LOW
+
+--- Round Off ---
+
+HMS.bas: RoundOff on RevMast controls rounding per revenue head
+  - IC.RoundOff on ItemCatMast
+  - Depart.RoundOff on outlet
+
+LARAVEL: Round off exists but may not be per-revenue-head
+
+GAP: Per-revenue-head round off configuration
+PRIORITY: LOW
+
+--- Accounting Posting ---
+
+HMS.bas: Revenue posting via RevMast.ACCode
+  - Room charge → RoomChrgDueAc
+  - Tax → RoomTaxDueAc
+  - POS sale → IndoorSaleAC/OutDoorSaleAC
+  - Discount → OutletDiscAc
+  - Round off → OutletRoundAc
+  - Commission → CommissionAc
+
+LARAVEL: Posting exists but:
+  - ACCode linking may not be fully automatic
+  - Posting type (RoomChrgPostingType) may differ
+
+GAP: Automatic accounting posting from transactions
+PRIORITY: MEDIUM
+
+--- Night Audit Detail ---
+
+HMS.bas Night Audit Process:
+  1. Check pending KOTs → block if any
+  2. Check pending POS bills → block if any
+  3. Auto-cancel tentative bookings (NoShowAtNightAudit)
+  4. Post room rent (RoomRentBefChkOut/RoomRentChkOutPost)
+  5. Post tax
+  6. Post service charge
+  7. Adjust packages (PlanCalc)
+  8. Reset room status
+  9. Generate reports
+  10. Log audit trail
+
+LARAVEL: Night audit exists but:
+  - Step 3 (auto-cancel tentative) may not be configurable
+  - Step 4-6 (posting) may differ based on settings
+  - Step 7 (package adjustment) may not be fully automatic
+
+GAP: Configurable night audit posting rules
+PRIORITY: MEDIUM
+
+--- Checkout Logic ---
+
+HMS.bas Checkout:
+  1. Check unsettled bills → block if any
+  2. Post room rent for checkout day
+  3. Post tax
+  4. Post service charge
+  5. Apply round off
+  6. Generate bill
+  7. Generate receipt
+  8. Update room status
+  9. Update RoomOcc type to 'C'
+
+LARAVEL: Checkout exists but:
+  - Step 1 (unsettled bill check) may not block
+  - Step 2-4 (posting) may be separate operations
+
+GAP: Checkout validation and automatic posting
+PRIORITY: LOW
+
+============================================================
+
+============================================================
+SECTION 3: MISSING MASTER DATA OPERATIONS
+============================================================
+
+--- Company Master Details ---
+
+HMS.bas Company Master includes:
+  - Company code, name, address
+  - GSTIN, PAN, state code
+  - Credit limit
+  - Company-specific rates (Comp_PlanDet)
+  - Company-specific inclusive rates (Comp_Inclusive)
+  - Company group
+  - Travel agent link
+  - Source link
+  - Accounting posting codes
+
+LARAVEL Company Master:
+  - Basic CRUD ✅
+  - Comp_PlanDet ❌ MISSING
+  - Comp_Inclusive ❌ MISSING
+  - Company group ✅
+
+GAP: Company-specific plan rates and inclusive rates
+PRIORITY: MEDIUM
+
+--- Plan Master Details ---
+
+HMS.bas Plan Master includes:
+  - Plan code, name
+  - Room category
+  - Room rate
+  - Package amount
+  - Plan details (Plan1 table: charge codes, rates, tax)
+  - Tax structure
+  - Inclusions/Exclusions
+  - Meal tokens (PlanTokenDetails)
+  - Discount settings
+  - Validity dates
+
+LARAVEL Plan Master:
+  - Basic CRUD ✅
+  - Plan1 details ✅ (BookingPlanDetails)
+  - PlanTokenDetails ❌ MISSING
+  - Meal tokens ❌ MISSING
+
+GAP: Plan token details and meal token configuration
+PRIORITY: LOW
+
+--- Revenue Master ---
+
+HMS.bas RevMast includes:
+  - Code, name, short name
+  - Account code (ACCode)
+  - Payable account
+  - Unregistered account
+  - Tax structure
+  - Round off setting
+  - Field type
+  - Sundry flag
+  - System flag
+
+LARAVEL RevMast:
+  - Basic CRUD ✅
+  - ACCode linking ✅
+
+GAP: NONE
+PRIORITY: N/A
+
+--- Tax Structure Master ---
+
+HMS.bas TaxStru includes:
+  - Code, name
+  - Tax code linked to RevMast
+  - Multiple tax components
+  - Tax inclusion setting
+
+LARAVEL TaxStru:
+  - Basic CRUD ✅
+
+GAP: NONE
+PRIORITY: N/A
+
+============================================================
+
+============================================================
+SECTION 4: MISSING WORKFLOW OPERATIONS
+============================================================
+
+--- Folio Transfer (cmdTransferCharge) ---
+
+HMS.bas:
+  1. Select source folio
+  2. Select target folio (leader room)
+  3. Transfer all pending charges
+  4. Update PayCharge.FolioNoDocid
+  5. Update GuestFolio.mFolioNoDocId
+  6. Update PayCharge.RelatedFolioNo
+  7. Log transfer
+
+LARAVEL:
+  - Folio merge exists ✅
+  - Charge transfer ❌ MISSING
+
+GAP: Transfer charges from one folio to another
+PRIORITY: MEDIUM
+
+--- Extra Bed Operation ---
+
+HMS.bas:
+  1. Mark room as extra bed
+  2. Add extra bed charge
+  3. Update adult count
+  4. Recalculate rate if needed
+  5. Update RoomOcc
+
+LARAVEL:
+  - Extra bed charge exists in BookingPlanDetails
+  - Extra bed UI operation ❌ MISSING
+
+GAP: Add extra bed during stay
+PRIORITY: MEDIUM
+
+--- Year-End Process ---
+
+HMS.bas:
+  1. Close all open vouchers
+  2. Carry forward balances
+  3. Update opening balances for new year
+  4. Reset voucher numbers
+  5. Archive old data
+
+LARAVEL:
+  - Year-end process ❌ MISSING
+
+GAP: Finance year-end closing
+PRIORITY: MEDIUM
+
+--- Bill Split (Post-Split) ---
+
+HMS.bas:
+  1. Split bill into multiple bills
+  2. Create SplitBillDetail records
+  3. Create SplitSunTran records
+  4. Update PayCharge.Split field
+  5. Update PayCharge.Bill_No
+
+LARAVEL:
+  - Basic split exists ✅
+  - SplitBillDetail ❌ MISSING
+  - SplitSunTran ❌ MISSING
+
+GAP: Detailed bill split with audit trail
+PRIORITY: LOW
+
+============================================================
+
+============================================================
+SECTION 5: SUMMARY
+============================================================
+
+TOTAL MISSING TABLE OPERATIONS: 26
+  CRITICAL: 5 (financial balance tables)
+  HIGH: 4 (booking workflow tables)
+  MEDIUM: 10 (feature-specific tables)
+  LOW: 7 (auxiliary tables)
+
+TOTAL BUSINESS LOGIC GAPS: 7
+  MEDIUM: 4 (tax, rate, accounting posting, night audit)
+  LOW: 3 (discount, round off, checkout)
+
+TOTAL MASTER DATA GAPS: 2
+  MEDIUM: 2 (company plan rates, plan tokens)
+
+TOTAL WORKFLOW GAPS: 4
+  MEDIUM: 3 (folio transfer, extra bed, year-end)
+  LOW: 1 (bill split audit)
+
+GRAND TOTAL GAPS: 39
+============================================================
+
+============================================================
+SECTION 6: IMPLEMENTATION PRIORITY
+============================================================
+
+PHASE 1: CRITICAL FINANCIAL TABLES (5 items)
+  1. ACGROUPCURRBAL — Auto-update on voucher save
+  2. SUBGROUPCURRBAL — Auto-update on voucher save
+  3. LEDGERADJ — Bill-wise adjustment tracking
+  4. LEDGERREF — Voucher-invoice linking
+  5. LEDGERM — Consolidated ledger view
+
+PHASE 2: BOOKING WORKFLOW TABLES (4 items)
+  6. BOOKINGCANCELDETAILS — Cancellation audit trail
+  7. BOOKINGMORE — Extra guest names
+  8. COMPLNCLUSIVE — Company inclusive rates
+  9. COMPLANDET — Company plan rates
+
+PHASE 3: BUSINESS LOGIC FIXES (7 items)
+  10. Auto-populate RoomTaxStru
+  11. Company-specific plan rates
+  12. Automatic accounting posting
+  13. Configurable night audit rules
+  14. Checkout validation
+  15. Group discount application
+  16. Per-revenue-head round off
+
+PHASE 4: WORKFLOW OPERATIONS (4 items)
+  17. Folio transfer operation
+  18. Extra bed operation
+  19. Year-end process
+  20. Bill split audit trail
+
+PHASE 5: REMAINING TABLES (19 items)
+  21-39. All remaining missing tables
+
+============================================================
+
+============================================================
+SECTION 7: DATABASE SAFETY
+============================================================
+
+NO PRODUCTION DATA WILL BE MODIFIED.
+
+All new tables will be:
+- Created via migrations
+- Auto-populated from existing data
+- Backward compatible
+- Non-destructive
+
+Existing operations will continue working.
+New operations will be additive only.
+============================================================
