@@ -194,3 +194,53 @@ Blade upgrades (hms-report.js helpers used throughout):
 - Phase 2/3 (master-data + report-result caching) still open per plan.
 - lookupdashboard missing routes: implement pendingindent/pendingpurchaseorder/supplierwisepurchase/getPurchaseAmount/miniusstock backends, then re-enable cards.
 - Phase 5 (SESSION_DRIVER=redis) intentionally deferred.
+
+---
+
+## Session 9 (2026-08-24): Phase 2 + Phase 3 complete - REDIS_JS_PLAN phases 0-3 all done
+
+### Phase 2: Master-data cache extension
+- MasterDataCache gained outlets(propertyid, roomServiceToo=false) and
+  headerCompanies(propertyid); flush() extended to clear the new keys.
+- AppServiceProvider header ViewComposer now reads MasterDataCache::headerCompanies()
+  instead of a fresh company query on every authenticated page render.
+- 12 identical `Depart whereIn(nature,[Outlet,Room Service])->orderBy(name)` list
+  queries in InventoryController and 2 in Reporting swapped to
+  MasterDataCache::outlets($pid, true). groupBy('dcode') variants left untouched.
+- Invalidation wired: Pos depart insert/delete + CompanyController outletsetupupdate
+  now call MasterDataCache::flush($propertyid).
+- BUG (caught by test): headerCompanies initially queried table `companyreg` which
+  does not exist - Companyreg model maps to table `company`. Fixed.
+
+### Phase 3: Report-result cache
+- Discovered commit ca98971 already shipped CacheReportFetch middleware (POST +
+  path-contains-fetch guard, JSON-only 200s, per-user version-keyed, 60s TTL) and
+  purgeReports() calls at 10 mutation sites; plan checkboxes were just unticked.
+- This session: registered alias report.cache in Kernel $middlewareAliases and
+  attached it to the 19 finance X/fetch POST routes + fetchhousekeepingstatusreport
+  in routes/company.php (verified with route:list -v). routes/reporting.php was
+  already covered via the reporting middleware group.
+- purgeReports() added to: submitledger, updateledgerstore (CompanyController),
+  banquet advancebanquetsubmit/banquetbillingsubmit/performaInvoiceSubmit/
+  banquetbillingupdate/performaInvoiceUpdate/editAdvanceSubmit,
+  InventoryController purchasebillsubmit/purchasebillupdate.
+
+### Bugs fixed
+6. Finance\FinanceController constructor middleware used uninitialized
+   $this->propertyid -> users lookup with NULL -> every finance /fetch endpoint
+   (daybook, journalbook, generalledger, aging, duelist, guestpayments, ...) fataled
+   500. Now seeded from Auth::user()->propertyid with optional() fallback.
+7. PowerShell batch replace ate closing paren on 19 company.php fetch routes
+   (`->name('x'->middleware(...)`) - repaired same session, php -l clean.
+
+### Verification
+- New tests/Feature/Phase23CacheTest.php: outlets cache==query + flush clears,
+  headerCompanies cache==query, middleware stores response / purges bump version.
+- Full suite: 84 passed / 227 assertions / 1 skipped.
+- All work committed on feat/redis-cache-js-rollout (PR to main).
+
+### Remaining (next sessions)
+- Phase 1 before/after login timing measurement (nice-to-have).
+- Phase 4 (optional): KOT pub/sub, login rate limiting via redis.
+- Phase 5 (deferred ~1 month): SESSION_DRIVER=redis, QUEUE_CONNECTION=redis.
+- lookupdashboard missing-route backends (pendingindent/purchaseorder/etc.).

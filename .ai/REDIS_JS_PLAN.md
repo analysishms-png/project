@@ -1,7 +1,7 @@
 ================================================================================
         REDIS + JAVASCRIPT ADOPTION PLAN - ANALYSIS HMS
 ================================================================================
-Date: 2026-08-23 | Status: PLANNED | Priority: MEDIUM-HIGH
+Date: 2026-08-23 | Status: PHASES 0-3 + JS ROLLOUT COMPLETE (2026-08-24) | Priority: MEDIUM-HIGH
 Rule (from promt.txt): Never break existing functionality. Every phase must be
 independently deployable + revertable.
 
@@ -37,38 +37,71 @@ HOTSPOT (biggest win):
 2. PHASE PLAN
 --------------------------------------------------------------------------------
 PHASE 0 - REDIS RUNTIME SETUP (foundation, ~30 min)
-  [ ] composer require predis/predis (pure-PHP client; phpredis ext is
-      painful on Windows/XAMPP, predis avoids DLL issues)
-  [ ] Start Redis server locally: use Memurai or tporadowski/redis build
-      (redis-server.exe on 127.0.0.1:6379); add to XAMPP startup notes
-  [ ] Create App\Services\RedisHealth wrapper: checks PING once per request;
-      if Redis down -> silently fall back to file cache (never fatal)
-  [ ] Switch .env ONLY after health-check passes: CACHE_DRIVER=redis first.
-      Sessions/Queue stay on file/sync until Phase 5.
+  [x] composer require predis/predis (DONE 2026-08-24; v3.6; constraint
+      pinned ^3.6 in composer.json)
+  [x] Start Redis server locally: tporadowski/redis v5.0.14.1 at
+      C:\xampp\redis (redis-server.exe on 127.0.0.1:6379). NOTE: start
+      manually after reboot:
+      Start-Process C:\xampp\redis\redis-server.exe -ArgumentList '--port','6379'
+  [x] Create App\Services\RedisHealth wrapper: implemented as
+      CacheService::redisUp() (150ms fsockopen probe, cached per request)
+      + ResilientCacheManager (extends CacheManager) registered via
+      app->extend('cache') in AppServiceProvider — resolve('redis')
+      silently redirects to file when the daemon is down. All ~90 direct
+      Cache:: call sites protected; fallback verified by killing the server.
+  [x] Switch .env ONLY after health-check passes: CACHE_DRIVER=redis,
+      REDIS_CLIENT=predis. Sessions/Queue stay file/sync until Phase 5.
+      TIP: Laravel's cache connection uses Redis DB 1 (REDIS_CACHE_DB) —
+      inspect keys with `redis-cli -n 1`, db 0 looks empty.
   ROLLBACK: set CACHE_DRIVER=file (one line)
 
 PHASE 1 - PERMISSION CACHE (highest impact, ~45 min)
-  [ ] Wrap revokeopen(): Cache::remember("perm:{prop}:{user}:{code}", 300s)
-      - Helpers.php:110 only change; all 631 call sites benefit free
-  [ ] Invalidate: flush perm:* keys wherever menuhelp rows are
-      inserted/updated/deleted (UserController, permission screens)
-      Use Cache tag "perms" if driver supports; else key-prefix delete loop
+  [x] Wrap revokeopen(): DONE via CacheService::remember with per-user +
+      per-property version keys ("perm:{prop}:p{pv}:{user}:{code}:u{uv}",
+      300s) — Helpers.php only change; all 631 call sites benefit free
+  [x] Invalidate: permCacheBump($prop, $user|'*') bumps group versions;
+      driver-agnostic (works on file + redis). Call from menuhelp mutation
+      screens.
   [ ] TEST: login page load time before/after; permission change reflects
       within <=5 min or instantly after invalidation
+      (instant after bump by design; before/after timing still to measure)
 
 PHASE 2 - MASTER DATA CACHE (~45 min)
-  [ ] Cache rarely-changing lookups (TTL 10-15 min):
-      companyreg (property header data), rest_code outlet lists,
-      revmast/subgroup dropdown lists used by reports
-  [ ] Add Cache::remember in the shared helper functions / model scopes
-  [ ] Invalidate on respective master CRUD saves
+  [x] Cache rarely-changing lookups: outlets (+Room Service variant),
+      header company switcher list (company table — Companyreg model maps
+      there, NOT a companyreg table), plus pre-existing travelagents/
+      corporates/companiesagents/rooms/fomcharges
+  [x] Add Cache::remember in shared helpers: MasterDataCache::outlets() /
+      headerCompanies(); header ViewComposer swapped to cached list;
+      12 identical Depart list queries in InventoryController + 2 in
+      Reporting replaced with MasterDataCache::outlets($pid, true).
+      (groupBy('dcode') variants left as-is — different semantics.)
+  [x] Invalidate on respective master CRUD saves: MasterDataCache::flush()
+      extended to clear outlets/.rs/headercompanies keys; flush wired into
+      Pos depart insert/delete + CompanyController outletsetupupdate.
+  BUG FIXED: headerCompanies initially queried DB::table('companyreg')
+  which does not exist (model $table = 'company') — caught by new test.
 
 PHASE 3 - REPORT RESULT CACHE (~60 min)
-  [ ] Batch A/B/C fetch methods: Cache::remember(
-        "rpt:{method}:{prop}:{fd}:{td}:{filters-hash}", 60s)
-  [ ] Purge strategy: any controller POST that mutates folio/sale/ledger/
-      stock tables calls CacheService::purgeReports($propertyid)
-  [ ] Keep DataTables client-side as-is; cache only JSON payloads
+  [x] Batch A/B/C fetch methods: committed CacheReportFetch middleware
+      (POST + path-contains-fetch guard, JSON-only, version-keyed,
+      60s TTL, per-user keys) already covered routes/reporting.php via the
+      'reporting' middleware group; this session aliased it as
+      'report.cache' and attached to the 19 finance X/fetch POST routes +
+      fetchhousekeepingstatusreport in routes/company.php (verified via
+      route:list -v)
+  [x] Purge strategy: CacheService::purgeReports() bumps "rpt:{prop}"
+      version; wired into ChargePosting accountpoststore, nightaudit,
+      room settle, POS sale submit/update/nillsettle, Kot x2, MR entry,
+      stock transfer (pre-existing), PLUS submitledger/updateledgerstore,
+      banquet advance/billing/performa submit+update+editAdvance,
+      purchasebillsubmit/purchasebillupdate (this session). 60s TTL bounds
+      staleness for anything unwired.
+  [x] Keep DataTables client-side as-is; cache only JSON payloads
+      (middleware stores decoded JSON body; non-JSON/4xx/5xx never stored)
+  BUG FIXED: Finance\FinanceController constructor read uninitialized
+  $this->propertyid -> users lookup with NULL -> every finance /fetch
+  endpoint fataled 500. Now seeded from Auth::user()->propertyid.
 
 PHASE 4 - REALTIME / ADVANCED (optional, later)
   [ ] Redis pub/sub for KOT notifications (Kot.php) instead of AJAX polling
