@@ -21,8 +21,8 @@
   /* Surfaces */
   --hms-bg:           #f4f7fb;
   --hms-card-bg:      #ffffff;
-  --hms-sidebar-bg:   #0b5ed7;
-  --hms-sidebar-bg-2: #084298;
+  --hms-sidebar-bg:   #ffffff;
+  --hms-sidebar-bg-2: #f8f9fa;
   --hms-topbar-bg:    #ffffff;
   --hms-border:       #e2e8f0;
   --hms-border-soft:  #eef2f7;
@@ -30,7 +30,7 @@
   /* Text */
   --hms-text:         #1e293b;
   --hms-text-muted:   #64748b;
-  --hms-text-inverse: #f8fafc;
+  --hms-text-inverse: #1e293b;
 
   /* Shape & depth */
   --hms-radius:       .75rem;
@@ -62,13 +62,13 @@ a {
 
 /* ---------- Brand / nav header ---------- */
 .nav-header {
-  background: linear-gradient(160deg, var(--hms-sidebar-bg) 0%, var(--hms-sidebar-bg-2) 100%);
-  border-right: 1px solid rgba(255, 255, 255, .06);
+  background: var(--hms-sidebar-bg);
+  border-right: 1px solid var(--hms-border);
 }
 
 .nav-header .brand-logo a b img {
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, .25);
+  box-shadow: 0 0 0 2px var(--hms-border);
 }
 
 /* ---------- Topbar ---------- */
@@ -110,21 +110,30 @@ a {
   border-color: #cbd5e1;
 }
 
-/* ---------- Sidebar (deep blue) ---------- */
-.nk-sidebar {
-  background: linear-gradient(180deg, var(--hms-sidebar-bg) 0%, var(--hms-sidebar-bg-2) 100%);
-  border-right: 1px solid rgba(255, 255, 255, .06);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, .25) transparent;
+/* ---------- Sidebar (white) ---------- */
+.nk-sidebar,
+.nk-sidebar .metismenu,
+.nk-sidebar .metismenu li,
+.nk-sidebar .metismenu > li,
+.nk-sidebar .metismenu ul,
+.nk-sidebar ul,
+.nk-sidebar ul li,
+.nk-sidebar a,
+.nk-sidebar .metismenu a,
+.nk-sidebar .metismenu li a {
+  background: transparent !important;
+  color: var(--hms-text) !important;
 }
 
-.nk-sidebar ul,
-.nk-sidebar .metismenu {
-  background: transparent !important;
+.nk-sidebar {
+  background: var(--hms-sidebar-bg) !important;
+  border-right: 1px solid var(--hms-border);
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
 }
 
 .nk-sidebar .nav-label {
-  color: rgba(255, 255, 255, .55) !important;
+  color: var(--hms-text-muted) !important;
   text-transform: uppercase;
   font-size: .72rem;
   letter-spacing: .08em;
@@ -132,29 +141,42 @@ a {
 }
 
 .nk-sidebar .metismenu > li > a {
-  color: rgba(248, 250, 252, .85) !important;
+  color: var(--hms-text) !important;
   border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--hms-border-soft);
+  margin: 0 8px;
+  border-radius: var(--hms-radius-sm);
+  transition: all .15s ease;
+}
+
+.nk-sidebar .metismenu > li > a .nav-text,
+.nk-sidebar .metismenu > li > a .nav-text i,
+.nk-sidebar .metismenu > li > a i {
+  color: var(--hms-text) !important;
 }
 
 .nk-sidebar .metismenu > li > a .nav-text i {
-  color: rgba(248, 250, 252, .7) !important;
+  color: var(--hms-primary) !important;
   width: 1.6em;
   text-align: center;
 }
 
+/* Active / hovered parent */
 .nk-sidebar .metismenu > li:hover > a,
 .nk-sidebar .metismenu > li.active > a {
-  background: rgba(255, 255, 255, .08) !important;
+  background: var(--hms-primary) !important;
   color: #ffffff !important;
-  border-left-color: var(--hms-accent);
+  border-left-color: var(--hms-primary);
+  border-bottom-color: var(--hms-primary);
 }
 
+.nk-sidebar .metismenu > li:hover > a .nav-text,
+.nk-sidebar .metismenu > li.active > a .nav-text,
+.nk-sidebar .metismenu > li:hover > a .nav-text i,
+.nk-sidebar .metismenu > li.active > a .nav-text i,
 .nk-sidebar .metismenu > li:hover i,
 .nk-sidebar .metismenu > li:focus i,
-.nk-sidebar .metismenu > li.active i {
-  color: var(--hms-accent-2) !important;
-}
-
+.nk-sidebar .metismenu > li.active i,
 .nk-sidebar .metismenu > li:hover span,
 .nk-sidebar .metismenu > li:focus span,
 .nk-sidebar .metismenu > li.active span {
@@ -163,32 +185,88 @@ a {
 
 /* has-arrow arrow glyph */
 .nk-sidebar .metismenu > li > a.has-arrow::after {
-  border-color: rgba(248, 250, 252, .6);
+  border-color: var(--hms-text-muted);
 }
 
-/* Submenu (injected by /fetchsubmenu, /fetchlastmenu) */
-.nk-sidebar .metismenu .collapse {
-  background: rgba(0, 0, 0, .18) !important;
+/* ── Submenu (collapse / mega-menu / dynamically injected) ── */
+.nk-sidebar .metismenu .collapse,
+.nk-sidebar .metismenu .mega-menu ul.in,
+.nk-sidebar .metismenu ul.in,
+.nk-sidebar .metismenu ul ul {
+  background: #f8f9fa !important;
 }
 
-.nk-sidebar .metismenu .collapse li a {
-  color: rgba(248, 250, 252, .78) !important;
+.nk-sidebar .metismenu .collapse li,
+.nk-sidebar .metismenu .mega-menu ul.in li,
+.nk-sidebar .metismenu ul.in li,
+.nk-sidebar .metismenu ul ul li {
+  background: transparent !important;
+}
+
+.nk-sidebar .metismenu .collapse li a,
+.nk-sidebar .metismenu .mega-menu ul.in li a,
+.nk-sidebar .metismenu ul.in li a,
+.nk-sidebar .metismenu ul ul li a {
+  color: var(--hms-text) !important;
   font-size: .82rem;
+  border-bottom: 1px solid var(--hms-border-soft);
+  margin: 0 12px;
+  border-radius: var(--hms-radius-sm);
 }
 
 .nk-sidebar .metismenu .collapse li a:hover,
-.nk-sidebar .metismenu .collapse li.active a {
+.nk-sidebar .metismenu .mega-menu ul.in li a:hover,
+.nk-sidebar .metismenu .mega-menu ul.in li a:focus,
+.nk-sidebar .metismenu .mega-menu ul.in li a.active,
+.nk-sidebar .metismenu .collapse li.active a,
+.nk-sidebar .metismenu ul.in li a:hover,
+.nk-sidebar .metismenu ul.in li a.active {
   color: #ffffff !important;
-  background: rgba(255, 255, 255, .07) !important;
+  background: var(--hms-primary) !important;
 }
 
 .nk-sidebar .metismenu .collapse li a .nav-text i,
-.nk-sidebar .metismenu .collapse li a i {
-  color: rgba(248, 250, 252, .55) !important;
+.nk-sidebar .metismenu .collapse li a i,
+.nk-sidebar .metismenu .mega-menu ul.in li a .nav-text i,
+.nk-sidebar .metismenu .mega-menu ul.in li a i,
+.nk-sidebar .metismenu ul.in li a .nav-text i,
+.nk-sidebar .metismenu ul.in li a i,
+.nk-sidebar .metismenu ul ul li a .nav-text i,
+.nk-sidebar .metismenu ul ul li a i {
+  color: var(--hms-primary) !important;
 }
 
-.nk-sidebar .metismenu .collapse li a.has-arrow::after {
-  border-color: rgba(248, 250, 252, .5);
+.nk-sidebar .metismenu .collapse li a:hover i,
+.nk-sidebar .metismenu .mega-menu ul.in li a:hover i,
+.nk-sidebar .metismenu .mega-menu ul.in li a.active i,
+.nk-sidebar .metismenu .collapse li.active a i,
+.nk-sidebar .metismenu ul.in li a:hover i,
+.nk-sidebar .metismenu ul.in li a.active i,
+.nk-sidebar .metismenu ul ul li a:hover i,
+.nk-sidebar .metismenu ul ul li a.active i {
+  color: #ffffff !important;
+}
+
+.nk-sidebar .metismenu .collapse li a .nav-text,
+.nk-sidebar .metismenu .mega-menu ul.in li a .nav-text,
+.nk-sidebar .metismenu ul.in li a .nav-text,
+.nk-sidebar .metismenu ul ul li a .nav-text {
+  color: var(--hms-text) !important;
+}
+
+.nk-sidebar .metismenu .collapse li a:hover .nav-text,
+.nk-sidebar .metismenu .mega-menu ul.in li a:hover .nav-text,
+.nk-sidebar .metismenu .mega-menu ul.in li a.active .nav-text,
+.nk-sidebar .metismenu ul.in li a:hover .nav-text,
+.nk-sidebar .metismenu ul.in li a.active .nav-text,
+.nk-sidebar .metismenu ul ul li a:hover .nav-text,
+.nk-sidebar .metismenu ul ul li a.active .nav-text {
+  color: #ffffff !important;
+}
+
+.nk-sidebar .metismenu .collapse li a.has-arrow::after,
+.nk-sidebar .metismenu .mega-menu ul.in li a.has-arrow::after {
+  border-color: var(--hms-text-muted);
 }
 
 /* ---------- Content area ---------- */
@@ -510,4 +588,29 @@ a {
   table {
     font-size: .8rem;
   }
+}
+
+/* ---------- Table row radio-select ---------- */
+.table-radio tbody tr {
+  cursor: pointer;
+  transition: background .12s ease;
+}
+
+.table-radio tbody tr:hover {
+  background: rgba(13, 110, 253, .06) !important;
+}
+
+.table-radio tbody tr.table-radio-active {
+  background: rgba(13, 110, 253, .10) !important;
+}
+
+.table-radio tbody tr.table-radio-active td:first-child {
+  border-left: 3px solid var(--hms-primary);
+}
+
+.table-radio input.table-radio-input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--hms-primary);
+  cursor: pointer;
 }

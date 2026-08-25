@@ -148,6 +148,7 @@ function tryPopup() {
 <script src="{{ asset('admin/plugins/common/common.min.js') }}"></script>
 <script src="{{ asset('admin/js/publicval.js') }}"></script>
 <script src="{{ asset('admin/js/analysis.js') }}"></script>
+<script src="{{ asset('admin/js/table-radio.js') }}"></script>
 <script src="{{ asset('admin/js/custom.min.js') }}"></script>
 <script src="{{ asset('admin/js/settings.js') }}"></script>
 <script src="{{ asset('admin/js/gleek.js') }}"></script>
