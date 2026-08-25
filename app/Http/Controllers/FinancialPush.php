@@ -32,6 +32,7 @@ class FinancialPush extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
             $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
             $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');

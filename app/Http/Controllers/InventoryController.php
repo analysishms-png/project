@@ -100,6 +100,7 @@ class InventoryController extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
             $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
             $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
@@ -5077,7 +5078,9 @@ class InventoryController extends Controller
                         ->on('D.propertyid', '=', 'I.propertyid');
                 })
                 ->where('I.propertyid', $propertyid)
-                ->where('I.refdocId', '')
+                ->where(function ($q) {
+                    $q->where('I.refdocId', '')->orWhereNull('I.refdocId');
+                })
                 ->where('I.delflag', 'N')
                 ->groupBy('I.docid', 'I.vno', 'I.vdate', 'I.department', 'D.name')
                 ->orderByDesc('I.vdate')

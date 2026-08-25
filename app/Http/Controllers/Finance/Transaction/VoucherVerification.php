@@ -21,7 +21,7 @@ class VoucherVerification extends Controller
                 return redirect('/');
             }
             $this->username  = Auth::user()->name;
-            $this->propertyid = $this->propertyid;
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
             return $next($request);
         });
     }

@@ -102,7 +102,7 @@ class RoomStatus extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
-            $this->propertyid = $this->propertyid;
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
             $propertydata = DB::table('users')->where('propertyid', $this->propertyid)->first();
             $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
             $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');

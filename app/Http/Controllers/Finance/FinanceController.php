@@ -40,6 +40,7 @@ class FinanceController extends Controller
             // endpoint in this controller fataled on $propertydata->propertyid
             // (users row looked up with NULL). Seed it from the session user.
             $this->propertyid = Auth::user()->propertyid;
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
             $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
             $this->ncurdate = DB::table('enviro_general')->where('propertyid', $this->propertyid)->value('ncur');

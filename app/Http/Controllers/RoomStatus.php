@@ -97,6 +97,7 @@ class RoomStatus extends Controller
 
             $this->username = Auth::user()->name;
             $this->email = Auth::user()->email;
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
             $this->prpid = $this->propertyid;
             $propertydata = DB::table('users')->where('propertyid', $this->prpid)->first();
             $this->compcode = Companyreg::where('propertyid', $this->propertyid)->value('comp_code');
@@ -113,6 +114,7 @@ class RoomStatus extends Controller
     // Booked Room Get
     public function bookedroomget()
     {
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
         $prpid = $this->propertyid;
         $ncurdate = DB::table('enviro_general')->where('propertyid', $prpid)->value('ncur');
 
@@ -192,6 +194,7 @@ class RoomStatus extends Controller
     // Reserved Room Get
     public function reservedroomget()
     {
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
         $prpid = $this->propertyid;
         $ncurdate = DB::table('enviro_general')->where('propertyid', $prpid)->value('ncur');
 
@@ -247,6 +250,7 @@ class RoomStatus extends Controller
     // Checkout Room Get
     public function checkoutroomget()
     {
+            $this->propertyid = session('propertyid') ?? Auth::user()->propertyid ?? 0;
         $prpid = $this->propertyid;
         $ncurdate = DB::table('enviro_general')->where('propertyid', $prpid)->value('ncur');
 
