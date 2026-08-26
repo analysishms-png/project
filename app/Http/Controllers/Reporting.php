@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\DateHelper;
 use App\Services\PayChargeLogService;
 use App\Services\DailyReportSnapshotService;
+use App\Services\CacheService;
 use App\Models\Bookings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -1382,7 +1383,11 @@ class Reporting extends Controller
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       $revheading = Revmast::where('propertyid', $this->propertyid)
          ->where('field_type', 'P')->get();
-      $distinctuname = Paycharge::where('propertyid', $this->propertyid)->where('modeset', 'S')->distinct('u_name')->get(['u_name']);
+      // Cashier list is a full distinct scan of paycharge (600k rows) on every
+      // page open — cache it briefly; page + XHR share this key.
+      $distinctuname = CacheService::remember("cashier:users:{$this->propertyid}", 300, function () {
+         return Paycharge::where('propertyid', $this->propertyid)->where('modeset', 'S')->distinct('u_name')->get(['u_name']);
+      });
       return view('property.cashierreport', [
          'fromdate' => $fromdate,
          'statename' => $statename,
@@ -1394,7 +1399,9 @@ class Reporting extends Controller
 
    public function fetchusersname(Request $request)
    {
-      $distinctuname = Paycharge::where('propertyid', $this->propertyid)->where('modeset', 'S')->distinct('u_name')->get(['u_name']);
+      $distinctuname = CacheService::remember("cashier:users:{$this->propertyid}", 300, function () {
+         return Paycharge::where('propertyid', $this->propertyid)->where('modeset', 'S')->distinct('u_name')->get(['u_name']);
+      });
       return json_encode($distinctuname);
    }
 
@@ -1570,9 +1577,14 @@ class Reporting extends Controller
          ->orderBy('SNO')
          ->get();
 
+      // Lookups scoped to only the docids present in $results instead of
+      // loading every paycharge/roomocc row of the property into memory.
+      $lookupDocids = $results->pluck('FOLIONODOCID')->filter()->unique()->values()->all();
+
       $billnos = Paycharge::where('propertyid', $this->propertyid)
          ->where('billno', '!=', 0)
          ->whereNull('paytype')
+         ->whereIn('folionodocid', $lookupDocids)
          ->get()
          ->keyBy(function ($item) {
             return $item->folionodocid . '_' . $item->sno1;
@@ -1580,6 +1592,7 @@ class Reporting extends Controller
 
       $roomnos = RoomOcc::where('propertyid', $this->propertyid)
          ->whereNotNull('type')
+         ->whereIn('docid', $lookupDocids)
          ->get()
          ->keyBy(function ($item) {
             return $item->docid . '_' . $item->sno1;
@@ -1993,23 +2006,15 @@ class Reporting extends Controller
          return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
       }
       $fromdate = $this->ncurdate;
-      $taxnames = Paycharge::select('revmast.name', 'paycharge.paycode', 'paycharge.taxper')
-         ->leftJoin('revmast', 'revmast.rev_code', '=', 'paycharge.paycode')
-         ->where('paycharge.propertyid', $this->propertyid)
-         ->where('revmast.field_type', 'T')
-         ->whereNotNull('paycharge.taxper')
-         // ->whereBetween('paycharge.vdate', [$this->ncurdate, $this->ncurdate])
-         ->groupBy('paycharge.paycode')
-         ->get();
-      $data = DB::table('guestfolio')->where('propertyid', $this->propertyid)->get();
+      // $taxnames + full guestfolio scan removed — the blade loads both its
+      // tax list (/fetchtaxesnames) and report data via XHR; nothing rendered
+      // server-side used these queries.
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       return view('property.fomtaxdetail', [
-         'data' => $data,
          'fromdate' => $fromdate,
          'company' => $company,
-         'statename' => $statename,
-         'taxnames' => $taxnames
+         'statename' => $statename
       ]);
    }
 
@@ -2772,24 +2777,16 @@ class Reporting extends Controller
          return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
       }
       $fromdate = $this->ncurdate;
-      $taxnames = Paycharge::select('revmast.name', 'paycharge.paycode', 'paycharge.taxper')
-         ->leftJoin('revmast', 'revmast.rev_code', '=', 'paycharge.paycode')
-         ->where('paycharge.propertyid', $this->propertyid)
-         ->where('revmast.field_type', 'T')
-         ->whereNotNull('paycharge.taxper')
-         ->groupBy('paycharge.paycode')
-         ->get();
-      $data = DB::table('guestfolio')->where('propertyid', $this->propertyid)->get();
+      // Dead server-side fetches removed (taxnames list + full guestfolio scan):
+      // the blade pulls its filters/report entirely via XHR.
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       $departs = Depart::where('propertyid', $this->propertyid)->whereIn('nature', ['Room Service', 'Outlet'])->groupBy('dcode')->orderBy('name', 'ASC')->get();
       $items = ItemMast::where('Property_ID', $this->propertyid)->groupBy('Code')->orderBy('Name', 'ASC')->get();
       return view('property.pos_itemwisesale', [
-         'data' => $data,
          'fromdate' => $fromdate,
          'company' => $company,
          'statename' => $statename,
-         'taxnames' => $taxnames,
          'departs' => $departs,
          'items' => $items,
       ]);
@@ -3050,24 +3047,15 @@ class Reporting extends Controller
          return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
       }
       $fromdate = $this->ncurdate;
-      $taxnames = Paycharge::select('revmast.name', 'paycharge.paycode', 'paycharge.taxper')
-         ->leftJoin('revmast', 'revmast.rev_code', '=', 'paycharge.paycode')
-         ->where('paycharge.propertyid', $this->propertyid)
-         ->where('revmast.field_type', 'T')
-         ->whereNotNull('paycharge.taxper')
-         ->groupBy('paycharge.paycode')
-         ->get();
-      $data = DB::table('guestfolio')->where('propertyid', $this->propertyid)->get();
+      // Dead server-side fetches removed — blade pulls everything via XHR.
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       $departs = Depart::where('propertyid', $this->propertyid)->whereIn('nature', ['Room Service', 'Outlet'])->groupBy('dcode')->orderBy('name', 'ASC')->get();
       $items = ItemMast::where('Property_ID', $this->propertyid)->groupBy('Code')->orderBy('Name', 'ASC')->get();
       return view('property.pos_saledeletereport', [
-         'data' => $data,
          'fromdate' => $fromdate,
          'company' => $company,
          'statename' => $statename,
-         'taxnames' => $taxnames,
          'departs' => $departs,
          'items' => $items,
       ]);
@@ -3264,7 +3252,8 @@ class Reporting extends Controller
       $occupiedRoomsCount = DB::table('roomocc')
          ->leftJoin('paycharge', function ($join) {
             $join->on('paycharge.roomno', '=', 'roomocc.roomno')
-               ->on('paycharge.sno1', '=', 'roomocc.sno1');
+               ->on('paycharge.sno1', '=', 'roomocc.sno1')
+               ->on('paycharge.propertyid', '=', 'roomocc.propertyid');
          })
          ->where('roomocc.propertyid', $this->propertyid)
          ->whereNull('roomocc.type')
@@ -3273,7 +3262,6 @@ class Reporting extends Controller
                ->orWhereNull('paycharge.vtype');
          })
          ->groupBy('roomocc.roomno', 'roomocc.sno1')
-         ->get()
          ->count();
 
       $occupancyPercentage = 100;
@@ -3304,24 +3292,15 @@ class Reporting extends Controller
          return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
       }
       $fromdate = $this->ncurdate;
-      $taxnames = Paycharge::select('revmast.name', 'paycharge.paycode', 'paycharge.taxper')
-         ->leftJoin('revmast', 'revmast.rev_code', '=', 'paycharge.paycode')
-         ->where('paycharge.propertyid', $this->propertyid)
-         ->where('revmast.field_type', 'T')
-         ->whereNotNull('paycharge.taxper')
-         ->groupBy('paycharge.paycode')
-         ->get();
-      $data = DB::table('guestfolio')->where('propertyid', $this->propertyid)->get();
+      // Dead server-side fetches removed — blade pulls everything via XHR.
       $company = Companyreg::where('propertyid', $this->propertyid)->first();
       $statename = States::where('propertyid', $this->propertyid)->where('state_code', $company->state_code)->value('name');
       $departs = Depart::where('propertyid', $this->propertyid)->whereIn('nature', ['Room Service', 'Outlet'])->groupBy('dcode')->orderBy('name', 'ASC')->get();
       $items = ItemMast::where('Property_ID', $this->propertyid)->groupBy('Code')->orderBy('Name', 'ASC')->get();
       return view('property.pos_salesummary', [
-         'data' => $data,
          'fromdate' => $fromdate,
          'company' => $company,
          'statename' => $statename,
-         'taxnames' => $taxnames,
          'departs' => $departs,
          'items' => $items,
       ]);
@@ -10239,7 +10218,7 @@ class Reporting extends Controller
       $month = $request->input("month", date("Y-m"));
       $fromdate = $month . "-01";
       $todate = date("Y-m-t", strtotime($fromdate));
-      $rooms = DB::table("roommast")->where("propertyid", $propertyid)->count();
+      $rooms = DB::table("room_mast")->where("propertyid", $propertyid)->count();
       $occupied = DB::table("roomocc")->where("propertyid", $propertyid)
          ->whereRaw("checkindt <= ? AND (checkoutdt IS NULL OR checkoutdt >= ?)", [$todate, $fromdate])->count();
       $revenue = DB::table("paycharge")->where("propertyid", $propertyid)
@@ -11889,7 +11868,7 @@ class Reporting extends Controller
       $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
       $pid=$this->propertyid;
       $occ=DB::table('roomocc')->where('propertyid',$pid)->where('type','NOT IN',['C','O'])->count();
-      $total=DB::table('roommast')->where('type','RO')->where('propertyid',$pid)->count();
+      $total=DB::table('room_mast')->where('type','RO')->where('propertyid',$pid)->count();
       $foRev=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum('amtdr');
       $posRev=DB::table('sale1')->where('propertyid',$pid)->where('saledate',$fd)->sum('billamount');
       $payments=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->sum('amtcr');
@@ -12084,7 +12063,7 @@ class Reporting extends Controller
       $fd=$r->input('fromdate'); if(!$fd) return response()->json(['error'=>'date required']);
       $pid=$this->propertyid;
       $occ=DB::table('roomocc')->where('propertyid',$pid)->where('type','NOT IN',['C','O'])->count();
-      $total=DB::table('roommast')->where('type','RO')->where('propertyid',$pid)->count();
+      $total=DB::table('room_mast')->where('type','RO')->where('propertyid',$pid)->count();
       $foRev=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->where('roomtype','<>','RO')->sum('amtdr');
       $posRev=DB::table('sale1')->where('propertyid',$pid)->where('saledate',$fd)->where('status','<>','C')->sum('billamount');
       $payments=DB::table('paycharge')->where('propertyid',$pid)->where('vdate',$fd)->sum('amtcr');
@@ -12230,7 +12209,7 @@ class Reporting extends Controller
    public function roomoccdisp(Request $r) { $fd=$this->ncurdate; $td=$this->ncurdate; $view='Room Occupancy Display'; return view('property.roomoccdisp', compact('fd','td','view')); }
    public function roomoccdispfetch(Request $r) {
       $pid=$this->propertyid;
-      $rows=DB::table('roommast AS rm')
+      $rows=DB::table('room_mast AS rm')
          ->leftJoin('roomocc AS ro',function($j) use($pid){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O']);})
          ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
          ->leftJoin('roomcat AS rc','rc.code','=','rm.roomcat')
@@ -12327,7 +12306,7 @@ class Reporting extends Controller
    public function roomtypeoccupancyanalysisfetch(Request $r) {
       $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
       $pid=$this->propertyid;
-      $rows=DB::table('roommast AS rm')
+      $rows=DB::table('room_mast AS rm')
          ->leftJoin('roomcat AS rc','rc.code','=','rm.roomcat')
          ->leftJoin('roomocc AS ro',function($j) use($pid,$fd,$td){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O'])->where('ro.chkindate','<=',$td)->where(function($q) use($td){$q->whereNull('ro.depdate')->orWhere('ro.depdate','>=',$fd);});})
          ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
@@ -12352,7 +12331,7 @@ class Reporting extends Controller
    public function roomtypeoccupancyreportfetch(Request $r) {
       $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) return response()->json(['error'=>'dates required']);
       $pid=$this->propertyid;
-      $rows=DB::table('roommast AS rm')
+      $rows=DB::table('room_mast AS rm')
          ->leftJoin('roomcat AS rc','rc.code','=','rm.roomcat')
          ->leftJoin('roomocc AS ro',function($j) use($pid,$fd,$td){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O'])->where('ro.chkindate','<=',$td)->where(function($q) use($td){$q->whereNull('ro.depdate')->orWhere('ro.depdate','>=',$fd);});})
          ->leftJoin('guestfolio AS gf','gf.docid','=','ro.docid')
@@ -12428,9 +12407,9 @@ class Reporting extends Controller
    public function roomtypeoccupancyfetch(Request $r) {
       $fd=$r->input('fromdate'); $td=$r->input('todate'); if(!$fd||!$td) { $fd=$this->ncurdate; $td=$this->ncurdate; }
       $pid=$this->propertyid;
-      $totalRooms=DB::table('roommast')->where('propertyid',$pid)->where('type','RO')->count();
+      $totalRooms=DB::table('room_mast')->where('propertyid',$pid)->where('type','RO')->count();
       $rows=DB::table('roomcat AS rc')
-         ->leftJoin('roommast AS rm','rm.roomcat','=','rc.code')
+         ->leftJoin('room_mast AS rm','rm.roomcat','=','rc.code')
          ->leftJoin('roomocc AS ro',function($j) use($pid){$j->on('ro.roomno','=','rm.code')->on('ro.propertyid','=','rm.propertyid')->where('ro.type','NOT IN',['C','O']);})
          ->where('rm.propertyid',$pid)->where('rm.type','RO')
          ->select(DB::raw('MAX(rc.name) AS roomtype'),

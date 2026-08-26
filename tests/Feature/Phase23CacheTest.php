@@ -109,7 +109,8 @@ class Phase23CacheTest extends TestCase
         $username = Auth::user()->name;
         $ver1 = CacheService::version('rpt:103');
         $key1 = 'rptresp:103:' . $username . ':' . $ver1 . ':'
-            . Str::slug('detailedtrialledger/fetch') . ':' . md5(json_encode($payload));
+            . Str::slug('detailedtrialledger/fetch') . ':'
+            . \App\Http\Middleware\CacheReportFetch::hashInput($payload);
 
         $stored = CacheService::get($key1);
         $this->assertNotNull($stored, 'middleware should have cached the fetch response');
@@ -121,7 +122,8 @@ class Phase23CacheTest extends TestCase
         $this->assertGreaterThan($ver1, $ver2, 'purgeReports must bump the report version');
 
         $key2 = 'rptresp:103:' . $username . ':' . $ver2 . ':'
-            . Str::slug('detailedtrialledger/fetch') . ':' . md5(json_encode($payload));
+            . Str::slug('detailedtrialledger/fetch') . ':'
+            . \App\Http\Middleware\CacheReportFetch::hashInput($payload);
         $this->assertNull(CacheService::get($key2), 'new version key must start empty');
 
         $res2 = $this->post('/detailedtrialledger/fetch', $payload);

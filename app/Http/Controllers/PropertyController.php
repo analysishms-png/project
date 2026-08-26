@@ -165,7 +165,7 @@ class PropertyController extends Controller
 
                 // Revenue chart data (last 6 months)
                 $revenueData = $this->getMonthlyRevenue($prpid, $ncurdate);
-                $totalRooms = DB::table('roommast')->where('propertyid', $prpid)->count();
+                $totalRooms = DB::table('room_mast')->where('propertyid', $prpid)->count();
 
                 return view('property.index', [
                     'user' => $company,
@@ -485,12 +485,12 @@ class PropertyController extends Controller
             $monthEnd = date('Y-m-t', strtotime($monthDate));
             $monthLabel = date('M', strtotime($monthDate));
 
-            // Room rent from PayCharge (credit entries = room rent + tax)
+            // Room rent from PayCharge (debit entries = room rent + tax posted to folio)
             $roomRent = DB::table('paycharge')
                 ->where('propertyid', $propertyid)
                 ->where('vtype', '!=', 'ADV')
                 ->whereBetween('vdate', [$monthDate, $monthEnd])
-                ->sum('dramt');
+                ->sum('amtdr');
 
             // POS revenue from Sale1
             $posRevenue = DB::table('sale1')
@@ -504,12 +504,12 @@ class PropertyController extends Controller
                 ->whereBetween('vdate', [$monthDate, $monthEnd])
                 ->sum('netamt');
 
-            // Payments received
+            // Payments received (credit entries settle the folio)
             $payments = DB::table('paycharge')
                 ->where('propertyid', $propertyid)
                 ->where('vtype', '!=', 'ADV')
                 ->whereBetween('vdate', [$monthDate, $monthEnd])
-                ->sum('cramt');
+                ->sum('amtcr');
 
             $months[] = [
                 'label' => $monthLabel,

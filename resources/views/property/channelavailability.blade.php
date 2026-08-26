@@ -135,6 +135,10 @@
 (function () {
     'use strict';
 
+    function caEsc(v) {
+        return $('<div>').text(v == null ? '' : String(v)).html();
+    }
+
     function caCell(av, date) {
         var today = new Date().toISOString().slice(0, 10) === date;
         var style = today ? ' style="background: #eff6ff;"' : '';
@@ -170,9 +174,9 @@
 
             var h = '';
             $.each(res.categories, function (ci, cat) {
-                h += '<tr><td><strong>' + cat.name + '</strong><br><small class="text-muted">Total: ' +
+                h += '<tr><td><strong>' + caEsc(cat.name) + '</strong><br><small class="text-muted">Total: ' +
                     (cat.totalroom || 0) + ' rooms</small>' +
-                    (cat.map_code ? ' <span class="badge badge-soft-success ms-1">' + cat.map_code + '</span>' : '') +
+                    (cat.map_code ? ' <span class="badge badge-soft-success ms-1">' + caEsc(cat.map_code) + '</span>' : '') +
                     '</td>';
                 $.each(res.dates, function (di, date) {
                     h += caCell(res.availability[cat.cat_code][date] || { available: 0, total: 0 }, date);

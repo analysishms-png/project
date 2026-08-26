@@ -152,6 +152,10 @@
 (function () {
     'use strict';
 
+    function crEsc(v) {
+        return $('<div>').text(v == null ? '' : String(v)).html();
+    }
+
     function crFetch() {
         var start = $('#crStart').val();
         var end = $('#crEnd').val();
@@ -178,7 +182,7 @@
                     '<td class="text-center">' + window.hmsFmt(t.room_nights) + '</td></tr>';
             } else {
                 $.each(res.rows, function (i, r) {
-                    h += '<tr><td>' + (i + 1) + '</td><td><strong>' + (r.name || '') + '</strong></td><td>' + (r.city || '') + '</td>' +
+                    h += '<tr><td>' + (i + 1) + '</td><td><strong>' + crEsc(r.name || '') + '</strong></td><td>' + crEsc(r.city || '') + '</td>' +
                         '<td class="text-right">₹' + window.hmsFmt(r.revenue) + '</td>' +
                         '<td class="text-right">₹' + window.hmsFmt(r.pos) + '</td>' +
                         '<td class="text-right fw-bold">₹' + window.hmsFmt(r.total) + '</td>' +

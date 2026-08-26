@@ -448,7 +448,8 @@ class Pos extends Controller
             ->where('propertyid', $this->propertyid)
             ->where('dcode', $dcode)
             ->first();
-        $sale1 = Sale1::where('propertyid', $this->propertyid)->where('restcode', $dcode)->get();
+        // Full outlet sale history fetch removed — the blade loads bills via
+        // XHR (/allbillxhrsale), so scanning sale1 here was pure overhead.
         $printsetup = PrintingSetup::where('propertyid', $this->propertyid)->where('restcode', $departdata->dcode)->where('module', 'POS')->first();
 
         if (!isset($printsetup)) {
@@ -456,7 +457,6 @@ class Pos extends Controller
         }
         return view('property.pos_billentry', [
             'depdata' => $departdata,
-            'sale1' => $sale1,
             'printsetup' => $printsetup,
         ]);
     }
@@ -473,7 +473,8 @@ class Pos extends Controller
             ->where('propertyid', $this->propertyid)
             ->where('dcode', $dcode)
             ->first();
-        $sale1 = Sale1::where('propertyid', $this->propertyid)->where('restcode', $dcode)->get();
+        // Full outlet sale fetch removed — pos_settlemententry blade never
+        // renders it; pending bills come from the scoped $pendingtmp query.
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
 
         $records = DB::table('depart_pay')
@@ -570,7 +571,6 @@ class Pos extends Controller
 
         // return $pending;
         return view('property.pos_settlemententry', [
-            'sale1' => $sale1,
             'depdata' => $departdata,
             'companydata' => $companydata,
             'revdata' => $records,
@@ -1880,10 +1880,10 @@ class Pos extends Controller
         } else {
             $label = 'Table No';
         }
-        $sale1 = Sale1::where('propertyid', $this->propertyid)->where('restcode', $dcode)->get();
+        // Full outlet sale fetch removed — pos_billlookup blade loads bills
+        // via XHR, this scan of sale1 was never used.
         return view('property.pos_billlookup', [
             'depdata' => $departdata,
-            'sale1' => $sale1,
             'tableno' => $tableno,
             'label' => $label
         ]);
@@ -2701,6 +2701,9 @@ class Pos extends Controller
             ->update($updataGodown);
 
         Depart::where('propertyid', $this->propertyid)->where('dcode', $dcode)->where('sn', $sn)->update($updata);
+
+        \App\Helpers\MasterDataCache::flush($this->propertyid);
+
         return redirect('departmaster')->with('success', 'Department Updated Successfully');
     }
 

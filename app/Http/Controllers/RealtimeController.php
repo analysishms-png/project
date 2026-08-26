@@ -88,11 +88,11 @@ class RealtimeController extends Controller
     {
         $today = Carbon::today()->toDateString();
 
-        // Today's room rent (credits from paycharge)
+        // Today's room rent (debit charges posted to folios)
         $todayRoomRent = Paycharge::where('propertyid', $propertyid)
             ->where('vdate', $today)
             ->where('vtype', '!=', 'ADV')
-            ->sum('dramt');
+            ->sum('amtdr');
 
         // Today's POS revenue
         $todayPosRevenue = Sale1::where('propertyid', $propertyid)
@@ -103,7 +103,7 @@ class RealtimeController extends Controller
         $todayPayments = Paycharge::where('propertyid', $propertyid)
             ->where('vdate', $today)
             ->where('vtype', '!=', 'ADV')
-            ->sum('cramt');
+            ->sum('amtcr');
 
         // Occupied rooms
         $totalRooms = RoomMast::where('propertyid', $propertyid)->count();

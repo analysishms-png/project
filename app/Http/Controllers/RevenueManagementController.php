@@ -114,12 +114,12 @@ class RevenueManagementController extends Controller
         $monthRevenue = Paycharge::where('propertyid', $propertyid)
             ->where('vdate', '>=', $monthStart)
             ->where('vtype', '!=', 'ADV')
-            ->sum('dramt');
+            ->sum('amtdr');
 
         $monthPayments = Paycharge::where('propertyid', $propertyid)
             ->where('vdate', '>=', $monthStart)
             ->where('vtype', '!=', 'ADV')
-            ->sum('cramt');
+            ->sum('amtcr');
 
         $totalRooms = DB::table('room_mast')
             ->where('propertyid', $propertyid)

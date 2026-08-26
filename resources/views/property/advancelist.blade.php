@@ -57,7 +57,7 @@
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="advanceTable" class="table table-striped table-bordered w-100">
+                                <table id="advanceTable" class="table table-striped table-bordered w-100 table-radio">
                                     <thead>
                                         <tr>
                                             <th>Sn</th>

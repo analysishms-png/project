@@ -222,7 +222,7 @@
 
                         <div class="card-body p-3">
                             <div class="table-responsive">
-                                <table id="room_cat" class="table table-hover table-striped table-bordered table-sm" style="font-size:12px; width:100%;">
+                                <table id="room_cat" class="table table-hover table-striped table-bordered table-sm table-radio" style="font-size:12px; width:100%;">
                                     <thead class="thead-dark">
                                         <tr>
                                             <th>Sn.</th>

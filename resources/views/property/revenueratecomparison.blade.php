@@ -162,6 +162,10 @@
 (function () {
     'use strict';
 
+    function rcEsc(v) {
+        return $('<div>').text(v == null ? '' : String(v)).html();
+    }
+
     var rcRows = null;
 
     function rcRender() {
@@ -190,7 +194,7 @@
                     diff = '<span class="text-muted">—</span>';
                     status = '<span class="badge badge-soft-secondary">Optimal</span>';
                 }
-                h += '<tr><td><strong>' + (c.name || '') + '</strong><br><small class="text-muted">' + (c.cat_code || '') + '</small></td>' +
+                h += '<tr><td><strong>' + rcEsc(c.name || '') + '</strong><br><small class="text-muted">' + rcEsc(c.cat_code || '') + '</small></td>' +
                     '<td class="text-right">₹' + window.hmsFmt(c.current_rate) + '</td>' +
                     '<td class="text-right fw-bold text-primary">₹' + window.hmsFmt(c.ai_rate) + '</td>' +
                     '<td class="text-right">' + (c.channel_rate > 0 ? '₹' + window.hmsFmt(c.channel_rate) : '<span class="text-muted">—</span>') + '</td>' +

@@ -32,7 +32,7 @@ class CacheReportFetch
         $propertyid = auth()->user()->propertyid;
         $username = auth()->user()->name;
         $ver = CacheService::version('rpt:' . $propertyid);
-        $payload = md5(json_encode($request->except(['_token', '_method'])));
+        $payload = self::hashInput($request->except(['_token', '_method']));
 
         $key = "rptresp:{$propertyid}:{$username}:{$ver}:"
             . Str::slug($request->path()) . ":{$payload}";
@@ -60,5 +60,28 @@ class CacheReportFetch
         }
 
         return $response;
+    }
+
+    /**
+     * Order-independent hash of the request input: keys are sorted
+     * recursively before encoding, so the same payload sent with a
+     * different key order still hits the same cache entry.
+     */
+    public static function hashInput(array $data): string
+    {
+        self::sortKeys($data);
+
+        return md5(json_encode($data));
+    }
+
+    private static function sortKeys(array &$data): void
+    {
+        ksort($data);
+
+        foreach ($data as &$value) {
+            if (is_array($value)) {
+                self::sortKeys($value);
+            }
+        }
     }
 }

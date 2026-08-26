@@ -5052,6 +5052,11 @@ class InventoryController extends Controller
      */
     public function insights()
     {
+        $permission = revokeopen(161121);
+        if (is_null($permission) || $permission->view == 0) {
+            return redirect()->back()->with('error', 'You have no permission to execute this functionality!');
+        }
+
         $company = Companyreg::where('propertyid', $this->propertyid)->first();
 
         return view('property.invinsights', [

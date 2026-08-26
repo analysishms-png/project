@@ -469,6 +469,7 @@
 
         {{-- HMS shared report helpers: fmt/fmtDate/radioVal single copy (REDIS_JS_PLAN Phase J-A) --}}
         <script src="{{ asset('js/hms-report.js') }}"></script>
+        <script src="{{ asset('js/hms-table.js') }}"></script>
 
         <audio id="orderNotificationSound" preload="auto">
             <source src="{{ asset('assets/music/ordermsg.wav') }}" type="audio/wav">
