@@ -224,30 +224,48 @@ class PropertyController extends Controller
             ->groupBy('vdate')
             ->pluck('rev', 'vdate');
 
-        // Occupied rooms per day: folio open on that date.
+        // Occupied rooms per day: single fetch of folios overlapping the
+        // window, then count in memory (avoids 30 separate COUNT queries).
+        // A room is occupied on day D when the guest had checked in on/before
+        // D and had not yet checked out (type C/O = checked out; depdate is
+        // only an EXPECTED departure and must not disqualify in-house folios).
+        $firstDay = $days[0];
+        $lastDay = end($days);
+        $folios = DB::table('roomocc')
+            ->select('roomno', 'chkindate', 'chkoutdate', 'type')
+            ->where('propertyid', $propertyid)
+            ->whereDate('chkindate', '<=', $lastDay)
+            ->where(function ($q) use ($firstDay) {
+                $q->whereNull('chkoutdate')
+                  ->orWhereDate('chkoutdate', '>', $firstDay)
+                  ->orWhereNotIn('type', ['C', 'O']);
+            })
+            ->get();
+
         $occCounts = [];
         foreach ($days as $d) {
-            $occCounts[$d] = DB::table('roomocc')
-                ->where('propertyid', $propertyid)
-                ->whereNull('type')
-                ->whereDate('chkindate', '<=', $d)
-                ->where(function ($q) use ($d) {
-                    $q->whereNull('depdate')->orWhereDate('depdate', '>', $d);
+            $occCounts[$d] = $folios
+                ->filter(function ($f) use ($d) {
+                    $stillInHouse = is_null($f->type) || !in_array($f->type, ['C', 'O']);
+                    $checkedOutAfter = !is_null($f->chkoutdate) && substr($f->chkoutdate, 0, 10) > $d;
+                    return substr($f->chkindate, 0, 10) <= $d && ($stillInHouse || $checkedOutAfter);
                 })
-                ->distinct('roomno')
-                ->count('roomno');
+                ->pluck('roomno')
+                ->unique()
+                ->count();
         }
 
         $weekly = [];
         foreach ($days as $d) {
             $rev = (float) ($revenueByDate[$d] ?? 0) + (float) ($posByDate[$d] ?? 0) + (float) ($banquetByDate[$d] ?? 0);
+            $roomRev = (float) ($revenueByDate[$d] ?? 0); // room revenue only — ADR/RevPAR basis (matches RealtimeController)
             $occ = (int) ($occCounts[$d] ?? 0);
             $weekly[] = [
                 'label'     => date('d M', strtotime($d)),
                 'revenue'   => round($rev),
                 'occupancy' => $totalRooms > 0 ? round($occ / $totalRooms * 100) : 0,
-                'adr'       => $occ > 0 ? round($rev / $occ) : 0,
-                'revpar'    => round($rev / $totalRooms),
+                'adr'       => $occ > 0 ? round($roomRev / $occ) : 0,
+                'revpar'    => round($roomRev / $totalRooms),
             ];
         }
 
@@ -259,7 +277,10 @@ class PropertyController extends Controller
             ->selectRaw('SUM(COALESCE(adult,0) + COALESCE(children,0)) as g')
             ->value('g');
 
-        $todayRev = end($weekly)['revenue'];
+        $todayRow  = end($weekly);
+        $todayRev  = $todayRow['revenue'];
+        $todayAdr  = $todayRow['adr'];
+        $todayRevpar = $todayRow['revpar'];
         $todayOcc = (int) ($occCounts[$today] ?? 0);
 
         return [
@@ -268,8 +289,8 @@ class PropertyController extends Controller
                 'checkOut'      => DB::table('roomocc')->where('propertyid', $propertyid)->where('type', 'O')->whereDate('chkoutdate', $today)->count(),
                 'inhouseGuests' => (int) $inhouseGuests,
                 'totalRevenue'  => $todayRev,
-                'adr'           => $todayOcc > 0 ? round($todayRev / $todayOcc) : 0,
-                'revpar'        => round($todayRev / $totalRooms),
+                'adr'           => $todayAdr,
+                'revpar'        => $todayRevpar,
             ],
             'weekly' => $weekly,
         ];
