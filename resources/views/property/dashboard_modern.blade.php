@@ -3,483 +3,440 @@
 @php
     use Carbon\Carbon;
     $currentHour = Carbon::now()->format('H');
-    $greeting = '';
-    $greetingIcon = '';
-    if ($currentHour >= 5 && $currentHour < 12) { $greeting = 'Good Morning'; $greetingIcon = '🌅'; }
-    elseif ($currentHour >= 12 && $currentHour < 17) { $greeting = 'Good Afternoon'; $greetingIcon = '☀️'; }
-    elseif ($currentHour >= 17 && $currentHour < 21) { $greeting = 'Good Evening'; $greetingIcon = '🌆'; }
-    else { $greeting = 'Good Night'; $greetingIcon = '🌙'; }
+    if ($currentHour >= 5 && $currentHour < 12) { $greeting = 'Good Morning'; $greetEmoji = '🌅'; }
+    elseif ($currentHour >= 12 && $currentHour < 17) { $greeting = 'Good Afternoon'; $greetEmoji = '☀️'; }
+    elseif ($currentHour >= 17 && $currentHour < 21) { $greeting = 'Good Evening'; $greetEmoji = '🌆'; }
+    else { $greeting = 'Good Night'; $greetEmoji = '🌙'; }
+
     $softwareDate = Carbon::parse($datearr['ncurdate'])->format('l, d F Y');
     $userName = Auth::user()->name;
     $compName = $user->comp_name ?? 'Hotel';
 
-    // Room counts
-    $occupiedCount = $status['Occupied'] ? count($status['Occupied]) : 0;
-    $checkinCount = $status['CheckIn'] ? count($status['CheckIn']) : 0;
-    $checkoutCount = $status['CheckOut'] ? count($status['CheckOut']) : 0;
-    $expectedCheckoutCount = $status['ExpectedCheckOut'] ? count($status['ExpectedCheckOut']) : 0;
+    // ── Room status counts ──────────────────────────────────────────────
+    $occupiedCount        = $status['Occupied'] ? count($status['Occupied']) : 0;
+    $expectedCheckout     = $status['ExpectedCheckOut'] ? count($status['ExpectedCheckOut']) : 0;
+    $occupiedDirtyCount   = $status['OccupiedDirtyRooms'] ? count($status['OccupiedDirtyRooms']) : 0;
+    $vacantDirtyCount     = $status['VacantDirtyRooms'] ? count($status['VacantDirtyRooms']) : 0;
     $expectedArrivalCount = 0;
     if ($status['ExpectedArrival']) {
-        $filteredArrivals = $status['ExpectedArrival']->filter(fn($item) => $item->total_rooms > 0);
-        $expectedArrivalCount = $filteredArrivals->sum('total_rooms');
+        $expectedArrivalCount = $status['ExpectedArrival']->filter(fn($i) => $i->total_rooms > 0)->sum('total_rooms');
     }
-    $unsettledCount = $status['UnsettledRooms'] ? count($status['UnsettledRooms']) : 0;
-    $oooCount = $status['OutOfOrderRooms'] ? count($status['OutOfOrderRooms']) : 0;
-    $occupiedDirtyCount = $status['OccupiedDirtyRooms'] ? count($status['OccupiedDirtyRooms']) : 0;
-    $vacantDirtyCount = $status['VacantDirtyRooms'] ? count($status['VacantDirtyRooms']) : 0;
+    $availableClean = max(0, $totalRooms - $occupiedCount - $expectedCheckout - $occupiedDirtyCount - $vacantDirtyCount - $expectedArrivalCount);
 
-    // Get all rooms for grid
-    $allRooms = \App\Models\RoomMast::where('propertyid', Auth::user()->propertyid)
-        ->where('type', 'RO')
-        ->orderBy('rcode')
-        ->get();
-    $totalRooms = $allRooms->count();
+    $today = $metrics['todaySummary'];
+    $weekly = $metrics['weekly'];
 
-    // Get room statuses for grid
-    $roomStatuses = [];
-    $occupiedRooms = $status['Occupied'] ? $status['Occupied']->pluck('Name')->toArray() : [];
-    $checkoutRooms = $status['CheckOut'] ? $status['CheckOut']->pluck('Name')->toArray() : [];
-    $dirtyRooms = $status['OccupiedDirtyRooms'] ? $status['OccupiedDirtyRooms']->pluck('name')->toArray() : [];
-    $vacantDirtyRooms = $status['VacantDirtyRooms'] ? $status['VacantDirtyRooms']->pluck('Name')->toArray() : [];
-    $oooRooms = $status['OutOfOrderRooms'] ? $status['OutOfOrderRooms']->pluck('name')->toArray() : [];
-
-    foreach ($allRooms as $room) {
-        $rcode = $room->rcode;
-        if (in_array($rcode, $oooRooms)) { $roomStatuses[$rcode] = 'ooo'; }
-        elseif (in_array($rcode, $dirtyRooms)) { $roomStatuses[$rcode] = 'dirty'; }
-        elseif (in_array($rcode, $vacantDirtyRooms)) { $roomStatuses[$rcode] = 'vacant-dirty'; }
-        elseif (in_array($rcode, $occupiedRooms)) { $roomStatuses[$rcode] = 'occupied'; }
-        elseif (in_array($rcode, $checkoutRooms)) { $roomStatuses[$rcode] = 'checkout'; }
-        else { $roomStatuses[$rcode] = 'vacant-clean'; }
-    }
-
-    // Revenue data
-    $combinedTotal = $data['combinedTotal'] ?? '0.00';
-    $yesterdayTotal = $data['yesterdaycombinedTotal'] ?? '0.00';
-    $percentageChange = $data['percentageChange'] ?? 0;
+    // Donut segments: [label, count, color]
+    $donutData = [
+        ['Occupied Room',        $occupiedCount,        '#ef4444'],
+        ['Expected CheckOut',    $expectedCheckout,     '#8b5cf6'],
+        ['Occupied Dirty Room',  $occupiedDirtyCount,   '#f97316'],
+        ['Vacant Dirty Room',    $vacantDirtyCount,     '#f59e0b'],
+        ['Expected Arrival',     $expectedArrivalCount, '#2dd4bf'],
+        ['Available Clean Room', $availableClean,       '#93c5fd'],
+    ];
 @endphp
 
 <style>
-/* Dashboard Modern Styles */
-.dashboard-modern { padding: 0; margin: -15px; }
-.welcome-bar { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 20px 30px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.welcome-bar h2 { font-size: 22px; font-weight: 700; margin: 0; }
-.welcome-bar .date-info { font-size: 13px; opacity: 0.8; }
-.welcome-bar .user-info { display: flex; align-items: center; gap: 12px; }
-.welcome-bar .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: #e94560; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+    /* ============ Analytics Dashboard (screenshot design) ============ */
+    .adx { padding: 4px 8px 24px; font-family: var(--hms-font, "Roboto", system-ui, sans-serif); }
+    .adx .card { background:#fff; border:1px solid #eef0f4; border-radius:14px; box-shadow:0 1px 3px rgba(16,24,40,.05); }
 
-/* Summary Cards */
-.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.summary-card { background: #fff; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid; }
-.summary-card.occupied { border-left-color: #3b82f6; }
-.summary-card.checkout { border-left-color: #10b981; }
-.summary-card.dirty { border-left-color: #f59e0b; }
-.summary-card.vacant-dirty { border-left-color: #8b5cf6; }
-.summary-card .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-.summary-card.occupied .card-icon { background: #eff6ff; color: #3b82f6; }
-.summary-card.checkout .card-icon { background: #ecfdf5; color: #10b981; }
-.summary-card.dirty .card-icon { background: #fffbeb; color: #f59e0b; }
-.summary-card.vacant-dirty .card-icon { background: #f5f3ff; color: #8b5cf6; }
-.summary-card .card-value { font-size: 28px; font-weight: 800; color: #1a1a2e; }
-.summary-card .card-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-.summary-card .card-rooms { font-size: 11px; color: #9ca3af; margin-top: 4px; }
-.summary-card .card-arrow { margin-left: auto; color: #d1d5db; font-size: 18px; }
+    /* Greeting banner */
+    .adx-banner { background: linear-gradient(100deg,#5b5fe9 0%,#6d5ce7 45%,#7c3aed 100%); border-radius:16px; color:#fff; padding:26px 30px; display:flex; justify-content:space-between; align-items:center; gap:24px; margin-bottom:16px; }
+    .adx-banner .bx-icon { font-size:44px; line-height:1; margin-right:18px; }
+    .adx-banner h2 { font-size:26px; font-weight:800; margin:0 0 4px; letter-spacing:.2px; }
+    .adx-banner .bx-sub { font-size:14px; opacity:.85; margin:0; }
+    .adx-banner .bx-date { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:7px 14px; font-size:13px; margin-top:14px; }
+    .adx-right { display:flex; align-items:center; gap:26px; }
+    .adx-weather { text-align:right; }
+    .adx-weather .wx-temp { font-size:34px; font-weight:800; line-height:1.1; }
+    .adx-weather .wx-cond { font-size:13px; opacity:.9; }
+    .adx-weather .wx-city { font-size:12px; opacity:.75; }
+    .adx-clock { position:relative; width:86px; height:86px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffffff, #e8eaf6); box-shadow:0 4px 14px rgba(0,0,0,.25), inset 0 0 0 4px #f5f6fb; flex:0 0 auto; }
+    .adx-clock .hand { position:absolute; left:50%; bottom:50%; transform-origin:50% 100%; border-radius:3px; }
+    .adx-clock .h-hr { width:4px; height:22px; margin-left:-2px; background:#1e293b; }
+    .adx-clock .h-min { width:3px; height:30px; margin-left:-1.5px; background:#475569; }
+    .adx-clock .h-sec { width:1.5px; height:34px; margin-left:-.75px; background:#ef4444; }
+    .adx-clock .h-pin { position:absolute; top:50%; left:50%; width:7px; height:7px; margin:-3.5px; border-radius:50%; background:#1e293b; }
+    .adx-livetime { font-size:11px; letter-spacing:1.5px; opacity:.85; text-align:center; margin-top:6px; font-weight:600; }
 
-/* Main Grid */
-.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
-.dashboard-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.dashboard-card .card-title { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-.dashboard-card .card-title select { font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid #e5e7eb; }
+    /* Alert strip */
+    .adx-alert { display:flex; align-items:center; justify-content:center; gap:10px; background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:13.5px; font-weight:600; border-radius:10px; padding:10px 18px; margin-bottom:18px; }
 
-/* Donut Chart Section */
-.donut-section { display: flex; align-items: center; gap: 24px; }
-.donut-chart { position: relative; width: 180px; height: 180px; }
-.donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-.donut-center .total { font-size: 24px; font-weight: 800; color: #1a1a2e; }
-.donut-center .label { font-size: 11px; color: #6b7280; }
-.donut-legend { flex: 1; }
-.donut-legend .legend-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
-.donut-legend .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-.donut-legend .legend-count { margin-left: auto; font-weight: 600; }
-.donut-legend .legend-pct { margin-left: 8px; color: #9ca3af; font-size: 12px; }
+    /* Stat cards */
+    .adx-stats { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:18px; }
+    .adx-stat { position:relative; overflow:hidden; padding:16px 16px 12px; }
+    .adx-stat .st-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .adx-stat .st-ic { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto; }
+    .adx-stat .st-label { font-size:12px; font-weight:600; color:#475569; line-height:1.25; }
+    .adx-stat .st-count { font-size:30px; font-weight:800; margin:2px 0 8px; }
+    .adx-stat .st-link { font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
+    .adx-stat .st-link:hover { text-decoration:underline; }
+    .adx-stat .st-wave { position:absolute; right:-8px; bottom:-8px; width:70px; height:34px; opacity:.5; border-radius:50% 50% 0 0; }
+    .st-red    .st-ic { background:#fee2e2; color:#dc2626; } .st-red    .st-count, .st-red .st-link { color:#dc2626; } .st-red .st-wave { background:#fee2e2; }
+    .st-purple .st-ic { background:#ede9fe; color:#7c3aed; } .st-purple .st-count, .st-purple .st-link { color:#7c3aed; } .st-purple .st-wave { background:#ede9fe; }
+    .st-orange .st-ic { background:#ffedd5; color:#ea580c; } .st-orange .st-count, .st-orange .st-link { color:#ea580c; } .st-orange .st-wave { background:#ffedd5; }
+    .st-yellow .st-ic { background:#fef9c3; color:#ca8a04; } .st-yellow .st-count, .st-yellow .st-link { color:#ca8a04; } .st-yellow .st-wave { background:#fef9c3; }
+    .st-teal   .st-ic { background:#ccfbf1; color:#0d9488; } .st-teal   .st-count, .st-teal .st-link { color:#0d9488; } .st-teal .st-wave { background:#ccfbf1; }
+    .st-blue   .st-ic { background:#dbeafe; color:#2563eb; } .st-blue   .st-count, .st-blue .st-link { color:#2563eb; } .st-blue .st-wave { background:#dbeafe; }
 
-/* Revenue Summary */
-.revenue-big { font-size: 32px; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
-.revenue-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
-.revenue-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
-.revenue-item { text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; }
-.revenue-item .rev-label { font-size: 11px; color: #6b7280; text-transform: uppercase; }
-.revenue-item .rev-value { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-top: 4px; }
-.revenue-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
-.revenue-metric { text-align: center; padding: 10px; background: #f0fdf4; border-radius: 8px; }
-.revenue-metric .rm-label { font-size: 11px; color: #6b7280; }
-.revenue-metric .rm-value { font-size: 15px; font-weight: 700; color: #059669; }
+    /* Middle row */
+    .adx-mid { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; margin-bottom:18px; }
+    .adx-card { padding:20px 22px; }
+    .adx-card .card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .adx-card .card-head h5 { font-size:16px; font-weight:700; color:#0f172a; margin:0; }
+    .adx-card .card-head a, .adx-card .card-head .btn-link { font-size:12.5px; font-weight:600; color:#6d5ce7; text-decoration:none; }
+    .adx-card .card-head a:hover { text-decoration:underline; }
 
-/* Events Timeline */
-.events-timeline { max-height: 300px; overflow-y: auto; }
-.event-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
-.event-item:last-child { border-bottom: none; }
-.event-time { background: #eff6ff; color: #3b82f6; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.event-time.wedding { background: #fef3c7; color: #d97706; }
-.event-time.meeting { background: #ecfdf5; color: #059669; }
-.event-info h5 { font-size: 13px; font-weight: 600; margin: 0; color: #1a1a2e; }
-.event-info .event-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
-.event-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-.event-badge.birthday { background: #fef3c7; color: #d97706; }
-.event-badge.wedding { background: #fce7f3; color: #db2777; }
-.event-badge.meeting { background: #dbeafe; color: #2563eb; }
+    /* Donut */
+    .adx-donut-wrap { display:flex; align-items:center; gap:28px; }
+    .adx-donut-box { position:relative; width:190px; height:190px; flex:0 0 auto; }
+    .adx-donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+    .adx-donut-center .dc-label { font-size:12px; color:#64748b; }
+    .adx-donut-center .dc-total { font-size:26px; font-weight:800; color:#0f172a; }
+    .adx-legend { flex:1; }
+    .adx-legend .lg-row { display:flex; align-items:center; gap:10px; padding:7px 0; font-size:13.5px; color:#334155; border-bottom:1px dashed #f1f5f9; }
+    .adx-legend .lg-row:last-child { border-bottom:0; }
+    .adx-legend .lg-dot { width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
+    .adx-legend .lg-name { flex:1; }
+    .adx-legend .lg-count { font-weight:700; color:#0f172a; }
+    .adx-legend .lg-pct { color:#94a3b8; font-size:12.5px; min-width:64px; text-align:right; }
 
-/* Room Grid */
-.room-grid-section { margin-bottom: 20px; }
-.room-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-.room-chip { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff; min-width: 50px; text-align: center; }
-.room-chip.occupied { background: #ef4444; }
-.room-chip.checkout { background: #10b981; }
-.room-chip.dirty { background: #f59e0b; }
-.room-chip.vacant-dirty { background: #8b5cf6; }
-.room-chip.vacant-clean { background: #3b82f6; }
-.room-chip.ooo { background: #6b7280; }
+    /* Today summary tiles */
+    .adx-sumgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .adx-sumtile { display:flex; align-items:center; gap:12px; border:1px solid #eef0f4; border-radius:12px; padding:14px; background:#fbfcfe; }
+    .adx-sumtile .su-ic { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+    .adx-sumtile .su-label { font-size:12px; color:#64748b; font-weight:600; }
+    .adx-sumtile .su-value { font-size:20px; font-weight:800; color:#0f172a; line-height:1.15; }
+    .su-green  .su-ic { background:#dcfce7; color:#16a34a; } .su-green  .su-value { color:#16a34a; }
+    .su-red    .su-ic { background:#fee2e2; color:#dc2626; } .su-red    .su-value { color:#dc2626; }
+    .su-blue   .su-ic { background:#dbeafe; color:#2563eb; } .su-blue   .su-value { color:#2563eb; }
+    .su-purple .su-ic { background:#ede9fe; color:#7c3aed; } .su-purple .su-value { color:#7c3aed; }
+    .su-orange .su-ic { background:#ffedd5; color:#ea580c; } .su-orange .su-value { color:#ea580c; }
+    .su-teal   .su-ic { background:#ccfbf1; color:#0d9488; } .su-teal   .su-value { color:#0d9488; }
 
-/* Quick Status Bar */
-.quick-status-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.status-pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.status-pill .pill-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-pill.occupied { background: #fef2f2; color: #dc2626; }
-.status-pill.occupied .pill-dot { background: #dc2626; }
-.status-pill.checkout { background: #ecfdf5; color: #059669; }
-.status-pill.checkout .pill-dot { background: #059669; }
-.status-pill.dirty { background: #fffbeb; color: #d97706; }
-.status-pill.dirty .pill-dot { background: #d97706; }
-.status-pill.vacant-dirty { background: #f5f3ff; color: #7c3aed; }
-.status-pill.vacant-dirty .pill-dot { background: #7c3aed; }
+    /* Charts row */
+    .adx-charts { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .adx-charts .adx-card { min-width:0; }
+    .adx-range { font-size:12.5px; font-weight:600; color:#475569; border:1px solid #e2e8f0; border-radius:8px; padding:5px 10px; background:#fff; }
+    .chart-box { position:relative; height:230px; }
 
-/* Quick Actions */
-.quick-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.quick-action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; transition: all 0.2s; text-decoration: none; color: #374151; }
-.quick-action-btn:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.15); }
-.quick-action-btn .qa-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.quick-action-btn .qa-icon.blue { background: #eff6ff; color: #3b82f6; }
-.quick-action-btn .qa-icon.green { background: #ecfdf5; color: #10b981; }
-.quick-action-btn .qa-icon.orange { background: #fff7ed; color: #f97316; }
-.quick-action-btn .qa-icon.purple { background: #f5f3ff; color: #8b5cf6; }
-.quick-action-btn .qa-icon.red { background: #fef2f2; color: #ef4444; }
-.quick-action-btn .qa-icon.teal { background: #f0fdfa; color: #14b8a6; }
-.quick-action-btn .qa-icon.indigo { background: #eef2ff; color: #6366f1; }
-.quick-action-btn .qa-icon.gray { background: #f3f4f6; color: #6b7280; }
-.quick-action-btn .qa-label { font-size: 11px; font-weight: 600; text-align: center; }
+    /* Footer */
+    .adx-footer { text-align:center; font-size:12.5px; color:#94a3b8; margin-top:22px; }
 
-/* Bottom Grid */
-.bottom-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-
-/* Revenue Chart */
-.chart-container { height: 200px; }
-
-/* Responsive */
-@media (max-width: 1200px) { .summary-cards { grid-template-columns: repeat(2, 1fr); } .dashboard-grid, .bottom-grid { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .summary-cards { grid-template-columns: 1fr; } .quick-actions-grid { grid-template-columns: repeat(2, 1fr); } .donut-section { flex-direction: column; } }
+    @media (max-width:1400px){ .adx-stats { grid-template-columns:repeat(3,1fr); } .adx-charts { grid-template-columns:1fr; } }
+    @media (max-width:992px){ .adx-mid { grid-template-columns:1fr; } .adx-banner { flex-direction:column; align-items:flex-start; } .adx-right { align-self:center; } }
+    @media (max-width:640px){ .adx-stats { grid-template-columns:1fr 1fr; } .adx-sumgrid { grid-template-columns:1fr; } .adx-donut-wrap { flex-direction:column; } }
 </style>
 
-<div class="dashboard-modern">
-    {{-- Welcome Bar --}}
-    <div class="welcome-bar">
-        <div>
-            <h2>Analytics Dashboard</h2>
-            <div class="date-info">Welcome back, {{ $userName }}! 👋 | {{ $softwareDate }}</div>
-        </div>
-        <div class="user-info">
-            <div style="text-align:right;">
-                <div style="font-weight:600;">{{ $compName }}</div>
-                <div style="font-size:11px;opacity:0.7;">{{ $datearr['ncurdate'] }}</div>
+<div class="adx">
+
+    {{-- ═══════════ Greeting banner ═══════════ --}}
+    <div class="adx-banner">
+        <div class="d-flex align-items-center">
+            <span class="bx-icon" id="adxGreetIcon">{{ $greetEmoji }}</span>
+            <div>
+                <h2>{{ $greeting }}, {{ $userName }}! 👋</h2>
+                <p class="bx-sub">Have a productive day ahead.</p>
+                <span class="bx-date">📅 {{ $softwareDate }}</span>
             </div>
-            <div class="user-avatar">{{ strtoupper(substr($userName, 0, 1)) }}</div>
+        </div>
+        <div class="adx-right">
+            <div class="text-center">
+                <div class="adx-clock" id="adxClock">
+                    <div class="hand h-hr" id="adxHr"></div>
+                    <div class="hand h-min" id="adxMin"></div>
+                    <div class="hand h-sec" id="adxSec"></div>
+                    <div class="h-pin"></div>
+                </div>
+                <div class="adx-livetime">LIVE TIME</div>
+            </div>
+            <div class="adx-weather" id="adxWeather">
+                <div class="wx-temp"><span id="adxWxIcon">☁️</span> <span id="adxWxTemp">--°C</span></div>
+                <div class="wx-cond" id="adxWxCond">Loading…</div>
+                <div class="wx-city">📍 {{ $user->city ?? 'Kanpur' }}</div>
+            </div>
         </div>
     </div>
 
-    {{-- Summary Cards --}}
-    <div class="summary-cards">
-        <div class="summary-card occupied">
-            <div class="card-icon"><i class="fa fa-bed"></i></div>
-            <div>
-                <div class="card-value">{{ $occupiedCount }}</div>
-                <div class="card-label">Occupied Rooms</div>
-                <div class="card-rooms">{{ implode(', ', array_slice($occupiedRooms, 0, 5)) }}{{ count($occupiedRooms) > 5 ? '...' : '' }}</div>
-            </div>
-            <div class="card-arrow"><i class="fa fa-chevron-right"></i></div>
+    {{-- ═══════════ WhatsApp balance alert ═══════════ --}}
+    @if (isset($whatsappBal) && $whatsappBal !== null && (float) $whatsappBal < 100)
+        <div class="adx-alert">
+            ⚠️ Your WhatsApp Balance (₹{{ number_format((float) $whatsappBal, 2) }}) Is Low. Please Recharge To Send Automatic Messages
         </div>
-        <div class="summary-card checkout">
-            <div class="card-icon"><i class="fa fa-check-circle"></i></div>
-            <div>
-                <div class="card-value">{{ $checkoutCount }}</div>
-                <div class="card-label">Checkout Rooms</div>
-                <div class="card-rooms">{{ implode(', ', array_slice($checkoutRooms, 0, 5)) }}{{ count($checkoutRooms) > 5 ? '...' : '' }}</div>
-            </div>
-            <div class="card-arrow"><i class="fa fa-chevron-right"></i></div>
+    @endif
+
+    {{-- ═══════════ Stat cards ═══════════ --}}
+    <div class="adx-stats">
+        <div class="card adx-stat st-red">
+            <div class="st-head"><span class="st-ic">👤</span><span class="st-label">Occupied Room</span></div>
+            <div class="st-count">{{ $occupiedCount }}</div>
+            <a class="st-link" href="{{ route('inhoseroomstatus') }}">View Details →</a>
+            <span class="st-wave"></span>
         </div>
-        <div class="summary-card dirty">
-            <div class="card-icon"><i class="fa fa-bell"></i></div>
-            <div>
-                <div class="card-value">{{ $occupiedDirtyCount }}</div>
-                <div class="card-label">Occupied Dirty Rooms</div>
-                <div class="card-rooms">{{ implode(', ', array_slice($dirtyRooms, 0, 5)) }}{{ count($dirtyRooms) > 5 ? '...' : '' }}</div>
-            </div>
-            <div class="card-arrow"><i class="fa fa-chevron-right"></i></div>
+        <div class="card adx-stat st-purple">
+            <div class="st-head"><span class="st-ic">⏳</span><span class="st-label">Expected CheckOut Room</span></div>
+            <div class="st-count">{{ $expectedCheckout }}</div>
+            <a class="st-link" href="{{ url('expectedcheckout') }}">View Details →</a>
+            <span class="st-wave"></span>
         </div>
-        <div class="summary-card vacant-dirty">
-            <div class="card-icon"><i class="fa fa-door-open"></i></div>
-            <div>
-                <div class="card-value">{{ $vacantDirtyCount }}</div>
-                <div class="card-label">Vacant Dirty Rooms</div>
-                <div class="card-rooms">{{ implode(', ', array_slice($vacantDirtyRooms, 0, 5)) }}{{ count($vacantDirtyRooms) > 5 ? '...' : '' }}</div>
-            </div>
-            <div class="card-arrow"><i class="fa fa-chevron-right"></i></div>
+        <div class="card adx-stat st-orange">
+            <div class="st-head"><span class="st-ic">🔔</span><span class="st-label">Occupied Dirty Room</span></div>
+            <div class="st-count">{{ $occupiedDirtyCount }}</div>
+            <a class="st-link" href="{{ route('roomstatusboard') }}">View Details →</a>
+            <span class="st-wave"></span>
+        </div>
+        <div class="card adx-stat st-yellow">
+            <div class="st-head"><span class="st-ic">🔔</span><span class="st-label">Vacant Dirty Room</span></div>
+            <div class="st-count">{{ $vacantDirtyCount }}</div>
+            <a class="st-link" href="{{ route('roomstatusboard') }}">View Details →</a>
+            <span class="st-wave"></span>
+        </div>
+        <div class="card adx-stat st-teal">
+            <div class="st-head"><span class="st-ic">✈️</span><span class="st-label">Expected Arrival Room</span></div>
+            <div class="st-count">{{ $expectedArrivalCount }}</div>
+            <a class="st-link" href="{{ route('todaysarrivals') }}">View Details →</a>
+            <span class="st-wave"></span>
+        </div>
+        <div class="card adx-stat st-blue">
+            <div class="st-head"><span class="st-ic">🛏️</span><span class="st-label">Total Rooms</span></div>
+            <div class="st-count">{{ $totalRooms }}</div>
+            <a class="st-link" href="{{ route('roomstatus') }}">View Details →</a>
+            <span class="st-wave"></span>
         </div>
     </div>
 
-    {{-- Main Grid: Room Status + Revenue --}}
-    <div class="dashboard-grid">
-        {{-- Room Status Overview --}}
-        <div class="dashboard-card">
-            <div class="card-title">
-                <span>Room Status Overview</span>
-                <select class="form-control form-control-sm" style="width:auto;">
-                    <option>All Room Types</option>
-                </select>
+    {{-- ═══════════ Middle row: donut + today's summary ═══════════ --}}
+    <div class="adx-mid">
+        <div class="card adx-card">
+            <div class="card-head">
+                <h5>Room Status Overview</h5>
+                <a href="{{ route('roomstatusboard') }}">View Full Report →</a>
             </div>
-            <div class="donut-section">
-                <div class="donut-chart">
-                    <canvas id="roomStatusDonut"></canvas>
-                    <div class="donut-center">
-                        <div class="total">{{ $totalRooms }}</div>
-                        <div class="label">Total Rooms</div>
+            <div class="adx-donut-wrap">
+                <div class="adx-donut-box">
+                    <canvas id="adxDonut"></canvas>
+                    <div class="adx-donut-center">
+                        <span class="dc-label">Total</span>
+                        <span class="dc-total">{{ $totalRooms }}</span>
                     </div>
                 </div>
-                <div class="donut-legend">
-                    @php
-                        $vacantCleanCount = $totalRooms - $occupiedCount - $vacantDirtyCount - $oooCount;
-                        if ($vacantCleanCount < 0) $vacantCleanCount = 0;
-                        $legendItems = [
-                            ['label' => 'Occupied', 'count' => $occupiedCount, 'color' => '#ef4444'],
-                            ['label' => 'Vacant Clean', 'count' => $vacantCleanCount, 'color' => '#10b981'],
-                            ['label' => 'Vacant Dirty', 'count' => $vacantDirtyCount, 'color' => '#8b5cf6'],
-                            ['label' => 'Out Of Order', 'count' => $oooCount, 'color' => '#6b7280'],
-                        ];
-                    @endphp
-                    @foreach ($legendItems as $item)
-                        @php $pct = $totalRooms > 0 ? round(($item['count'] / $totalRooms) * 100, 2) : 0; @endphp
-                        <div class="legend-item">
-                            <div class="legend-dot" style="background:{{ $item['color'] }}"></div>
-                            <span>{{ $item['label'] }}</span>
-                            <span class="legend-count">{{ $item['count'] }}</span>
-                            <span class="legend-pct">{{ $pct }}%</span>
-                        </div>
-                    @endforeach
-                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">
-                        <div style="display:flex;justify-content:space-between;font-size:13px;">
-                            <span>Chargeable Rooms</span>
-                            <span style="font-weight:700;">{{ $occupiedCount }}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;">
-                            <span>Occupancy %</span>
-                            <span style="font-weight:700;color:#3b82f6;">{{ $totalRooms > 0 ? round(($occupiedCount / $totalRooms) * 100, 2) : 0 }}%</span>
-                        </div>
-                    </div>
-                </div>
+                <div class="adx-legend" id="adxLegend"></div>
             </div>
         </div>
 
-        {{-- Revenue Summary --}}
-        <div class="dashboard-card">
-            <div class="card-title">
-                <span>Revenue Summary</span>
-                <select class="form-control form-control-sm" style="width:auto;">
-                    <option>₹ INR</option>
+        <div class="card adx-card">
+            <div class="card-head"><h5>Today's Summary</h5></div>
+            <div class="adx-sumgrid">
+                <div class="adx-sumtile su-green">
+                    <span class="su-ic">🧑‍💼</span>
+                    <div><div class="su-label">Check In</div><div class="su-value">{{ $today['checkIn'] }}</div></div>
+                </div>
+                <div class="adx-sumtile su-red">
+                    <span class="su-ic">🚪</span>
+                    <div><div class="su-label">Check Out</div><div class="su-value">{{ $today['checkOut'] }}</div></div>
+                </div>
+                <div class="adx-sumtile su-blue">
+                    <span class="su-ic">👤</span>
+                    <div><div class="su-label">In House Guest</div><div class="su-value">{{ $today['inhouseGuests'] }}</div></div>
+                </div>
+                <div class="adx-sumtile su-purple">
+                    <span class="su-ic">🧾</span>
+                    <div><div class="su-label">Total Revenue</div><div class="su-value">₹{{ number_format($today['totalRevenue']) }}</div></div>
+                </div>
+                <div class="adx-sumtile su-orange">
+                    <span class="su-ic">💰</span>
+                    <div><div class="su-label">ADR</div><div class="su-value">₹{{ number_format($today['adr']) }}</div></div>
+                </div>
+                <div class="adx-sumtile su-teal">
+                    <span class="su-ic">📈</span>
+                    <div><div class="su-label">RevPAR</div><div class="su-value">₹{{ number_format($today['revpar']) }}</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════ Trend charts ═══════════ --}}
+    <div class="adx-charts">
+        <div class="card adx-card">
+            <div class="card-head">
+                <h5>Revenue Trend</h5>
+                <select class="adx-range" data-chart="revenue">
+                    <option value="7">This Week</option>
+                    <option value="30">This Month</option>
                 </select>
             </div>
-            <div class="revenue-big">₹{{ number_format((float) str_replace(',', '', $combinedTotal), 2) }}</div>
-            <div class="revenue-subtitle">Total for selected period
-                @if($percentageChange > 0)
-                    <span style="color:#10b981;font-weight:600;">↑ {{ number_format($percentageChange, 1) }}%</span>
-                @elseif($percentageChange < 0)
-                    <span style="color:#ef4444;font-weight:600;">↓ {{ number_format(abs($percentageChange), 1) }}%</span>
-                @endif
+            <div class="chart-box"><canvas id="adxRevChart"></canvas></div>
+        </div>
+        <div class="card adx-card">
+            <div class="card-head">
+                <h5>Occupancy Trend</h5>
+                <select class="adx-range" data-chart="occupancy">
+                    <option value="7">This Week</option>
+                    <option value="30">This Month</option>
+                </select>
             </div>
-            <div class="chart-container">
-                <canvas id="revenueChart"></canvas>
+            <div class="chart-box"><canvas id="adxOccChart"></canvas></div>
+        </div>
+        <div class="card adx-card">
+            <div class="card-head">
+                <h5>ADR &amp; RevPAR Trend</h5>
+                <select class="adx-range" data-chart="adrrev">
+                    <option value="7">This Week</option>
+                    <option value="30">This Month</option>
+                </select>
             </div>
-            <div class="revenue-breakdown">
-                <div class="revenue-item">
-                    <div class="rev-label">Room Rent</div>
-                    <div class="rev-value">₹{{ number_format((float) str_replace(',', '', $yesterdayTotal), 2) }}</div>
-                </div>
-                <div class="revenue-item">
-                    <div class="rev-label">Transfer From Outlet</div>
-                    <div class="rev-value">₹{{ number_format((float) str_replace(',', '', $combinedTotal) - (float) str_replace(',', '', $yesterdayTotal), 2) }}</div>
-                </div>
-                <div class="revenue-item">
-                    <div class="rev-label">Tax</div>
-                    <div class="rev-value">₹0.00</div>
-                </div>
-            </div>
-            <div class="revenue-metrics">
-                <div class="revenue-metric">
-                    <div class="rm-label">ADR</div>
-                    <div class="rm-value">₹{{ $occupiedCount > 0 ? number_format((float) str_replace(',', '', $combinedTotal) / $occupiedCount, 2) : '0.00' }}</div>
-                </div>
-                <div class="revenue-metric">
-                    <div class="rm-label">RevPAR</div>
-                    <div class="rm-value">₹{{ $totalRooms > 0 ? number_format((float) str_replace(',', '', $combinedTotal) / $totalRooms, 2) : '0.00' }}</div>
-                </div>
-            </div>
+            <div class="chart-box"><canvas id="adxAdrChart"></canvas></div>
         </div>
     </div>
 
-    {{-- Bottom Grid: Events + Room Grid + Quick Actions --}}
-    <div class="bottom-grid">
-        {{-- Room Quick Status --}}
-        <div class="dashboard-card">
-            <div class="card-title">
-                <span>Room Quick Status</span>
-                <a href="{{ url('/roomstatus') }}" style="font-size:13px;color:#3b82f6;text-decoration:none;">View All Rooms →</a>
-            </div>
-            <div class="quick-status-bar">
-                <div class="status-pill occupied"><div class="pill-dot"></div>{{ $occupiedCount }} Occupied</div>
-                <div class="status-pill checkout"><div class="pill-dot"></div>{{ $checkoutCount }} Checkout</div>
-                <div class="status-pill dirty"><div class="pill-dot"></div>{{ $occupiedDirtyCount }} Dirty</div>
-                <div class="status-pill vacant-dirty"><div class="pill-dot"></div>{{ $vacantDirtyCount }} Vacant Dirty</div>
-            </div>
-            <div class="room-grid">
-                @foreach ($roomStatuses as $rcode => $status)
-                    <div class="room-chip {{ $status }}">{{ $rcode }}</div>
-                @endforeach
-            </div>
-        </div>
-
-        {{-- Quick Actions + Events --}}
-        <div>
-            <div class="dashboard-card" style="margin-bottom:20px;">
-                <div class="card-title"><span>Quick Actions</span></div>
-                <div class="quick-actions-grid">
-                    <a href="{{ url('/walkin') }}" class="quick-action-btn">
-                        <div class="qa-icon blue"><i class="fa fa-user-plus"></i></div>
-                        <div class="qa-label">Quick Check-In</div>
-                    </a>
-                    <a href="{{ url('/reservation') }}" class="quick-action-btn">
-                        <div class="qa-icon green"><i class="fa fa-calendar-plus"></i></div>
-                        <div class="qa-label">New Reservation</div>
-                    </a>
-                    <a href="{{ url('/roomstatus') }}" class="quick-action-btn">
-                        <div class="qa-icon orange"><i class="fa fa-door-open"></i></div>
-                        <div class="qa-label">Room Availability</div>
-                    </a>
-                    <a href="{{ url('/fombilldetails') }}" class="quick-action-btn">
-                        <div class="qa-icon purple"><i class="fa fa-file-invoice"></i></div>
-                        <div class="qa-label">Create Invoice</div>
-                    </a>
-                    <a href="{{ url('/posbillentry') }}" class="quick-action-btn">
-                        <div class="qa-icon red"><i class="fa fa-utensils"></i></div>
-                        <div class="qa-label">POS Billing</div>
-                    </a>
-                    <a href="{{ url('/generalledger') }}" class="quick-action-btn">
-                        <div class="qa-icon teal"><i class="fa fa-chart-bar"></i></div>
-                        <div class="qa-label">Reports</div>
-                    </a>
-                    <a href="{{ url('/opennightaudit') }}" class="quick-action-btn">
-                        <div class="qa-icon indigo"><i class="fa fa-moon"></i></div>
-                        <div class="qa-label">Night Audit</div>
-                    </a>
-                    <a href="{{ url('/roomstatus') }}" class="quick-action-btn">
-                        <div class="qa-icon gray"><i class="fa fa-ellipsis-h"></i></div>
-                        <div class="qa-label">More Options</div>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Today's Events --}}
-            @if ($status['Events'] && count($status['Events']) > 0)
-            <div class="dashboard-card">
-                <div class="card-title">
-                    <span>Today's Events</span>
-                    <span style="font-size:12px;color:#6b7280;">{{ count($status['Events']) }} events</span>
-                </div>
-                <div class="events-timeline">
-                    @foreach ($status['Events'] as $event)
-                        @php
-                            $eventType = 'meeting';
-                            $eventName = strtolower($event->FName ?? '');
-                            if (str_contains($eventName, 'birthday')) $eventType = 'birthday';
-                            elseif (str_contains($eventName, 'wedding')) $eventType = 'wedding';
-                        @endphp
-                        <div class="event-item">
-                            <div class="event-time {{ $eventType }}">{{ \Carbon\Carbon::parse($event->PTime)->format('h:i A') }}</div>
-                            <div class="event-info" style="flex:1;">
-                                <h5>{{ $event->FName }} - {{ $event->VName }}</h5>
-                                <div class="event-meta"><i class="fa fa-user"></i> {{ $event->PName }}</div>
-                            </div>
-                            <span class="event-badge {{ $eventType }}">{{ ucfirst($eventType) }}</span>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-        </div>
-    </div>
+    <div class="adx-footer">© {{ date('Y') }} Analysis Hotel Management System. All rights reserved.</div>
 </div>
 
-{{-- Chart.js --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Room Status Donut
-    const donutCtx = document.getElementById('roomStatusDonut');
-    if (donutCtx) {
-        new Chart(donutCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Occupied', 'Vacant Clean', 'Vacant Dirty', 'Out Of Order'],
-                datasets: [{
-                    data: [{{ $occupiedCount }}, {{ $vacantCleanCount }}, {{ $vacantDirtyCount }}, {{ $oooCount }}],
-                    backgroundColor: ['#ef4444', '#10b981', '#8b5cf6', '#6b7280'],
-                    borderWidth: 0,
-                    cutout: '70%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
+/* Chart.js itself comes from the layout footer (v4.4.5) — do NOT include
+   another copy here or the footer version overwrites the global and orphans
+   the chart instances. Init is deferred to window.load so the footer's
+   Chart global is final before we create anything. */
+window.addEventListener('load', function () {
+(function () {
+    'use strict';
+
+    /* ── Data from server ─────────────────────────────────────────── */
+    var WEEKLY = @json($weekly);
+    var DONUT = @json($donutData);
+    var TOTAL_ROOMS = {{ (int) $totalRooms }};
+
+    /* ── Live clock (analog) ──────────────────────────────────────── */
+    function tickClock() {
+        var n = new Date();
+        var h = n.getHours() % 12, m = n.getMinutes(), s = n.getSeconds();
+        document.getElementById('adxHr').style.transform  = 'rotate(' + (h * 30 + m * .5) + 'deg)';
+        document.getElementById('adxMin').style.transform = 'rotate(' + (m * 6 + s * .1) + 'deg)';
+        document.getElementById('adxSec').style.transform = 'rotate(' + (s * 6) + 'deg)';
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    /* ── Weather via Open-Meteo (no API key needed) ───────────────── */
+    var CITY = @json($user->city ?? 'Kanpur');
+    var WX = {
+        0: ['Clear sky', '☀️'], 1: ['Mainly clear', '🌤️'], 2: ['Partly cloudy', '⛅'], 3: ['Overcast', '☁️'],
+        45: ['Fog', '🌫️'], 48: ['Rime fog', '🌫️'], 51: ['Light drizzle', '🌦️'], 53: ['Drizzle', '🌧️'],
+        55: ['Heavy drizzle', '🌧️'], 61: ['Light rain', '🌦️'], 63: ['Rain', '🌧️'], 65: ['Heavy rain', '⛈️'],
+        71: ['Light snow', '🌨️'], 73: ['Snow', '🌨️'], 75: ['Heavy snow', '❄️'],
+        80: ['Rain showers', '🌦️'], 81: ['Showers', '🌧️'], 82: ['Heavy showers', '⛈️'], 95: ['Thunderstorm', '⛈️']
+    };
+    fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(CITY) + '&count=1')
+        .then(function (r) { return r.json(); })
+        .then(function (g) {
+            if (!g.results || !g.results.length) throw 0;
+            var c = g.results[0];
+            return fetch('https://api.open-meteo.com/v1/forecast?latitude=' + c.latitude + '&longitude=' + c.longitude + '&current=temperature_2m,weather_code');
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (w) {
+            var code = w.current.weather_code, info = WX[code] || ['—', '🌡️'];
+            document.getElementById('adxWxTemp').textContent = Math.round(w.current.temperature_2m) + '°C';
+            document.getElementById('adxWxCond').textContent = info[0];
+            document.getElementById('adxWxIcon').textContent = info[1];
+        })
+        .catch(function () {
+            document.getElementById('adxWxTemp').textContent = '--°C';
+            document.getElementById('adxWxCond').textContent = 'Unavailable';
         });
+
+    /* ── Donut chart + legend ─────────────────────────────────────── */
+    var legendEl = document.getElementById('adxLegend');
+    DONUT.forEach(function (d) {
+        var pct = TOTAL_ROOMS > 0 ? (d[1] / TOTAL_ROOMS * 100).toFixed(1) : 0;
+        legendEl.insertAdjacentHTML('beforeend',
+            '<div class="lg-row"><span class="lg-dot" style="background:' + d[2] + '"></span>' +
+            '<span class="lg-name">' + d[0] + '</span>' +
+            '<span class="lg-count">' + d[1] + '</span>' +
+            '<span class="lg-pct">(' + pct + '%)</span></div>');
+    });
+
+    var donutCfg = {
+        type: 'doughnut',
+        data: {
+            labels: DONUT.map(function (d) { return d[0]; }),
+            datasets: [{
+                data: DONUT.map(function (d) { return d[1]; }),
+                backgroundColor: DONUT.map(function (d) { return d[2]; }),
+                borderWidth: 2, borderColor: '#fff'
+            }]
+        },
+        options: {
+            cutout: '68%', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: true } }
+        }
+    };
+    new Chart(document.getElementById('adxDonut'), donutCfg);
+
+    /* ── Trend charts (7-day default, switchable to 30) ───────────── */
+    function slice(n) { return WEEKLY.slice(-n); }
+    var GRID = { color: '#f1f5f9' };
+    var TICKS = { color: '#64748b', font: { size: 11 } };
+
+    function lineDataset(label, color, key, fill) {
+        return {
+            label: label, data: key, borderColor: color, backgroundColor: fill || color + '22',
+            fill: !!fill, tension: .35, borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 5
+        };
+    }
+    function baseOpts(yFmt, stacked) {
+        return {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: GRID, ticks: TICKS },
+                y: { grid: GRID, ticks: { color: '#64748b', font: { size: 11 }, callback: yFmt }, beginAtZero: true, stacked: !!stacked }
+            }
+        };
     }
 
-    // Revenue Line Chart
-    const revCtx = document.getElementById('revenueChart');
-    if (revCtx) {
-        new Chart(revCtx, {
-            type: 'line',
-            data: {
-                labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug'],
-                datasets: [{
-                    label: 'Revenue',
-                    data: [{{ (float) str_replace(',', '', $combinedTotal) * 0.6 }}, {{ (float) str_replace(',', '', $combinedTotal) * 0.75 }}, {{ (float) str_replace(',', '', $combinedTotal) * 0.85 }}, {{ (float) str_replace(',', '', $combinedTotal) * 0.95 }}, {{ (float) str_replace(',', '', $combinedTotal) }}],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-                    y: { grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 }, callback: v => '₹' + (v/1000).toFixed(0) + 'K' } }
-                }
-            }
-        });
+    var revChart = new Chart(document.getElementById('adxRevChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [lineDataset('Revenue', '#6d5ce7', [])] },
+        options: baseOpts(function (v) { return '₹' + Number(v).toLocaleString('en-IN'); })
+    });
+    var occChart = new Chart(document.getElementById('adxOccChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [lineDataset('Occupancy', '#6d5ce7', [])] },
+        options: baseOpts(function (v) { return v + '%'; })
+    });
+    var adrChart = new Chart(document.getElementById('adxAdrChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [lineDataset('ADR', '#a855f7', []), lineDataset('RevPAR', '#10b981', [])] },
+        options: $.extend(true, {}, baseOpts(function (v) { return '₹' + Number(v).toLocaleString('en-IN'); }), {
+            plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 }, usePointStyle: true } } }
+        })
+    });
+
+    function updateCharts(n) {
+        var d = slice(n);
+        revChart.data.labels = d.map(function (x) { return x.label; });
+        revChart.data.datasets[0].data = d.map(function (x) { return x.revenue; });
+        revChart.update();
+
+        occChart.data.labels = d.map(function (x) { return x.label; });
+        occChart.data.datasets[0].data = d.map(function (x) { return x.occupancy; });
+        occChart.update();
+
+        adrChart.data.labels = d.map(function (x) { return x.label; });
+        adrChart.data.datasets[0].data = d.map(function (x) { return x.adr; });
+        adrChart.data.datasets[1].data = d.map(function (x) { return x.revpar; });
+        adrChart.update();
     }
+    updateCharts(7);
+
+    document.querySelectorAll('.adx-range').forEach(function (sel) {
+        sel.addEventListener('change', function () { updateCharts(parseInt(sel.value, 10)); });
+    });
+})();
 });
 </script>
 @endsection

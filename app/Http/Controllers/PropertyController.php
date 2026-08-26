@@ -167,13 +167,18 @@ class PropertyController extends Controller
                 $revenueData = $this->getMonthlyRevenue($prpid, $ncurdate);
                 $totalRooms = DB::table('room_mast')->where('propertyid', $prpid)->count();
 
-                return view('property.index', [
+                $dashboardMetrics = $this->getDashboardMetrics($prpid, $ncurdate, $totalRooms);
+                $whatsappBal = DB::table('enviro_whatsapp')->where('propertyid', $prpid)->value('whatsappbal');
+
+                return view('property.dashboard_modern', [
                     'user' => $company,
                     'menus' => $menus,
                     'datearr' => $datearr,
                     'status' => $status,
                     'revenueData' => $revenueData,
                     'totalRooms' => $totalRooms,
+                    'metrics' => $dashboardMetrics,
+                    'whatsappBal' => $whatsappBal,
                 ]);
             } else {
                 return back()->with('logerror', 'Invalid Password');
@@ -182,6 +187,94 @@ class PropertyController extends Controller
             return redirect()->route('login');
         }
     }
+    /**
+     * Analytics-dashboard metrics: today's summary (checkin/checkout/inhouse/
+     * revenue/ADR/RevPAR) + last-7-days trend arrays for the 3 chart cards.
+     * Occupancy per day counts folios open on that date (chkin <= d < dep).
+     */
+    protected function getDashboardMetrics($propertyid, $ncurdate, $totalRooms)
+    {
+        $totalRooms = max(1, (int) $totalRooms);
+        // 30 days of daily points; charts slice last 7 (week) or all 30 (month).
+        $days = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $days[] = date('Y-m-d', strtotime("-{$i} days", strtotime($ncurdate)));
+        }
+
+        // Per-day revenue (room rent + POS + banquet) in one query each.
+        $revenueByDate = DB::table('paycharge')
+            ->selectRaw("vdate, SUM(amtdr) as rev")
+            ->where('propertyid', $propertyid)
+            ->where('vtype', '!=', 'ADV')
+            ->whereIn('vdate', $days)
+            ->groupBy('vdate')
+            ->pluck('rev', 'vdate');
+
+        $posByDate = DB::table('sale1')
+            ->selectRaw("vdate, SUM(netamt) as rev")
+            ->where('propertyid', $propertyid)
+            ->whereIn('vdate', $days)
+            ->groupBy('vdate')
+            ->pluck('rev', 'vdate');
+
+        $banquetByDate = DB::table('hallsale1')
+            ->selectRaw("vdate, SUM(netamt) as rev")
+            ->where('propertyid', $propertyid)
+            ->whereIn('vdate', $days)
+            ->groupBy('vdate')
+            ->pluck('rev', 'vdate');
+
+        // Occupied rooms per day: folio open on that date.
+        $occCounts = [];
+        foreach ($days as $d) {
+            $occCounts[$d] = DB::table('roomocc')
+                ->where('propertyid', $propertyid)
+                ->whereNull('type')
+                ->whereDate('chkindate', '<=', $d)
+                ->where(function ($q) use ($d) {
+                    $q->whereNull('depdate')->orWhereDate('depdate', '>', $d);
+                })
+                ->distinct('roomno')
+                ->count('roomno');
+        }
+
+        $weekly = [];
+        foreach ($days as $d) {
+            $rev = (float) ($revenueByDate[$d] ?? 0) + (float) ($posByDate[$d] ?? 0) + (float) ($banquetByDate[$d] ?? 0);
+            $occ = (int) ($occCounts[$d] ?? 0);
+            $weekly[] = [
+                'label'     => date('d M', strtotime($d)),
+                'revenue'   => round($rev),
+                'occupancy' => $totalRooms > 0 ? round($occ / $totalRooms * 100) : 0,
+                'adr'       => $occ > 0 ? round($rev / $occ) : 0,
+                'revpar'    => round($rev / $totalRooms),
+            ];
+        }
+
+        // Today's summary numbers.
+        $today = end($days);
+        $inhouseGuests = DB::table('roomocc')
+            ->where('propertyid', $propertyid)
+            ->whereNull('type')
+            ->selectRaw('SUM(COALESCE(adult,0) + COALESCE(children,0)) as g')
+            ->value('g');
+
+        $todayRev = end($weekly)['revenue'];
+        $todayOcc = (int) ($occCounts[$today] ?? 0);
+
+        return [
+            'todaySummary' => [
+                'checkIn'       => DB::table('roomocc')->where('propertyid', $propertyid)->where('type', '!=', 'C')->whereDate('chkindate', $today)->count(),
+                'checkOut'      => DB::table('roomocc')->where('propertyid', $propertyid)->where('type', 'O')->whereDate('chkoutdate', $today)->count(),
+                'inhouseGuests' => (int) $inhouseGuests,
+                'totalRevenue'  => $todayRev,
+                'adr'           => $todayOcc > 0 ? round($todayRev / $todayOcc) : 0,
+                'revpar'        => round($todayRev / $totalRooms),
+            ],
+            'weekly' => $weekly,
+        ];
+    }
+
     // Get Events
     public function getevents($fromDate, $propertyId)
     {

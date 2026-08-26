@@ -73,14 +73,14 @@ class ChannelPush extends Controller
             ->limit(20)
             ->get();
 
-        // Get channel-derived pricing
+        // Get channel-derived pricing (table has no cat_code — newest first)
         $derived = ChannelDerived::where('propertyid', $propertyid)
-            ->orderBy('cat_code')
+            ->orderByDesc('vdate')
             ->get();
 
-        // Get channel rates
+        // Get channel rates (same shape as derived — newest first)
         $rates = ChannelRate::where('propertyid', $propertyid)
-            ->orderBy('cat_code')
+            ->orderByDesc('vdate')
             ->get();
 
         // Count today's channel bookings
