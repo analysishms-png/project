@@ -92,18 +92,20 @@ class LoginController extends Controller
         }
 
 
-        $envgeneral = EnviroGeneral::where('propertyid', $userWithEmail->propertyid)->first();
-
-        if ($envgeneral && $envgeneral->expdate && $envgeneral->propertyid != 103) {
-            $expdate = Crypt::decryptString($envgeneral->expdate);
-            $ncurdate = $envgeneral->ncur;
-
-            if ($expdate < $ncurdate) {
-                return back()->withErrors(['u_name' => 'Your account is expired. Please contact your software vendor.']);
-            }
-        }
-
-        // exit;
+        // ═══════════════════════════════════════════════════════════════════
+        // EXPIRY CHECK DISABLED — serial key / license expiry enforcement
+        // removed. All properties can now login regardless of expdate.
+        // Previously: decrypted enviro_general.expdate and compared against ncur.
+        // To re-enable, uncomment the block below.
+        // ═══════════════════════════════════════════════════════════════════
+        // $envgeneral = EnviroGeneral::where('propertyid', $userWithEmail->propertyid)->first();
+        // if ($envgeneral && $envgeneral->expdate && $envgeneral->propertyid != 103) {
+        //     $expdate = Crypt::decryptString($envgeneral->expdate);
+        //     $ncurdate = $envgeneral->ncur;
+        //     if ($expdate < $ncurdate) {
+        //         return back()->withErrors(['u_name' => 'Your account is expired. Please contact your software vendor.']);
+        //     }
+        // }
 
         // if ($userWithEmail->status != 1) {
         //     return back()->withErrors(['u_name' => 'Account is not active'])->withInput();
