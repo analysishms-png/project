@@ -745,7 +745,7 @@ class Banquet extends Controller
     public function performaInvoice(Request $request)
     {
         $banquet_edit_date = EnviroBanquet::where('propertyid', $this->propertyid)->first('banquet_edit_date');
-        $oldBill = Hallsale1Est::where('propertyid', $this->propertyid)->get();
+        $oldBill = Hallsale1Est::where('propertyid', $this->propertyid)->limit(500)->get();
         $readonly = ($banquet_edit_date->banquet_edit_date === 1) ? 'readonly' : '';
         return view('property.performainvoice', compact('oldBill', 'readonly'));
     }

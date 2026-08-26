@@ -450,7 +450,7 @@ class HouseKeeping extends Controller
             ->distinct() // Ensure unique entries
             ->get();
 
-        $data = UpdateLog::orderBy('u_entdt', 'DESC')->get();
+        $data = UpdateLog::orderBy('u_entdt', 'DESC')->limit(1000)->get();
 
         return view('admin.updatelogform', compact('data', 'mainMenus'));
     }    public function submitupdatelogform(Request $request)

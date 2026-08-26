@@ -858,6 +858,7 @@ class InventoryController extends Controller
             ->orderByDesc('purch1.vdate')
             ->orderByDesc('purch1.vtype')
             ->orderByDesc('purch1.vno')
+            ->limit(500)
             ->get();
 
         $maxvno = Gin::where('propertyid', $this->propertyid)->max('vno');
@@ -906,6 +907,7 @@ class InventoryController extends Controller
             ->where('stock.contradocid', '')
             ->where('gin.vtype', 'MRCH')
             ->groupBy('stock.docid')
+            ->limit(500)
             ->get();
 
         // return $sundrytype;

@@ -1,6 +1,6 @@
 # Analysis HMS — Next Task
 
-> Last updated: 2026-08-21
+> Last updated: 2026-08-26
 
 ---
 
@@ -14,6 +14,39 @@
 | **P0 Bugs** | All fixed ✅ |
 | **P1 Bugs** | All fixed ✅ |
 | **Data Seeding** | Complete ✅ |
+| **Test Suite** | 201 tests / 437 assertions / ALL PASS ✅ |
+
+## COMPLETED TODAY (2026-08-26)
+
+### Performance & Architecture
+
+1. ✅ **N+1 Query Fixes** — Reporting.php 4 critical hotspots eliminated
+   - `fetchposreportdata`: 300+ queries → 3 batch queries (nested foreach → single GROUP BY)
+   - `fetchstddayreportdata`: 50+ queries → 1 batch query (per-company sum → GROUP BY)
+   - `amrmorningreportfetch`: 10 queries → 1 batch query (per-type count → GROUP BY)
+   - `fetchoccupancyvsrevenuedata`: 200+ queries → 2 batch queries (per-room paycharge → GROUP BY + map)
+
+2. ✅ **Unbounded Query Safety Limits** — 7 high-risk queries capped
+   - CompanyController: roomocc queries → limit(500)
+   - InventoryController: purch1/gin queries → limit(500)
+   - Banquet: Hallsale1Est → limit(500)
+   - HouseKeeping: UpdateLog → limit(1000)
+
+### Testing
+
+3. ✅ **Financial Unit Tests** — HelpersTest expanded from 33 to 47 tests
+   - calculateRoundOff: 10 new tests (all 3 modes + edge cases)
+   - amountToWords: 6 new tests (thousands, millions, decimals, etc.)
+   - calculateTax: 2 edge-case tests
+   - formatCurrency: 2 edge-case tests
+
+4. ✅ **POS Billing Flow Tests** — 17 tests / 46 assertions (new)
+   - Table structure, seed data, FK integrity, column validation
+   - Aggregate query patterns, payment & delete flag integrity
+
+5. ✅ **Reservation Flow Tests** — 19 tests / 38 assertions (new)
+   - Room master, occupancy, reservation tables, plan masters
+   - Check-in/check-out queries, paycharge folio integrity
 
 ## COMPLETED TODAY (2026-08-21)
 

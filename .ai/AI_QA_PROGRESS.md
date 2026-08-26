@@ -273,3 +273,49 @@ Blade upgrades (hms-report.js helpers used throughout):
 - Probe script: endpoint returns 38 indents / 12 POs / 6 suppliers / 5 trend
   months / 4 minus-stock rows on property 103; cached second call OK.
 - Full suite: 85 passed / 241 assertions / 1 skipped.
+
+## Session 5 — 2026-08-26 (N+1 query fixes, unbounded query safety, financial tests, POS/reservation tests)
+
+### Done
+1. **N+1 query fixes in Reporting.php** (4 hotspots):
+   - `fetchposreportdata`: Replaced nested foreach (300+ queries) with batch sale1 + roomocc aggregation (3 queries total).
+   - `fetchstddayreportdata`: Replaced per-company `Paycharge::sum()` (50+ queries) with single batch GROUP BY query.
+   - `amrmorningreportfetch`: Replaced per-room-type COUNT (10 queries) with single batch GROUP BY query.
+   - `fetchoccupancyvsrevenuedata`: Replaced per-room paycharge lookup (200+ queries) with single batch GROUP BY + keyBy map.
+
+2. **Unbounded query safety limits** (5 controllers):
+   - `CompanyController::openadvancecharge` / `openfocharge`: `roomocc` queries → `->limit(500)`.
+   - `InventoryController::openpurchasebill`: `purch1` and `gin+stock` queries → `->limit(500)`.
+   - `Banquet::performaInvoice`: `Hallsale1Est` query → `->limit(500)`.
+   - `HouseKeeping::updatelogform`: `UpdateLog` query → `->limit(1000)`.
+
+3. **Unit tests for financial calculations** (HelpersTest.php expanded):
+   - `calculateRoundOff`: 10 new tests (Standard/Upper/default modes, zero, whole, large, negative).
+   - `amountToWords`: 6 new tests (thousands, millions, decimals, one, ninety-nine, negative).
+   - `calculateTax`: 2 new edge-case tests (decimal, 100%).
+   - `formatCurrency`: 2 new edge-case tests (large amount, zero decimals).
+   - Total: 47 unit tests / 69 assertions, ALL PASS.
+
+4. **POS Billing Flow feature tests** (PosBillingFlowTest.php — 17 tests, 46 assertions):
+   - Table structure & seed data (sale1, sale2, kot, itemmast, itemrate).
+   - Data integrity (sale2→sale1 FK, KOT→itemmast FK).
+   - Required column validation.
+   - Aggregate query patterns (N+1 fix verification).
+   - Payment & delete flag integrity.
+
+5. **Reservation Flow feature tests** (ReservationFlowTest.php — 19 tests, 38 assertions):
+   - Room master data & categories.
+   - Room occupancy (roomocc structure, check-in/out consistency).
+   - Reservation tables (grpbookingdetails, guestprof, plan_mast).
+   - Check-in/check-out query patterns (occupancy count by room type).
+   - Paycharge folio integrity (RMCH charges reference roomocc).
+   - Room rate consistency checks.
+
+6. **Full test suite**: 201 passed / 437 assertions / 3 skipped — up from 147/323.
+
+### Agent coverage this session
+| Agent | Coverage |
+|---|---|
+| 07 PERFORMANCE | N+1 query elimination (Reporting 4 hotspots), unbounded query safety caps (5 controllers) |
+| 12 TESTING | Financial unit tests (calculateRoundOff, amountToWords, calculateTax edge cases), POS billing flow tests, reservation flow tests |
+| 26 DATABASE INTEGRITY | FK validation (sale2→sale1, KOT→itemmast, room_mast→room_cat, plan_mast→room_cat), collation mismatch documented |

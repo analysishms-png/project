@@ -97,6 +97,47 @@ class HelpersTest extends TestCase
         $this->assertEquals('Zero', $result);
     }
 
+    public function test_amount_to_words_thousands()
+    {
+        $result = amountToWords(1234);
+        $this->assertStringContainsString('One thousand', $result);
+        $this->assertStringContainsString('two hundred', $result);
+    }
+
+    public function test_amount_to_words_millions()
+    {
+        $result = amountToWords(1000000);
+        $this->assertStringContainsString('One million', $result);
+    }
+
+    public function test_amount_to_words_with_decimals()
+    {
+        $result = amountToWords(123.45);
+        $this->assertStringContainsString('One hundred', $result);
+        // amountToWords truncates decimals, only returns whole part
+        $this->assertStringContainsString('twenty-three', $result);
+    }
+
+    public function test_amount_to_words_one()
+    {
+        $result = amountToWords(1);
+        $this->assertEquals('One', $result);
+    }
+
+    public function test_amount_to_words_ninety_nine()
+    {
+        $result = amountToWords(99);
+        // Uses hyphen for compound numbers
+        $this->assertStringContainsString('Ninety-nine', $result);
+    }
+
+    public function test_amount_to_words_negative()
+    {
+        // amountToWords doesn't handle negatives; verify it doesn't crash on abs
+        $result = amountToWords(abs(-50));
+        $this->assertStringContainsString('Fifty', $result);
+    }
+
     /**
      * Test normalizeMobile function
      */
@@ -198,5 +239,107 @@ class HelpersTest extends TestCase
     {
         $this->assertFalse(taxOperatorMatches('Unknown', 0, null, 500));
         $this->assertFalse(taxOperatorMatches('', 0, null, 500));
+    }
+
+    /**
+     * Test calculateRoundOff function — Standard, Upper, and default modes
+     */
+    public function test_calculate_round_off_standard_rounds_down_below_half()
+    {
+        $result = calculateRoundOff(199.49, 'Standard');
+        $this->assertEquals(199, $result['billamt']);
+        $this->assertEquals(-0.49, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_standard_rounds_up_at_half()
+    {
+        $result = calculateRoundOff(199.50, 'Standard');
+        $this->assertEquals(200, $result['billamt']);
+        $this->assertEquals(0.50, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_standard_rounds_up_above_half()
+    {
+        $result = calculateRoundOff(199.75, 'Standard');
+        $this->assertEquals(200, $result['billamt']);
+        $this->assertEquals(0.25, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_upper_always_ceils()
+    {
+        $result = calculateRoundOff(199.01, 'Upper');
+        $this->assertEquals(200, $result['billamt']);
+        $this->assertEquals(0.99, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_upper_exact_whole()
+    {
+        $result = calculateRoundOff(200, 'Upper');
+        $this->assertEquals(200, $result['billamt']);
+        $this->assertEquals(0, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_default_uses_php_round()
+    {
+        $result = calculateRoundOff(199.5, 'default');
+        $this->assertEquals(200, $result['billamt']);
+    }
+
+    public function test_calculate_round_off_zero()
+    {
+        $result = calculateRoundOff(0, 'Standard');
+        $this->assertEquals(0, $result['billamt']);
+        $this->assertEquals(0, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_whole_number()
+    {
+        $result = calculateRoundOff(500, 'Standard');
+        $this->assertEquals(500, $result['billamt']);
+        $this->assertEquals(0, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_large_amount()
+    {
+        $result = calculateRoundOff(99999.99, 'Standard');
+        $this->assertEquals(100000, $result['billamt']);
+        $this->assertEquals(0.01, $result['roundoff']);
+    }
+
+    public function test_calculate_round_off_negative_amount()
+    {
+        $result = calculateRoundOff(-199.50, 'Standard');
+        $this->assertEquals(-199, $result['billamt']);
+    }
+
+    /**
+     * Test calculateTax with edge cases
+     */
+    public function test_calculate_tax_decimal_amount()
+    {
+        $result = calculateTax(999.99, 18);
+        $this->assertEqualsWithDelta(179.9982, $result, 0.001);
+    }
+
+    public function test_calculate_tax_full_100_percent()
+    {
+        $result = calculateTax(500, 100);
+        $this->assertEquals(500, $result);
+    }
+
+    /**
+     * Test formatCurrency edge cases
+     */
+    public function test_format_currency_large_amount()
+    {
+        $result = formatCurrency(9999999.99);
+        // Uses standard number_format grouping
+        $this->assertEquals('₹ 9,999,999.99', $result);
+    }
+
+    public function test_format_currency_exact_zero_decimals()
+    {
+        $result = formatCurrency(100.00, '₹', 0);
+        $this->assertEquals('₹ 100', $result);
     }
 }

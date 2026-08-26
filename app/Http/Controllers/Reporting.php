@@ -5698,52 +5698,64 @@ class Reporting extends Controller
       }
 
       $outlets = \App\Helpers\MasterDataCache::outlets($propertyId, true);
+
+      // Batch fetch all sale1 aggregates in one query instead of per-day per-outlet
+      $saleDates = array_column($data->toArray(), 'vdate');
+      $saleAggregates = DB::table('sale1')
+         ->selectRaw('vdate, restcode, SUM(total) - SUM(discamt) AS net_sum')
+         ->where('propertyid', $this->propertyid)
+         ->whereIn('vdate', $saleDates)
+         ->where('delflag', 'N')
+         ->groupBy('vdate', 'restcode')
+         ->get()
+         ->keyBy(function ($r) { return $r->vdate . '|' . $r->restcode; });
+
+      // Batch fetch all room occupancy aggregates in one query instead of per-day
+      $paycode = 'RMCH' . $this->propertyid;
+      $groupColumn = 'folionodocid';
+      $roomOccAggregates = DB::table('paycharge')
+         ->selectRaw('vdate, folionodocid, SUM(adult) AS adult, SUM(children) AS children')
+         ->where('propertyid', $this->propertyid)
+         ->whereIn('vdate', $saleDates)
+         ->where('paycode', $paycode)
+         ->groupBy('vdate', $groupColumn)
+         ->get()
+         ->groupBy('vdate');
+
+      // Map docids to roomocc data in one query
+      $allDocIds = $roomOccAggregates->flatten()->pluck('folionodocid')->unique()->values()->toArray();
+      $roomOccData = DB::table('roomocc')
+         ->selectRaw('docid, SUM(adult) AS adult, SUM(children) AS children')
+         ->whereIn('docid', $allDocIds)
+         ->where('type', '!=', 'C')
+         ->groupBy('docid')
+         ->get()
+         ->keyBy('docid');
+
       foreach ($data as $row) {
          $vdate = $row->vdate;
 
          foreach ($outlets as $outlet) {
             $shortName = strtolower($outlet->short_name);
             $restcode = $outlet->dcode;
-
-            $result = DB::table('sale1')
-               ->selectRaw('SUM(total) AS total_sum, SUM(discamt) AS discamt_sum')
-               ->where('propertyid', $this->propertyid)
-               ->where('restcode', $restcode)
-               ->where('vdate', $vdate)
-               ->where('delflag', 'N')
-               ->first();
-
-            $totalSum = $result->total_sum;
-            $discamtSum = $result->discamt_sum;
-            $row->$shortName = $totalSum - $discamtSum;
+            $key = $vdate . '|' . $restcode;
+            $row->$shortName = $saleAggregates->has($key) ? $saleAggregates[$key]->net_sum : 0;
          }
 
-         $paycode = 'RMCH' . $this->propertyid;
+         $dayDocIds = $roomOccAggregates->has($vdate)
+            ? $roomOccAggregates[$vdate]->pluck('folionodocid')->toArray()
+            : [];
 
-         // $groupColumn = Paycharge::where('propertyid', $this->propertyid)
-         //    ->where('vdate', $vdate)
-         //    ->where('paycode', $paycode)
-         //    ->groupBy('relatedfolionodocid')
-         //    ->exists() ? 'relatedfolionodocid' : 'folionodocid';
-
-         $groupColumn = 'folionodocid';
-
-         $folioDocIds = DB::table('paycharge')
-            ->where('propertyid', $this->propertyid)
-            ->where('vdate', $vdate)
-            ->where('paycode', $paycode)
-            ->groupBy($groupColumn)
-            ->pluck($groupColumn)
-            ->toArray();
-
-         $roomOccQuery = DB::table('roomocc')
-            ->whereIn('docid', $folioDocIds)
-            ->where(function ($query) {
-               $query->where('type', '!=', 'C');
-            });
-
-         $row->adult = $roomOccQuery->sum('adult') ?? 0;
-         $row->children = $roomOccQuery->sum('children') ?? 0;
+         $totalAdult = 0;
+         $totalChildren = 0;
+         foreach ($dayDocIds as $docid) {
+            if (isset($roomOccData[$docid])) {
+               $totalAdult += $roomOccData[$docid]->adult;
+               $totalChildren += $roomOccData[$docid]->children;
+            }
+         }
+         $row->adult = $totalAdult;
+         $row->children = $totalChildren;
       }
 
       return response()->json([
@@ -5833,11 +5845,18 @@ class Reporting extends Controller
          ->orderBy('sg.name')
          ->get();
 
+      // Batch fetch all revenue sums in one query instead of per-company
+      $compCodes = $data->pluck('compcode')->filter()->values()->toArray();
+      $revenueMap = Paycharge::where('propertyid', $this->propertyid)
+         ->whereIn('comp_code', $compCodes)
+         ->whereBetween('vdate', [$startdate, $enddate])
+         ->groupBy('comp_code')
+         ->selectRaw('comp_code, IFNULL(SUM(amtdr), 0) AS total_revenue')
+         ->get()
+         ->pluck('total_revenue', 'comp_code');
+
       foreach ($data as $row) {
-         $amountsum = Paycharge::where('propertyid', $this->propertyid)->where('comp_code', $row->compcode)
-            ->whereBetween('vdate', [$startdate, $enddate])
-            ->sum('amtdr');
-         $row->revenue = $amountsum;
+         $row->revenue = $revenueMap->get($row->compcode, 0);
       }
 
       return json_encode($data);
@@ -6887,15 +6906,23 @@ class Reporting extends Controller
          ->get(['cat_code', 'name', 'noofrooms']);
 
       $occupancyByType = [];
+      // Batch fetch occupied counts per room category in one query instead of per-type
+      $catCodes = array_column($roomTypes->toArray(), 'cat_code');
+      $occupiedCounts = DB::table('roomocc')
+         ->selectRaw('roomcat, COUNT(*) AS occupied')
+         ->where('propertyid', $propertyid)
+         ->whereNull('type')
+         ->whereIn('roomcat', $catCodes)
+         ->where('chkindate', '<=', $fordate)
+         ->where(function ($q) use ($fordate) {
+            $q->whereNull('chkoutdate')->orWhere('chkoutdate', '>', $fordate);
+         })
+         ->groupBy('roomcat')
+         ->get()
+         ->pluck('occupied', 'roomcat');
+
       foreach ($roomTypes as $rt) {
-         $occupied = DB::table('roomocc')
-            ->where('propertyid', $propertyid)
-            ->whereNull('type')
-            ->where('roomcat', $rt->cat_code)
-            ->where('chkindate', '<=', $fordate)
-            ->where(function ($q) use ($fordate) {
-               $q->whereNull('chkoutdate')->orWhere('chkoutdate', '>', $fordate);
-            })->count();
+         $occupied = $occupiedCounts->get($rt->cat_code, 0);
          $total = (int) ($rt->noofrooms ?? 0);
          $occupancyByType[] = [
             'category' => $rt->name,
@@ -7564,6 +7591,17 @@ class Reporting extends Controller
          ->get();
 
       $result = [];
+      // Batch fetch all RC/REV charges for all rooms in one query instead of per-room
+      $roomKeys = $rooms->map(function ($r) { return (object)['docid' => $r->docid, 'sno1' => $r->sno1]; });
+      $allCharges = DB::table('paycharge')
+         ->selectRaw('folionodocid, sno1, IFNULL(SUM(amtdr - amtcr), 0) AS total')
+         ->where('propertyid', $propertyid)
+         ->whereIn('vtype', ['RC', 'REV'])
+         ->whereBetween('vdate', [$fromdate, $todate])
+         ->groupBy('folionodocid', 'sno1')
+         ->get()
+         ->keyBy(function ($r) { return $r->folionodocid . '|' . $r->sno1; });
+
       foreach ($rooms as $room) {
          // Compute nights in the selected period
          $arrive     = max($room->chkindate, $fromdate);
@@ -7574,18 +7612,12 @@ class Reporting extends Controller
          $nights     = max(1, (int) (strtotime($depart) - strtotime($arrive)) / 86400 + 1);
          $expected   = $room->roomrate * $nights;
 
-         // Sum actual RC charges posted for this folio in the period
-         $actualRC = DB::table('paycharge')
-            ->selectRaw('SUM(amtdr-amtcr) AS total')
-            ->where('propertyid', $propertyid)
-            ->where('folionodocid', $room->docid)
-            ->where('sno1', $room->sno1)
-            ->whereIn('vtype', ['RC', 'REV'])
-            ->whereBetween('vdate', [$fromdate, $todate])
-            ->value('total') ?? 0;
+         // Lookup pre-fetched actual RC charges
+         $chargeKey = $room->docid . '|' . $room->sno1;
+         $actualRC = $allCharges->has($chargeKey) ? $allCharges[$chargeKey]->total : 0;
 
          $variance = (float) $actualRC - $expected;
-         $flag = abs($variance) > 0.01 ? 'Ã¢Å¡Â Ã¯Â¸Â' : 'Ã¢Å“â€¦';
+         $flag = abs($variance) > 0.01 ? 'Ã¢Å¡Â Ã¯Â¸Â' : 'Ã¢Å"â€¦';
 
          $result[] = [
             'RoomNo'     => $room->roomno,

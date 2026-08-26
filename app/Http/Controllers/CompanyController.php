@@ -17240,7 +17240,7 @@ class CompanyController extends Controller
             ->distinct()
             ->get();
         $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
-        $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->get();
+        $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->limit(500)->get();
 
         $ncurdate = $this->ncurdate;
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
@@ -17789,7 +17789,7 @@ class CompanyController extends Controller
             ->get();
 
         $company = \App\Helpers\MasterDataCache::companiesAndAgents($this->propertyid);
-        $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->get();
+        $restrooms = DB::table('roomocc')->where('propertyid', $this->propertyid)->whereNot('roomno', $roomoccdata->roomno)->where('type', null)->limit(500)->get();
 
         $ncurdate = $this->ncurdate;
         $companydata = DB::table('company')->where('propertyid', $this->propertyid)->first();
