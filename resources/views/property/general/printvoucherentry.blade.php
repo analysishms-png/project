@@ -145,7 +145,7 @@
             </div>
 
             <div class="col-3">
-                <div style="height:40px;"><b>{{ strtoupper($data->first()->u_name) ?? '' }}</b></div>
+                <div style="height:40px;"><b>{{ strtoupper($data->first()->u_name ?? '') }}</b></div>
                 <div class="border-top pt-1">Prepared By</div>
             </div>
 

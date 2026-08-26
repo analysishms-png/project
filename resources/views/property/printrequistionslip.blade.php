@@ -250,28 +250,31 @@
     </div>
 
         <!-- Requisition Details -->
+        @php $row = $requisitionData->first(); @endphp
+        @if($row)
         <div class="details">
             <table>
                 <tr>
                     <td>Requisition No:</td>
-                    <td>{{ $requisitionData->first()->SlipNo }}</td>
+                    <td>{{ $row->SlipNo }}</td>
                     <td>Date:</td>
-                    <td>{{ date('d/M/y H:i', strtotime($requisitionData->first()->vdate . ' ' . $requisitionData->first()->vtime)) }}</td>
+                    <td>{{ date('d/M/y H:i', strtotime($row->vdate . ' ' . $row->vtime)) }}</td>
                 </tr>
                 <tr>
                     <td>To:</td>
-                    <td>{{ $requisitionData->first()->Location }}</td>
+                    <td>{{ $row->Location }}</td>
                     <td>From:</td>
-                    <td>{{ $requisitionData->first()->Godown }}</td>
+                    <td>{{ $row->Godown }}</td>
                 </tr>
-                @if($requisitionData->first()->Remark)
+                @if($row->Remark)
                 <tr>
                     <td>Remarks:</td>
-                    <td colspan="3">{{ $requisitionData->first()->Remark }}</td>
+                    <td colspan="3">{{ $row->Remark }}</td>
                 </tr>
                 @endif
             </table>
         </div>
+        @endif
 
         <!-- Items Table -->
         <table class="items-table">

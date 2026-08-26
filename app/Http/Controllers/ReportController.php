@@ -302,9 +302,9 @@ class ReportController extends Controller
             ->where('S.restcode', 'BANQ' . $propertyid)
             ->where('S.propertyid', $propertyid)
             ->whereBetween('VO.fromdate', [
-                DB::raw("STR_TO_DATE('$fromdate', '%Y-%m-%d')"),
-                DB::raw("STR_TO_DATE('$todate', '%Y-%m-%d')")
-            ])
+                DB::raw("STR_TO_DATE(?, '%Y-%m-%d')"),
+                DB::raw("STR_TO_DATE(?, '%Y-%m-%d')")
+            ], [$fromdate, $todate])
             ->orderBy('VO.fromdate')
             ->orderBy('VO.dromtime');
 
@@ -343,9 +343,9 @@ class ReportController extends Controller
                     ->where('propertyid', $propertyid);
             })
             ->whereBetween('VO.fromdate', [
-                DB::raw("STR_TO_DATE('$fromdate', '%Y-%m-%d')"),
-                DB::raw("STR_TO_DATE('$todate', '%Y-%m-%d')")
-            ])
+                DB::raw("STR_TO_DATE(?, '%Y-%m-%d')"),
+                DB::raw("STR_TO_DATE(?, '%Y-%m-%d')")
+            ], [$fromdate, $todate])
             ->orderBy('VO.fromdate')
             ->orderBy('VO.dromtime');
 
@@ -387,9 +387,9 @@ class ReportController extends Controller
             ->where('S.propertyid', $propertyid)
             ->where('PH.sno', 1)
             ->whereBetween('VO.fromdate', [
-                DB::raw("STR_TO_DATE('$fromdate', '%Y-%m-%d')"),
-                DB::raw("STR_TO_DATE('$todate', '%Y-%m-%d')")
-            ])
+                DB::raw("STR_TO_DATE(?, '%Y-%m-%d')"),
+                DB::raw("STR_TO_DATE(?, '%Y-%m-%d')")
+            ], [$fromdate, $todate])
             // ->orderBy('VO.fromdate')
             // ->orderBy('VO.dromtime');
             ->orderBy('PH.vdate')

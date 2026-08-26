@@ -255,17 +255,18 @@ class DatabaseBackupController extends Controller
         $filename = "backup_{$dbName}_{$timestamp}.sql";
         $filepath = $this->backupPath . '/' . $filename;
 
-        $tables = DB::select("SHOW TABLES FROM {$dbName}");
+        $tables = DB::select("SHOW TABLES FROM `" . str_replace('`', '', $dbName) . "`");
         $sql = "-- Analysis HMS Backup\n-- Database: {$dbName}\n-- Date: " . date('Y-m-d H:i:s') . "\n\n";
         $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
         foreach ($tables as $table) {
             $tableName = reset($table);
-            $sql .= "DROP TABLE IF EXISTS `{$tableName}`;\n";
-            $create = DB::select("SHOW CREATE TABLE {$tableName}");
+            $safeName = str_replace('`', '', $tableName);
+            $sql .= "DROP TABLE IF EXISTS `{$safeName}`;\n";
+            $create = DB::select("SHOW CREATE TABLE `{$safeName}`");
             $sql .= $create[0]->{'Create Table'} . ";\n\n";
 
-            $rows = DB::select("SELECT * FROM {$tableName}");
+            $rows = DB::select("SELECT * FROM `{$safeName}`");
             foreach ($rows as $row) {
                 $values = array_map(function ($v) { return $v === null ? 'NULL' : "'" . addslashes($v) . "'"; }, (array) $row);
                 $sql .= "INSERT INTO `{$tableName}` VALUES(" . implode(',', $values) . ");\n";

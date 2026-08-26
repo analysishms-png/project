@@ -242,28 +242,31 @@
     </div>
 
         <!-- Stock Issue Details -->
+        @php $row = $stockIssueData->first(); @endphp
+        @if($row)
         <div class="details">
             <table>
                 <tr>
                     <td>Issue No:</td>
-                    <td>{{ $stockIssueData->first()->IssueNo }}</td>
+                    <td>{{ $row->IssueNo }}</td>
                     <td>Date:</td>
-                    <td>{{ date('d/M/y H:i', strtotime($stockIssueData->first()->IssueDate . ' ' . $stockIssueData->first()->vtime)) }}</td>
+                    <td>{{ date('d/M/y H:i', strtotime($row->IssueDate . ' ' . $row->vtime)) }}</td>
                 </tr>
                 <tr>
                     <td>From Godown:</td>
-                    <td>{{ $stockIssueData->first()->FromGodown }}</td>
+                    <td>{{ $row->FromGodown }}</td>
                     <td>To Location:</td>
-                    <td>{{ $stockIssueData->first()->ToLocation }}</td>
+                    <td>{{ $row->ToLocation }}</td>
                 </tr>
-                @if($stockIssueData->first()->Remark)
+                @if($row->Remark)
                 <tr>
                     <td>Remarks:</td>
-                    <td colspan="3">{{ $stockIssueData->first()->Remark }}</td>
+                    <td colspan="3">{{ $row->Remark }}</td>
                 </tr>
                 @endif
             </table>
         </div>
+        @endif
 
         <!-- Items Table -->
         <table class="items-table">

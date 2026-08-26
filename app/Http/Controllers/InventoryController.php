@@ -2230,8 +2230,8 @@ class InventoryController extends Controller
                 ->get();
 
             $sundrycount = $sundrytypes->count();
-            $firstsno = $sundrytypes->first()->sno ?? null;
-            $lastsno = $sundrytypes->last()->sno ?? null;
+            $firstsno = $sundrytypes->isNotEmpty() ? $sundrytypes->first()->sno : null;
+            $lastsno = $sundrytypes->isNotEmpty() ? $sundrytypes->last()->sno : null;
 
             $inputData = [
                 'discount' => [
