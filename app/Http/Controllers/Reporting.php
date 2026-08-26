@@ -332,19 +332,26 @@ class Reporting extends Controller
          ->where('paycharge.vprefix', $vprefix)
          ->where('paycharge.propertyid', $this->propertyid)->where('paycharge.folionodocid', $docid)
          ->where('paycharge.modeset', 'S')->whereNot('paycharge.vtype', 'REV')->get();
+      // Batch-fetch SubGroup names for Company pay types (avoids N+1)
+      $companyCodes = $paymode->where('pay_type', 'Company')->pluck('comp_code')->filter()->unique()->values()->all();
+      $subgroupNames = [];
+      if ($companyCodes) {
+         $subgroupNames = SubGroup::where('propertyid', $this->propertyid)
+            ->whereIn('sub_code', $companyCodes)
+            ->pluck('name', 'sub_code')
+            ->toArray();
+      }
       $paymodedata = [];
       foreach ($paymode as $row) {
          $pay_type = $row->pay_type;
-         $paydata = null;
+         $paycompname = null;
          if ($pay_type == 'Company') {
-            $paydata = SubGroup::where('propertyid', $this->propertyid)
-               ->where('sub_code', $row->comp_code)
-               ->first();
+            $paycompname = $subgroupNames[$row->comp_code] ?? null;
          }
 
          $paymodedata[] = [
             'pay_type' => $pay_type,
-            'paycompname' => ($paydata) ? $paydata->name : null
+            'paycompname' => $paycompname
          ];
       }
 
@@ -1918,21 +1925,28 @@ class Reporting extends Controller
 
       $paymode = $paymodeQuery->get();
 
+      // Batch-fetch SubGroup names (avoids N+1)
+      $companyCodes = $paymode->where('pay_type', 'Company')->pluck('comp_code')->filter()->unique()->values()->all();
+      $subgroupNames = [];
+      if ($companyCodes) {
+         $subgroupNames = SubGroup::where('propertyid', $this->propertyid)
+            ->whereIn('sub_code', $companyCodes)
+            ->pluck('name', 'sub_code')
+            ->toArray();
+      }
       $paymodedata = [];
       foreach ($paymode as $row) {
          $pay_type = $row->pay_type;
          $paydate = $row->vdate;
-         $paydata = null;
+         $paycompname = null;
          if ($pay_type == 'Company') {
-            $paydata = SubGroup::where('propertyid', $this->propertyid)
-               ->where('sub_code', $row->comp_code)
-               ->first();
+            $paycompname = $subgroupNames[$row->comp_code] ?? null;
          }
 
          $paymodedata[] = [
             'pay_type' => $pay_type,
             'paydate' => $paydate,
-            'paycompname' => ($paydata) ? $paydata->name : null
+            'paycompname' => $paycompname
          ];
       }
 

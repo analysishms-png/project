@@ -2156,9 +2156,12 @@ class CompanyController extends Controller
             return back()->with('error', 'Room Has Been Changed Unable TO Delete It!');
         }
 
-        $profileimage = DB::table('guestprof')->where('docid', $docid)->where('propertyid', $this->propertyid)->value('pic_path');
-        $guestsign = DB::table('guestprof')->where('docid', $docid)->where('propertyid', $this->propertyid)->value('guestsign');
-        $identityimage = DB::table('guestprof')->where('docid', $docid)->where('propertyid', $this->propertyid)->value('idpic_path');
+        // Single query instead of 3 separate queries for the same docid
+        $guestprof = DB::table('guestprof')->where('docid', $docid)->where('propertyid', $this->propertyid)
+            ->select('pic_path', 'guestsign', 'idpic_path')->first();
+        $profileimage = $guestprof->pic_path ?? null;
+        $guestsign = $guestprof->guestsign ?? null;
+        $identityimage = $guestprof->idpic_path ?? null;
         if (!empty($profileimage)) {
             $folderPathp = storage_path('app/public/walkin/profileimage/' . $profileimage);
             if (file_exists($folderPathp)) {
@@ -2203,8 +2206,10 @@ class CompanyController extends Controller
         if (isset($advancepayment)) {
             return back()->with('error', 'Error! - Advance already deposited');
         }
-        $profileimage = DB::table('guestprof')->where('docid', $DocId)->where('propertyid', $this->propertyid)->value('pic_path');
-        $identityimage = DB::table('guestprof')->where('docid', $DocId)->where('propertyid', $this->propertyid)->value('idpic_path');
+        $guestprof = DB::table('guestprof')->where('docid', $DocId)->where('propertyid', $this->propertyid)
+            ->select('pic_path', 'idpic_path')->first();
+        $profileimage = $guestprof->pic_path ?? null;
+        $identityimage = $guestprof->idpic_path ?? null;
         if (!empty($profileimage)) {
             $folderPathp = storage_path('app/public/walkin/reservationprofilepic/' . $profileimage);
             if (file_exists($folderPathp)) {
